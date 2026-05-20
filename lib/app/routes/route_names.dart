@@ -9,6 +9,8 @@ abstract class RouteNames {
   static const String verifyPhone = '/verify-phone';
   static const String forgotPasscode = '/forgot-passcode';
   static const String resetPasscode = '/reset-passcode';
+  static const String setPasscode = '/set-passcode';
+  static const String preference = '/preference';
 
   // Shell (bottom nav)
   static const String shell = '/app';
@@ -37,4 +39,8 @@ abstract class RouteNames {
   // Settings
   static const String settings = '/settings';
   static const String subscription = '/settings/subscription';
+
+  // Legal
+  static const String termsOfService = '/terms-of-service';
+  static const String privacyPolicy = '/privacy-policy';
 }

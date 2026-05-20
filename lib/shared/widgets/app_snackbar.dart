@@ -128,7 +128,9 @@ class _SnackbarContent extends StatelessWidget {
                 ],
                 Text(
                   message,
-                  style: AppTypography.bodySmall.copyWith(color: AppColors.textSecondary),
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.white.withValues(alpha: 0.75),
+                  ),
                 ),
               ],
             ),

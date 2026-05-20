@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_radius.dart';
+import '../../core/utils/extensions/context_extensions.dart';
 
 class AppSkeleton extends StatefulWidget {
   final double width;
@@ -32,7 +32,8 @@ class AppSkeleton extends StatefulWidget {
   State<AppSkeleton> createState() => _AppSkeletonState();
 }
 
-class _AppSkeletonState extends State<AppSkeleton> with SingleTickerProviderStateMixin {
+class _AppSkeletonState extends State<AppSkeleton>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
 
@@ -65,7 +66,7 @@ class _AppSkeletonState extends State<AppSkeleton> with SingleTickerProviderStat
           width: widget.width,
           height: widget.height,
           decoration: BoxDecoration(
-            color: AppColors.surfaceVariant,
+            color: context.skeletonColor,
             borderRadius: widget.borderRadius ?? AppRadius.radiusInput,
           ),
         ),
@@ -74,7 +75,6 @@ class _AppSkeletonState extends State<AppSkeleton> with SingleTickerProviderStat
   }
 }
 
-// Pre-built skeleton layouts for common patterns
 class SkeletonCard extends StatelessWidget {
   const SkeletonCard({super.key});
 
@@ -83,28 +83,24 @@ class SkeletonCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: context.surfaceColor,
         borderRadius: AppRadius.radiusCard,
       ),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: const Row(
         children: [
-          Row(
-            children: [
-              AppSkeleton.circle(size: 40),
-              SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  AppSkeleton.text(width: 120),
-                  SizedBox(height: 6),
-                  AppSkeleton.text(width: 80, height: 12),
-                ],
-              ),
-              Spacer(),
-              AppSkeleton.text(width: 60),
-            ],
+          AppSkeleton.circle(size: 40),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AppSkeleton.text(width: 120),
+                SizedBox(height: 6),
+                AppSkeleton.text(width: 80, height: 12),
+              ],
+            ),
           ),
+          AppSkeleton.text(width: 60),
         ],
       ),
     );
@@ -121,9 +117,9 @@ class SkeletonTransactionList extends StatelessWidget {
     return Column(
       children: List.generate(
         count,
-        (i) => Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: const SkeletonCard(),
+        (i) => const Padding(
+          padding: EdgeInsets.only(bottom: 12),
+          child: SkeletonCard(),
         ),
       ),
     );
@@ -138,7 +134,7 @@ class SkeletonBalanceCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: AppColors.surfaceVariant,
+        color: context.skeletonColor,
         borderRadius: AppRadius.radiusCardLarge,
       ),
       child: const Column(

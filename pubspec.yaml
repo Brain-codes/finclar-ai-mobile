@@ -38,6 +38,9 @@ dependencies:
   # Icons
   remixicon: ^1.0.1
 
+  # SVG
+  flutter_svg: ^2.0.10+1
+
   # Data Classes
   freezed_annotation: ^2.4.4
   json_annotation: ^4.9.0
@@ -77,11 +80,17 @@ dev_dependencies:
   json_serializable: ^6.8.0
   drift_dev: ^2.21.0
 
+  # App Icon & Native Splash
+  flutter_launcher_icons: ^0.14.3
+  flutter_native_splash: ^2.4.3
+
 flutter:
   uses-material-design: true
   assets:
     - assets/images/
     - assets/icons/
+    - assets/logo/
+    - assets/svg/
   fonts:
     - family: BricolageGrotesque
       fonts:
@@ -91,3 +100,25 @@ flutter:
         - asset: assets/fonts/Geist.ttf
         - asset: assets/fonts/Geist-Italic.ttf
           style: italic
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/logo/icon.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/logo/icon_foreground.png"
+  min_sdk_android: 21
+  web:
+    generate: false
+
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: assets/logo/logo.png
+  android_12:
+    color: "#FFFFFF"
+    image: assets/logo/logo.png
+    icon_background_color: "#FFFFFF"
+  ios: true
+  android: true
+  web: false
+  fullscreen: false

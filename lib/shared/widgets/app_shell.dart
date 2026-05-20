@@ -5,6 +5,7 @@ import '../../app/routes/route_names.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/constants/app_strings.dart';
+import '../../core/utils/extensions/context_extensions.dart';
 
 class AppShell extends StatelessWidget {
   final Widget child;
@@ -33,7 +34,6 @@ class AppShell extends StatelessWidget {
   }
 
   void _onAddTap(BuildContext context) {
-    // TODO: show add bottom sheet
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -66,9 +66,9 @@ class _FinclarBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.white,
-        border: Border(top: BorderSide(color: AppColors.border, width: 1)),
+      decoration: BoxDecoration(
+        color: context.surfaceColor,
+        border: Border(top: BorderSide(color: context.borderColor, width: 1)),
       ),
       child: SafeArea(
         child: SizedBox(
@@ -129,6 +129,8 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final inactiveColor = context.textSecondary;
+
     return Expanded(
       child: InkWell(
         onTap: onTap,
@@ -137,14 +139,14 @@ class _NavItem extends StatelessWidget {
           children: [
             Icon(
               isActive ? activeIcon : icon,
-              color: isActive ? AppColors.primary : AppColors.textSecondary,
+              color: isActive ? AppColors.primary : inactiveColor,
               size: 22,
             ),
             const SizedBox(height: 3),
             Text(
               label,
               style: AppTypography.labelSmall.copyWith(
-                color: isActive ? AppColors.primary : AppColors.textSecondary,
+                color: isActive ? AppColors.primary : inactiveColor,
               ),
             ),
           ],
@@ -187,17 +189,20 @@ class _AddBottomSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: context.surfaceColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: const EdgeInsets.all(24),
-      child: const Column(
+      child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           // TODO: add quick action options (Add Expense, Add Income, etc.)
-          Text('Quick Actions', style: AppTypography.headingSmall),
-          SizedBox(height: 24),
+          Text('Quick Actions',
+              style: AppTypography.headingSmall.copyWith(
+                color: context.textPrimary,
+              )),
+          const SizedBox(height: 24),
         ],
       ),
     );

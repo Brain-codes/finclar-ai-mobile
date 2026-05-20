@@ -94,6 +94,34 @@ This means if the icon package is ever swapped, only `app_icons.dart` changes.
 
 ---
 
+## 4. SVG Rule
+
+**Never import `flutter_svg` or reference SVG path strings directly in feature code.**
+
+All SVGs go through two wrappers:
+
+| Wrapper | Purpose |
+|---|---|
+| `AppSvg` (`lib/shared/svg/app_svg.dart`) | Holds every SVG asset path as a named constant. Single source of truth for paths. |
+| `AppSvgImage` (`lib/shared/widgets/app_svg_image.dart`) | The only widget that renders SVGs. Wraps `SvgPicture` so the package can be swapped without touching feature code. |
+
+```dart
+// CORRECT
+AppSvgImage(AppSvg.google, width: 24, height: 24)
+AppSvgImage(AppSvg.logo, color: context.textPrimary, width: 120)
+
+// WRONG — never do this
+SvgPicture.asset('assets/svg/google.svg')
+import 'package:flutter_svg/flutter_svg.dart'; // in a feature file
+```
+
+Adding a new SVG:
+1. Drop the `.svg` file into `assets/svg/`
+2. Add a `static const String` to `AppSvg` with a semantic name
+3. Use `AppSvgImage(AppSvg.yourName, ...)` everywhere it's rendered
+
+---
+
 ## 4. Logging Rule
 
 **Never use `print`, `debugPrint`, or `Logger` directly in feature code.**
@@ -176,16 +204,25 @@ final appProvider = ...
 - Feature-specific reusable widgets → `features/<feature>/presentation/widgets/`
 - Never copy-paste widget code. Extract it.
 
+### Mandatory shared components — always use these, never inline them
+
+| Component | File | Usage |
+|---|---|---|
+| `AppButton` | `shared/widgets/app_button.dart` | Every button in the app. Pass `label`, `onTap` (null = disabled), `isLoading`, `variant` (`primary`/`secondary`/`outline`/`ghost`), optional `icon`. Never use `ElevatedButton`, `TextButton`, or `GestureDetector`+`Container` for buttons directly. |
+| `AppTextField` | `shared/widgets/app_text_field.dart` | Every text input. Pass `label`, `hint`, `controller`, `errorText`, `onChanged`, etc. Never write a raw `TextField` or `TextFormField` in screen code. |
+| `AppTopBar` | `shared/widgets/app_top_bar.dart` | Every screen top bar that has a back arrow and/or a step label. Pass `onBack`, `stepLabel`, `showBack`. Never inline a Row with a back-arrow GestureDetector. |
+| `AppTextLink` | `shared/widgets/app_text_link.dart` | Inline "prompt + tappable action" pairs (e.g. "Have an account? Login", "Didn't receive code? Resend"). Pass `prompt`, `actionLabel`, `onTap`. Never inline these as a Row of Text + GestureDetector. |
+| `AppScreenHeader` | `shared/widgets/app_screen_header.dart` | Screen title + optional subtitle + optional highlighted text. Pass `title`, `subtitle`, `highlightedText`. Never inline heading + subtitle Text widgets directly. |
+| `AppOtpField` | `shared/widgets/app_otp_field.dart` | OTP and passcode input boxes. |
+| `AppSnackbar` | `shared/widgets/app_snackbar.dart` | Always call via `AppSnackbar.success/error/warning/info(context, message)`. Never use `ScaffoldMessenger` directly. |
+
 Standard shared components to build as needed:
-- `AppButton` — primary, secondary, outline, ghost variants
-- `AppTextField` — consistent input with label, hint, error states
 - `AppCard` — rounded container with shadow
 - `AppLoader` — consistent loading indicator
 - `AppBottomSheet` — base bottom sheet wrapper
 - `AppChip` — tag/badge component
 - `TransactionTile` — reusable transaction list item
 - `AppSkeleton` — shimmer skeleton loader. Use `AppSkeleton`, `AppSkeleton.text`, `AppSkeleton.circle` for individual bones. Pre-built layouts: `SkeletonCard`, `SkeletonTransactionList`, `SkeletonBalanceCard`. Never use a spinner where a skeleton makes more sense.
-- `AppSnackbar` — fully custom snackbar. Always call via `AppSnackbar.success/error/warning/info(context, message)`. Never use `ScaffoldMessenger` directly anywhere in feature code.
 
 ---
 
@@ -193,16 +230,31 @@ Standard shared components to build as needed:
 
 - Use **go_router** exclusively. Never use `Navigator.push` directly.
 - All route paths live in `RouteNames`. Never write a path string outside that file.
-- Use `context.go()` for replacing the current route, `context.push()` for pushing onto the stack.
+
+### Which method to use
+
+| Method | When to use |
+|---|---|
+| `context.push()` | Going forward to a new screen the user should be able to swipe back from. Use between sibling screens (e.g. login ↔ signup) and any screen in a forward flow. |
+| `context.pop()` | Explicitly going back when you know there is something below (e.g. a cancel button). Always guard with `context.canPop()` if there is any doubt. |
+| `context.go()` | One-way exits only — splash → auth, successful auth → home, logout → login. These clear the stack intentionally so the user cannot swipe back. |
 
 ```dart
 // CORRECT
-context.go(RouteNames.home);
-context.push(RouteNames.addExpense);
+context.push(RouteNames.signUp);       // login → signup, swipe-back works
+context.push(RouteNames.login);        // signup → login, swipe-back works
+context.go(RouteNames.home);           // after login — clears auth stack
+if (context.canPop()) context.pop();   // safe explicit back
 
 // WRONG
-Navigator.push(context, MaterialPageRoute(builder: (_) => AddExpenseScreen()));
+context.go(RouteNames.login);          // on a screen the user should swipe back from
+Navigator.push(context, MaterialPageRoute(builder: (_) => SomeScreen()));
 ```
+
+### Swipe-back requirements
+- All routes use `pageBuilder` with `MaterialPage` so iOS gets the native `CupertinoPageRoute` swipe-back gesture automatically.
+- Never use `CustomTransitionPage` for routes that need swipe-back — it breaks the iOS gesture recogniser.
+- `PopScope(canPop: false)` kills the swipe gesture. Only use it when you need to intercept back (e.g. multi-phase screens). Make `canPop` dynamic where possible so the gesture still works in phases that allow it.
 
 ---
 
@@ -307,6 +359,7 @@ For simple CRUD features, skip `domain/` entirely and call the repository from p
 | `flutter_secure_storage` | Secure token storage |
 | `logger` | Logging (via `Log` wrapper only) |
 | `remixicon` | Icons (via `AppIcons` wrapper only) |
+| `flutter_svg` | SVG rendering (via `AppSvgImage` + `AppSvg` wrappers only) |
 | `local_auth` | Biometric authentication |
 | `firebase_messaging` | Push notifications |
 | `flutter_form_builder` | Form handling |

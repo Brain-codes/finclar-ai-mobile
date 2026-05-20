@@ -3,10 +3,18 @@ abstract class AppStrings {
   static const String appName = 'Finclar AI';
   static const String aiName = 'Clara';
 
-  // Splash
-  static const String splashHeading = 'Meet Clara';
-  static const String splashSubtitle =
+  // Splash — screen 1
+  static const String splash1Heading = 'Meet Clara';
+  static const String splash1Subtitle =
       'Clara helps you understand your money with insights that actually make sense.';
+  // Splash — screen 2
+  static const String splash2Heading = 'See where your money goes';
+  static const String splash2Subtitle =
+      'Clara breaks down your spending in plain English. No confusing charts or jargon, just clarity.';
+  // Splash — screen 3
+  static const String splash3Heading = 'Stop guessing your finances';
+  static const String splash3Subtitle =
+      "Ask Clara anything about your money, She'll give you straight answers with a bit of wit.";
   static const String createAccount = 'Create account';
   static const String haveAnAccount = 'Have an account?';
   static const String skip = 'Skip';
@@ -27,7 +35,7 @@ abstract class AppStrings {
   static const String termsAgreement =
       'By creating an account, you agree to the Terms of service and Privacy Policy';
 
-  // Auth — Verification
+  // Auth — Verification (Step 2)
   static const String verifyEmail = 'Verify Email';
   static const String verifyPhone = 'Verify Phone';
   static const String verificationTitle = 'Verification';
@@ -37,15 +45,68 @@ abstract class AppStrings {
   static const String incorrectEmailAddress = 'Incorrect email address';
   static const String didntReceiveCode = 'Didn\'t receive code? ';
   static const String resendIn = 'Resend in ';
+  static const String resendCode = 'Resend code';
+
+  // Auth — Passcode (Step 3)
+  static const String createPasscode = 'Create passcode';
+  static const String createPasscodeSubtitle =
+      'Enter a 6-digit passcode to secure your account.';
+  static const String confirmPasscode = 'Confirm passcode';
+  static const String confirmPasscodeSubtitle = 'Ensure your passcode match';
+  static const String passcodeDoNotMatch = 'Passcodes do not match';
+
+  // Auth — Preference screen
+  static const String whatDoYouWantHelpWith = 'What Do You Want Help With?';
+  static const String chooseWhatMattersMost =
+      'Choose what matters most to you so we can personalize your experience';
+  static const String prefSaveTitle = 'Save more money';
+  static const String prefSaveDesc =
+      'Help me understand my spending and find simple ways to save more every month.';
+  static const String prefTrackTitle = 'Track My Spending';
+  static const String prefTrackDesc =
+      'Help me see where my money goes with quick tracking and easy-to-read summaries.';
+  static const String prefBudgetTitle = 'Stick to a Budget';
+  static const String prefBudgetDesc =
+      'Help me set spending limits and warn me before I overspend.';
+  static const String prefControlTitle = 'Feel More In Control';
+  static const String prefControlDesc =
+      'Help me feel less stressed about money by giving me a clearer picture of my finances.';
+  static const String skipForNow = 'Skip for now';
 
   // Auth — Login
   static const String loginTitle = 'Login';
-  static const String forgotPasscode = 'Forgot Passcode?';
+  static const String welcomeBack = 'Welcome back, ';
+  static const String notMyAccount = 'Not my account';
+  static const String forgotPasscode = 'Forgot passcode';
   static const String dontHaveAccount = 'Don\'t have an account? ';
   static const String signUp = 'Sign up';
+  static const String loginWithBiometrics = 'Login with biometrics';
 
   // Auth — Forgot Passcode
   static const String forgotPasscodeTitle = 'Forgot Passcode';
+  static const String forgotPasscodeEmailTitle = 'Enter your email address';
+  static const String forgotPasscodeEmailSubtitle =
+      'We will send a 6 digit code to verify it\'s you';
+  static const String emailDoesNotExist = 'This email does not exist';
+  static const String createNewPasscode = 'Create new passcode';
+  static const String confirmNewPasscodeSubtitle = 'Confirm your new passcode';
+
+  // Home — Income setup modal
+  static const String connectYourAccount = 'Connect your account';
+  static const String connectSubtitle =
+      'Let Finclar handle the tracking so you don\'t have to.';
+  static const String addYourIncome = 'Add your income';
+  static const String addIncomeDesc =
+      'So Finclar can give more accurate recommendations.';
+  static const String addYourExpenses = 'Add your expenses';
+  static const String addExpensesDesc =
+      'This helps Finclar understand your spending habits faster.';
+  static const String addYourBudget = 'Add your budget';
+  static const String addBudgetDesc =
+      'Set a spending limit so you can stay on track.';
+  static const String turnOnReminders = 'Turn on reminders and alerts';
+  static const String remindersDesc =
+      'Get notified when you are close to your budget or forget to track spending';
 
   // Home
   static const String availableBalance = 'Available balance';
