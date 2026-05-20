@@ -1,0 +1,93 @@
+name: finclar_ai
+description: Finclar AI - Smart Finance Tracking with AI, Chat, and Group Budgeting.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.3.5
+
+  # Navigation
+  go_router: ^14.6.2
+
+  # Networking
+  dio: ^5.7.0
+
+  # Local Database
+  drift: ^2.21.0
+  sqlite3_flutter_libs: ^0.5.24
+  path_provider: ^2.1.4
+  path: ^1.9.0
+
+  # Secure Storage
+  flutter_secure_storage: ^9.2.2
+
+  # Shared Preferences
+  shared_preferences: ^2.3.3
+
+  # Logging
+  logger: ^2.4.0
+
+  # Icons
+  remixicon: ^1.0.1
+
+  # Data Classes
+  freezed_annotation: ^2.4.4
+  json_annotation: ^4.9.0
+
+  # Biometric Auth
+  local_auth: ^2.3.0
+
+  # Push Notifications
+  firebase_core: ^3.8.0
+  firebase_messaging: ^15.1.6
+
+  # Forms
+  flutter_form_builder: ^10.3.0
+  form_builder_validators: ^11.0.0
+
+  # Image / OCR
+  image_picker: ^1.1.2
+
+  # Charts
+  fl_chart: ^0.69.0
+
+  # Formatting
+  intl: ^0.20.0
+
+  # Utilities
+  equatable: ^2.0.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+  # Code Generation
+  build_runner: ^2.4.13
+  riverpod_generator: ^2.4.3
+  freezed: ^2.5.7
+  json_serializable: ^6.8.0
+  drift_dev: ^2.21.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/icons/
+  fonts:
+    - family: BricolageGrotesque
+      fonts:
+        - asset: assets/fonts/BricolageGrotesque.ttf
+    - family: Geist
+      fonts:
+        - asset: assets/fonts/Geist.ttf
+        - asset: assets/fonts/Geist-Italic.ttf
+          style: italic
