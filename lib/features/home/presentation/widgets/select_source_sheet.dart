@@ -1,0 +1,171 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_typography.dart';
+import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_radius.dart';
+import '../../../../shared/icons/app_icons.dart';
+import '../../../../shared/widgets/app_button.dart';
+import '../../../../shared/widgets/app_sheet.dart';
+import '../../../../core/utils/extensions/context_extensions.dart';
+import '../../providers/income_setup_provider.dart';
+import 'add_source_sheet.dart';
+
+Future<String?> showSelectSourceSheet(
+  BuildContext context, {
+  String? selected,
+}) {
+  return showAppSheet<String>(
+    context,
+    title: 'Select source',
+    heightFactor: 0.8,
+    // Expanded fills the space between the header and the bottom of the sheet,
+    // allowing the button inside to sit at the very bottom.
+    children: [
+      Expanded(child: _SelectSourceContent(initialSelected: selected)),
+    ],
+  );
+}
+
+class _SelectSourceContent extends ConsumerStatefulWidget {
+  final String? initialSelected;
+  const _SelectSourceContent({this.initialSelected});
+
+  @override
+  ConsumerState<_SelectSourceContent> createState() =>
+      _SelectSourceContentState();
+}
+
+class _SelectSourceContentState extends ConsumerState<_SelectSourceContent> {
+  String? _selected;
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = widget.initialSelected;
+  }
+
+  Future<void> _addSource() async {
+    final result = await showAddSourceSheet(context);
+    if (result != null && result.isNotEmpty) {
+      ref.read(incomeSetupProvider.notifier).addSource(result);
+      setState(() => _selected = result);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sources = ref.watch(incomeSetupProvider).sources;
+
+    return Column(
+      children: [
+        // Scrollable list area
+        Expanded(
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: context.surfaceColor,
+                    borderRadius: AppRadius.radiusSheet,
+                    border: Border.all(color: context.borderColor),
+                  ),
+                  child: Column(
+                    children: [
+                      for (int i = 0; i < sources.length; i++) ...[
+                        _SourceRow(
+                          label: sources[i],
+                          isSelected: _selected == sources[i],
+                          onTap: () => setState(() => _selected = sources[i]),
+                        ),
+                        if (i < sources.length - 1)
+                          Divider(
+                            height: 1,
+                            thickness: 1,
+                            color: context.borderColor,
+                            indent: AppSpacing.base,
+                            endIndent: AppSpacing.base,
+                          ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.base),
+                GestureDetector(
+                  onTap: _addSource,
+                  child: Row(
+                    children: [
+                      Icon(AppIcons.add, size: 15, color: AppColors.primary),
+                      const SizedBox(width: AppSpacing.xs),
+                      Text(
+                        'Add source',
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: AppColors.primary,
+                          fontVariations: const [FontVariation('wght', 500)],
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        // Pinned button
+        const SizedBox(height: AppSpacing.base),
+        AppButton(
+          label: 'Continue',
+          onTap: _selected != null
+              ? () => Navigator.of(context).pop(_selected)
+              : null,
+          height: 48,
+        ),
+      ],
+    );
+  }
+}
+
+class _SourceRow extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+  const _SourceRow({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.base,
+          vertical: AppSpacing.base,
+        ),
+        child: Row(
+          children: [
+            Text(
+              label,
+              style: AppTypography.bodyMedium.copyWith(
+                color: context.textPrimary,
+                fontVariations: const [FontVariation('wght', 500)],
+                fontSize: 14,
+              ),
+            ),
+            const Spacer(),
+            Icon(
+              isSelected ? AppIcons.radioChecked : AppIcons.circle,
+              size: 20,
+              color: isSelected ? AppColors.primary : context.textSecondary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

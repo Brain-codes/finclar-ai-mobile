@@ -37,6 +37,7 @@ abstract class AppIcons {
   static const IconData search = Remix.search_line;
   static const IconData filter = Remix.filter_line;
   static const IconData notification = Remix.notification_3_line;
+  static const IconData notificationActive = Remix.notification_3_fill;
   static const IconData settings = Remix.settings_3_line;
   static const IconData share = Remix.share_line;
   static const IconData copy = Remix.file_copy_line;
@@ -47,6 +48,8 @@ abstract class AppIcons {
   // Finance
   static const IconData wallet = Remix.wallet_fill;
   static const IconData walletFill = Remix.wallet_fill;
+  static const IconData walletLine = Remix.wallet_line;
+  static const IconData file = Remix.file_line;
   static const IconData income = Remix.arrow_down_circle_line;
   static const IconData expense = Remix.arrow_up_circle_line;
   static const IconData transfer = Remix.exchange_line;
@@ -82,4 +85,10 @@ abstract class AppIcons {
   static const IconData chevronRight = Remix.arrow_right_s_line;
   static const IconData chevronDown = Remix.arrow_down_s_line;
   static const IconData chevronUp = Remix.arrow_up_s_line;
+
+  // Selection
+  static const IconData radioChecked = Remix.radio_button_fill;
+  static const IconData radioUnchecked = Remix.radio_button_line;
+  static const IconData circle = Remix.circle_line;
+  static const IconData addCircle = Remix.add_circle_line;
 }

@@ -1,19 +1,23 @@
+import 'package:finclar_ai/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/routes/route_names.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../shared/icons/app_icons.dart';
 import '../../../../shared/widgets/app_button.dart';
+import '../../../../shared/widgets/app_sheet.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 
 Future<void> showIncomeSetupModal(BuildContext context) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
   return showDialog(
     context: context,
-    barrierColor: const Color(0xFFEFEFED).withValues(alpha: 0.67),
+    barrierColor: isDark
+        ? Colors.black.withValues(alpha: 0.7)
+        : const Color(0xFFEFEFED).withValues(alpha: 0.67),
     barrierDismissible: false,
     builder: (_) => const _IncomeSetupModal(),
   );
@@ -32,7 +36,7 @@ class _IncomeSetupModal extends StatelessWidget {
       ),
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.white,
+          color: context.surfaceColor,
           borderRadius: BorderRadius.circular(24),
         ),
         padding: const EdgeInsets.all(AppSpacing.base),
@@ -49,7 +53,7 @@ class _IncomeSetupModal extends StatelessWidget {
               label: AppStrings.addIncome,
               onTap: () {
                 Navigator.of(context).pop();
-                context.push(RouteNames.incomeSetup);
+                showAddIncomeFlowSheet(context);
               },
               fullWidth: false,
               height: 48,
@@ -78,9 +82,9 @@ class _CloseRow extends StatelessWidget {
           width: 32,
           height: 32,
           decoration: BoxDecoration(
-            color: AppColors.white,
+            color: context.surfaceColor,
             shape: BoxShape.circle,
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: context.borderColor),
           ),
           child: Icon(AppIcons.close, size: 16, color: context.textSecondary),
         ),
@@ -98,23 +102,27 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const Text('🚀', style: TextStyle(fontSize: 64)),
+        const Text('🚀', style: TextStyle(fontSize: 84)),
         const SizedBox(height: AppSpacing.base),
         Text(
           AppStrings.connectYourAccount,
           style: AppTypography.headingSmall.copyWith(
             fontVariations: const [FontVariation('wght', 600)],
-            fontSize: 16,
+            fontSize: 19,
+            color: context.textPrimary,
           ),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: AppSpacing.xs),
-        Text(
-          AppStrings.connectSubtitle,
-          style: AppTypography.labelSmall.copyWith(
-            color: context.textSecondary,
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 45),
+          child: Text(
+            AppStrings.connectSubtitle,
+            style: AppTypography.labelSmall.copyWith(
+              color: context.textSecondary,
+            ),
+            textAlign: TextAlign.center,
           ),
-          textAlign: TextAlign.center,
         ),
       ],
     );
@@ -129,10 +137,30 @@ class _FeatureList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const items = [
-      (AppIcons.income, AppStrings.addYourIncome, AppStrings.addIncomeDesc),
-      (AppIcons.expenses, AppStrings.addYourExpenses, AppStrings.addExpensesDesc),
-      (AppIcons.budget, AppStrings.addYourBudget, AppStrings.addBudgetDesc),
-      (AppIcons.notification, AppStrings.turnOnReminders, AppStrings.remindersDesc),
+      (
+        AppIcons.wallet,
+        AppStrings.addYourIncome,
+        AppStrings.addIncomeDesc,
+        AppColors.categoryTransport,
+      ),
+      (
+        AppIcons.expensesActive,
+        AppStrings.addYourExpenses,
+        AppStrings.addExpensesDesc,
+        AppColors.success,
+      ),
+      (
+        AppIcons.budgetActive,
+        AppStrings.addYourBudget,
+        AppStrings.addBudgetDesc,
+        AppColors.primary,
+      ),
+      (
+        AppIcons.notificationActive,
+        AppStrings.turnOnReminders,
+        AppStrings.remindersDesc,
+        AppColors.categoryShopping,
+      ),
     ];
 
     return Column(
@@ -142,12 +170,16 @@ class _FeatureList extends StatelessWidget {
             icon: items[i].$1,
             title: items[i].$2,
             description: items[i].$3,
+            color: items[i].$4,
           ),
           if (i < items.length - 1)
-            Divider(
-              height: AppSpacing.base,
-              thickness: 1,
-              color: AppColors.border,
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 5),
+              child: Divider(
+                height: 1,
+                thickness: 1,
+                color: context.borderColor,
+              ),
             ),
         ],
       ],
@@ -159,20 +191,18 @@ class _FeatureRow extends StatelessWidget {
   final IconData icon;
   final String title;
   final String description;
+  final Color color;
 
   const _FeatureRow({
     required this.icon,
     required this.title,
     required this.description,
+    required this.color,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: AppRadius.radiusCard,
-      ),
+    return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -180,7 +210,7 @@ class _FeatureRow extends StatelessWidget {
           SizedBox(
             width: 28,
             height: 28,
-            child: Icon(icon, size: 20, color: context.textQuaternary),
+            child: Icon(icon, size: 20, color: color),
           ),
           const SizedBox(width: AppSpacing.base),
           Expanded(
@@ -191,6 +221,7 @@ class _FeatureRow extends StatelessWidget {
                   title,
                   style: AppTypography.labelMedium.copyWith(
                     color: context.textQuaternary,
+                    fontFamily: AppFonts.display,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xs),
@@ -204,6 +235,121 @@ class _FeatureRow extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Add income flow picker ───────────────────────────────────────────────────
+
+Future<void> showAddIncomeFlowSheet(BuildContext context) {
+  return showAppSheet(
+    context,
+    title: 'Add income',
+    children: [_IncomeFlowOptions()],
+  );
+}
+
+class _IncomeFlowOptions extends StatelessWidget {
+  const _IncomeFlowOptions();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _FlowOption(
+          icon: AppIcons.aiFill,
+          iconColor: AppColors.primary,
+          title: 'Talk to Clara AI',
+          subtitle: 'Let our AI help you set up your income',
+          onTap: () {
+            Navigator.of(context).pop();
+            // AI setup flow — placeholder
+          },
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        _FlowOption(
+          icon: AppIcons.income,
+          iconColor: context.textQuaternary,
+          title: 'Add manually',
+          subtitle: 'Enter your income details yourself',
+          onTap: () {
+            Navigator.of(context).pop();
+            context.push(RouteNames.incomeSetup);
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _FlowOption extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _FlowOption({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.base),
+        decoration: BoxDecoration(
+          color: context.surfaceVariant,
+          borderRadius: AppRadius.radiusCard,
+          border: Border.all(color: context.borderColor),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: context.surfaceColor,
+                borderRadius: AppRadius.radiusSm,
+              ),
+              child: Icon(icon, size: 20, color: iconColor),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: AppTypography.labelMedium.copyWith(
+                      color: context.textPrimary,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: AppTypography.labelSmall.copyWith(
+                      color: context.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              AppIcons.chevronRight,
+              size: 18,
+              color: context.textSecondary,
+            ),
+          ],
+        ),
       ),
     );
   }

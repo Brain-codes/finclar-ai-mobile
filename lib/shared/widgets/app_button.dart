@@ -67,7 +67,7 @@ class AppButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    final inner = SizedBox(
       width: fullWidth ? double.infinity : null,
       height: height,
       child: switch (variant) {
@@ -83,6 +83,7 @@ class AppButton extends StatelessWidget {
         AppButtonVariant.ghost => _GhostButton(button: this, context: context),
       },
     );
+    return fullWidth ? inner : IntrinsicWidth(child: inner);
   }
 }
 

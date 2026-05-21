@@ -64,6 +64,7 @@ class AppTextField extends StatelessWidget {
           controller: controller,
           focusNode: focusNode,
           keyboardType: keyboardType,
+          keyboardAppearance: context.isDark ? Brightness.dark : Brightness.light,
           obscureText: obscureText,
           onChanged: onChanged,
           textInputAction: textInputAction,

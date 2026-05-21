@@ -97,20 +97,20 @@ abstract class AppTypography {
 
   static const TextStyle labelMedium = TextStyle(
     fontFamily: AppFonts.body,
-    fontSize: 15,
+    fontSize: 16,
     fontVariations: [FontVariation('wght', 500)],
     color: AppColors.textPrimary,
     height: 1.43,
-    letterSpacing: 0,
+    // letterSpacing: 0,
   );
 
   static const TextStyle labelSmall = TextStyle(
     fontFamily: AppFonts.body,
-    fontSize: 12,
-    fontVariations: [FontVariation('wght', 500)],
+    fontSize: 13,
+    fontVariations: [FontVariation('wght', 400)],
     color: AppColors.textSecondary,
     height: 1.33,
-    letterSpacing: 0,
+    // letterSpacing: 0,
   );
 
   static const TextStyle labelXSmall = TextStyle(

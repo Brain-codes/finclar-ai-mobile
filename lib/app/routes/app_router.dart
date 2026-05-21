@@ -9,6 +9,7 @@ import '../../features/auth/presentation/screens/preference_screen.dart';
 import '../../features/auth/presentation/screens/forgot_passcode_screen.dart';
 import '../../features/auth/presentation/screens/reset_passcode_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
+import '../../features/home/presentation/screens/income_setup_screen.dart';
 import '../../features/expenses/presentation/screens/expenses_screen.dart';
 import '../../features/budget/presentation/screens/budget_screen.dart';
 import '../../features/group/presentation/screens/group_screen.dart';
@@ -88,6 +89,12 @@ final appRouter = GoRouter(
           builder: (context, state) => const GroupScreen(),
         ),
       ],
+    ),
+
+    // Home sub-routes (outside shell — no bottom nav)
+    GoRoute(
+      path: RouteNames.incomeSetup,
+      pageBuilder: (context, state) => _page(state, const IncomeSetupScreen()),
     ),
 
     // Settings (outside shell)
