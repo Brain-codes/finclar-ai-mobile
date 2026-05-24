@@ -51,69 +51,76 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          Image.asset('assets/images/GRADIENT.png', fit: BoxFit.cover),
-          SafeArea(
-            child: Column(
-              children: [
-                _NotMyAccountBar(
-                  onTap: () => context.push(RouteNames.signUp),
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.screenPadding,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        const SizedBox(height: AppSpacing.xxxl),
-                        const _UserAvatar(),
-                        const SizedBox(height: AppSpacing.xl),
-                        Text(
-                          '${AppStrings.welcomeBack}$name',
-                          style: AppTypography.headingSmall,
-                          textAlign: TextAlign.center,
-                        ),
-                        if (email.isNotEmpty) ...[
-                          const SizedBox(height: AppSpacing.xs),
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        behavior: HitTestBehavior.translucent,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.asset('assets/images/GRADIENT.png', fit: BoxFit.cover),
+            SafeArea(
+              child: Column(
+                children: [
+                  _NotMyAccountBar(
+                    onTap: () => context.push(RouteNames.signUp),
+                  ),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      keyboardDismissBehavior:
+                          ScrollViewKeyboardDismissBehavior.onDrag,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.screenPadding,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          const SizedBox(height: AppSpacing.xxxl),
+                          const _UserAvatar(),
+                          const SizedBox(height: AppSpacing.xl),
                           Text(
-                            email,
-                            style: AppTypography.labelSmall.copyWith(
-                              color: AppColors.textSecondary,
+                            '${AppStrings.welcomeBack}$name',
+                            style: AppTypography.headingSmall,
+                            textAlign: TextAlign.center,
+                          ),
+                          if (email.isNotEmpty) ...[
+                            const SizedBox(height: AppSpacing.xs),
+                            Text(
+                              email,
+                              style: AppTypography.labelSmall.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: AppSpacing.xxl),
+                          AppOtpField(
+                            controller: _controller,
+                            autofocus: true,
+                            obscureText: true,
+                            hasError: state.hasError,
+                            errorText: state.errorText,
+                            onChanged: (_) =>
+                                ref.read(loginProvider.notifier).clearError(),
+                            onCompleted: _onCompleted,
+                          ),
+                          const SizedBox(height: AppSpacing.base),
+                          GestureDetector(
+                            onTap: () => context.push(RouteNames.forgotPasscode),
+                            child: Text(
+                              AppStrings.forgotPasscode,
+                              style: AppTypography.bodyMedium.copyWith(
+                                color: AppColors.primary,
+                              ),
                             ),
                           ),
                         ],
-                        const SizedBox(height: AppSpacing.xxl),
-                        AppOtpField(
-                          controller: _controller,
-                          obscureText: true,
-                          hasError: state.hasError,
-                          errorText: state.errorText,
-                          onChanged: (_) =>
-                              ref.read(loginProvider.notifier).clearError(),
-                          onCompleted: _onCompleted,
-                        ),
-                        const SizedBox(height: AppSpacing.base),
-                        GestureDetector(
-                          onTap: () => context.push(RouteNames.forgotPasscode),
-                          child: Text(
-                            AppStrings.forgotPasscode,
-                            style: AppTypography.bodyMedium.copyWith(
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

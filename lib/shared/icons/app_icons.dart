@@ -91,4 +91,14 @@ abstract class AppIcons {
   static const IconData radioUnchecked = Remix.radio_button_line;
   static const IconData circle = Remix.circle_line;
   static const IconData addCircle = Remix.add_circle_line;
+
+  // Expense categories
+  static const IconData categoryFood = Remix.restaurant_line;
+  static const IconData categoryTransport = Remix.car_line;
+  static const IconData categoryHealth = Remix.heart_pulse_line;
+  static const IconData categoryShopping = Remix.shopping_bag_line;
+  static const IconData categoryEntertainment = Remix.movie_line;
+  static const IconData categoryBills = Remix.flashlight_line;
+  static const IconData categoryTravel = Remix.plane_line;
+  static const IconData categoryOther = Remix.more_2_line;
 }

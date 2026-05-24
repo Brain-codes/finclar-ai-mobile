@@ -78,7 +78,7 @@ abstract class AppTypography {
 
   static const TextStyle bodySmall = TextStyle(
     fontFamily: AppFonts.body,
-    fontSize: 12,
+    fontSize: 13,
     fontVariations: [FontVariation('wght', 400)],
     color: AppColors.textSecondary,
     height: 1.33,

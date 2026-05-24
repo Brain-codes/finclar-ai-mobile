@@ -47,41 +47,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Scaffold(
       backgroundColor: context.scaffoldColor,
       body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.screenPadding,
-                  vertical: AppSpacing.base,
-                ),
-                child: HomeHeader(userName: 'Chinasa', greeting: _greeting()),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.screenPadding,
+                vertical: AppSpacing.base,
               ),
-              const SizedBox(height: AppSpacing.base),
-              BalanceCard(balance: isEmpty ? '₦00.00' : '₦1,850,000.00'),
-              const SizedBox(height: AppSpacing.base),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.screenPadding,
-                ),
+              child: HomeHeader(userName: 'Chinasa', greeting: _greeting()),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
                 child: Column(
                   children: [
-                    SpendingCard(isEmpty: isEmpty),
                     const SizedBox(height: AppSpacing.base),
-                    BudgetSection(isEmpty: isEmpty),
+                    BalanceCard(balance: isEmpty ? '₦00.00' : '₦1,850,000.00'),
                     const SizedBox(height: AppSpacing.base),
-                    IncomeExpenseChartSection(isEmpty: isEmpty),
-                    const SizedBox(height: AppSpacing.base),
-                    RecentExpensesSection(isEmpty: isEmpty),
-                    const SizedBox(height: AppSpacing.base),
-                    ClaraCard(isEmpty: isEmpty),
-                    const SizedBox(height: AppSpacing.xxl),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.screenPadding,
+                      ),
+                      child: Column(
+                        children: [
+                          SpendingCard(isEmpty: isEmpty),
+                          const SizedBox(height: AppSpacing.base),
+                          BudgetSection(isEmpty: isEmpty),
+                          const SizedBox(height: AppSpacing.base),
+                          IncomeExpenseChartSection(isEmpty: isEmpty),
+                          const SizedBox(height: AppSpacing.base),
+                          RecentExpensesSection(isEmpty: isEmpty),
+                          const SizedBox(height: AppSpacing.base),
+                          ClaraCard(isEmpty: isEmpty),
+                          const SizedBox(height: AppSpacing.xxl),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

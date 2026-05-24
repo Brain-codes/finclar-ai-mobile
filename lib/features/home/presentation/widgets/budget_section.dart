@@ -108,22 +108,24 @@ class BudgetSection extends StatelessWidget {
               ),
             )
           else ...[
-            Row(
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(
-                  width: 120,
-                  height: 120,
-                  child: _BudgetDonutChart(categories: categories),
-                ),
+                _BudgetDonutChart(categories: categories),
                 const SizedBox(width: AppSpacing.base),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: categories
-                        .map((c) => _BudgetItemRow(category: c))
-                        .toList(),
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: AppSpacing.base),
+                    for (int i = 0; i < categories.length; i++) ...[
+                      _BudgetItemRow(category: categories[i]),
+                      if (i < categories.length - 1) ...[
+                        const SizedBox(height: AppSpacing.base),
+                        Divider(height: 1, color: context.borderColor),
+                        const SizedBox(height: AppSpacing.base),
+                      ],
+                    ],
+                  ],
                 ),
               ],
             ),
@@ -150,63 +152,75 @@ class _BudgetDonutChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final totalSpent = categories.fold<double>(0, (sum, c) => sum + c.spent);
-    final sections = categories
-        .where((c) => c.spent > 0)
-        .map(
-          (c) => PieChartSectionData(
-            color: c.color,
-            value: c.spent,
-            title: '',
-            radius: 24,
-            showTitle: false,
-          ),
-        )
-        .toList();
 
-    if (sections.isEmpty) {
-      sections.add(
-        PieChartSectionData(
-          color: context.borderColor,
-          value: 1,
-          title: '',
-          radius: 24,
-          showTitle: false,
-        ),
-      );
-    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final size = constraints.maxWidth;
+        final ringRadius = size * 0.18;
+        final centerRadius = size * 0.28;
 
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        PieChart(
-          PieChartData(
-            centerSpaceRadius: 36,
-            sections: sections,
-            sectionsSpace: 2,
-            pieTouchData: PieTouchData(enabled: false),
+        final sections = categories
+            .where((c) => c.spent > 0)
+            .map(
+              (c) => PieChartSectionData(
+                color: c.color,
+                value: c.spent,
+                title: '',
+                radius: ringRadius,
+                showTitle: false,
+              ),
+            )
+            .toList();
+
+        if (sections.isEmpty) {
+          sections.add(
+            PieChartSectionData(
+              color: context.borderColor,
+              value: 1,
+              title: '',
+              radius: ringRadius,
+              showTitle: false,
+            ),
+          );
+        }
+
+        return AspectRatio(
+          aspectRatio: 1,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              PieChart(
+                PieChartData(
+                  centerSpaceRadius: centerRadius,
+                  sections: sections,
+                  sectionsSpace: 2,
+                  pieTouchData: PieTouchData(enabled: false),
+                ),
+              ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _formatAmount(totalSpent),
+                    style: AppTypography.bodySmall.copyWith(
+                      color: context.textPrimary,
+                      fontVariations: const [FontVariation('wght', 600)],
+                      fontSize: size * 0.045,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  Text(
+                    'spent',
+                    style: AppTypography.labelXSmall.copyWith(
+                      color: context.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ),
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              _formatAmount(totalSpent),
-              style: AppTypography.bodySmall.copyWith(
-                color: context.textPrimary,
-                fontVariations: const [FontVariation('wght', 600)],
-                fontSize: 11,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            Text(
-              'spent',
-              style: AppTypography.labelXSmall.copyWith(
-                color: context.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ],
+        );
+      },
     );
   }
 
@@ -224,65 +238,34 @@ class _BudgetItemRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: category.color,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.xs),
-              Expanded(
-                child: Text(
-                  category.name,
-                  style: AppTypography.bodySmall.copyWith(
-                    color: context.textPrimary,
-                    fontVariations: const [FontVariation('wght', 500)],
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
+    return Row(
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: category.color,
+            borderRadius: AppRadius.radiusXs,
           ),
-          const SizedBox(height: AppSpacing.xs),
-          Row(
-            children: [
-              const SizedBox(width: 12),
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: AppRadius.radiusXs,
-                  child: LinearProgressIndicator(
-                    value: category.percentage,
-                    backgroundColor: context.borderColor,
-                    valueColor: AlwaysStoppedAnimation<Color>(category.color),
-                    minHeight: 4,
-                  ),
-                ),
-              ),
-            ],
+        ),
+        const SizedBox(width: AppSpacing.xs),
+        Expanded(
+          child: Text(
+            category.name,
+            style: AppTypography.bodySmall.copyWith(
+              color: context.textSecondary,
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: AppSpacing.xs),
-          Row(
-            children: [
-              const SizedBox(width: 12),
-              Text(
-                '₦${_format(category.spent)} / ₦${_format(category.total)}',
-                style: AppTypography.labelXSmall.copyWith(
-                  color: context.textSecondary,
-                ),
-              ),
-            ],
+        ),
+        Text(
+          '₦${_format(category.spent)} / ₦${_format(category.total)}',
+          style: AppTypography.bodySmall.copyWith(
+            color: context.textPrimary,
+            fontVariations: const [FontVariation('wght', 500)],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

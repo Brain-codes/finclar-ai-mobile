@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 import 'package:finclar_ai/core/utils/extensions/context_extensions.dart';
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/theme/app_radius.dart';
 import 'app_stripe_painter.dart';
@@ -84,26 +83,6 @@ class AppBarChart extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(
-            width: yAxisWidth,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: bottomLabelHeight),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: List.generate(yDivisions + 1, (i) {
-                  final v = roundedMax * (yDivisions - i) / yDivisions;
-                  if (v == 0) return const SizedBox(height: 12);
-                  return Text(
-                    formatY != null ? formatY!(v) : _defaultFormatY(v),
-                    style: effectiveLabelStyle,
-                    textAlign: TextAlign.right,
-                  );
-                }),
-              ),
-            ),
-          ),
-          const SizedBox(width: 4),
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -120,6 +99,25 @@ class AppBarChart extends StatelessWidget {
                   canvasHeight: constraints.maxHeight,
                 );
               },
+            ),
+          ),
+          const SizedBox(width: 4),
+          SizedBox(
+            width: yAxisWidth,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: bottomLabelHeight),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: List.generate(yDivisions + 1, (i) {
+                  final v = roundedMax * (yDivisions - i) / yDivisions;
+                  return Text(
+                    formatY != null ? formatY!(v) : _defaultFormatY(v),
+                    style: effectiveLabelStyle,
+                    textAlign: TextAlign.left,
+                  );
+                }),
+              ),
             ),
           ),
         ],

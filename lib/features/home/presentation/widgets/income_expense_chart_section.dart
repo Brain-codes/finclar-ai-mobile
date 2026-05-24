@@ -7,6 +7,8 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../shared/widgets/app_bar_chart.dart';
+import '../../../../shared/widgets/app_stripe_painter.dart';
+import '../../../../core/utils/number_formatter.dart';
 
 class IncomeExpenseData {
   final String month;
@@ -30,7 +32,7 @@ class IncomeExpenseChartSection extends StatefulWidget {
     super.key,
     this.isEmpty = false,
     this.data = const [
-      IncomeExpenseData(month: 'Jan', income: 1800000, expense: 90000),
+      IncomeExpenseData(month: 'Jan', income: 1800000, expense: 900000),
       IncomeExpenseData(month: 'Feb', income: 2000000, expense: 120000),
       IncomeExpenseData(month: 'Mar', income: 1600000, expense: 200000),
       IncomeExpenseData(month: 'Apr', income: 2200000, expense: 80000),
@@ -128,19 +130,21 @@ class _IncomeExpenseChartSectionState extends State<IncomeExpenseChartSection> {
                   )
                   .toList(),
             ),
-            const SizedBox(height: AppSpacing.base),
-            Row(
+            const SizedBox(height: AppSpacing.xl),
+            Column(
               children: [
                 _LegendItem(
-                  color: AppColors.primary,
+                  stripeColor: AppColors.primary,
                   label: AppStrings.incomeLabel,
-                  amount: '₦${_formatAmount(widget.totalIncome)}',
+                  amount:
+                      '₦${formatAmount(widget.totalIncome, abbreviate: false, withCommas: true)}',
                 ),
-                const SizedBox(width: AppSpacing.xl),
+                const SizedBox(height: AppSpacing.base),
                 _LegendItem(
-                  color: AppColors.categoryTransport,
+                  stripeColor: AppColors.categoryTransport,
                   label: AppStrings.expenseLabel,
-                  amount: '₦${_formatAmount(widget.totalExpense)}',
+                  amount:
+                      '₦${formatAmount(widget.totalExpense, abbreviate: false, withCommas: true)}',
                 ),
               ],
             ),
@@ -148,12 +152,6 @@ class _IncomeExpenseChartSectionState extends State<IncomeExpenseChartSection> {
         ],
       ),
     );
-  }
-
-  String _formatAmount(double v) {
-    if (v >= 1000000) return '${(v / 1000000).toStringAsFixed(1)}m';
-    if (v >= 1000) return '${(v / 1000).toStringAsFixed(0)}k';
-    return v.toStringAsFixed(0);
   }
 }
 
@@ -206,12 +204,12 @@ class _PeriodFilter extends StatelessWidget {
 }
 
 class _LegendItem extends StatelessWidget {
-  final Color color;
+  final Color stripeColor;
   final String label;
   final String amount;
 
   const _LegendItem({
-    required this.color,
+    required this.stripeColor,
     required this.label,
     required this.amount,
   });
@@ -220,29 +218,30 @@ class _LegendItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(AppRadius.xs),
+          child: CustomPaint(
+            size: const Size(8, 16),
+            painter: AppStripePainter(
+              stripeColor: stripeColor,
+              spacing: 3.0,
+              strokeWidth: 1.5,
+              angleDegrees: 45.0,
+            ),
+          ),
         ),
         const SizedBox(width: AppSpacing.xs),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: AppTypography.labelXSmall.copyWith(
-                color: context.textSecondary,
-              ),
-            ),
-            Text(
-              amount,
-              style: AppTypography.bodySmall.copyWith(
-                color: context.textPrimary,
-                fontVariations: const [FontVariation('wght', 500)],
-              ),
-            ),
-          ],
+        Text(
+          label,
+          style: AppTypography.bodySmall.copyWith(color: context.textPrimary),
+        ),
+        const Spacer(),
+        Text(
+          amount,
+          style: AppTypography.bodySmall.copyWith(
+            color: context.textPrimary,
+            fontVariations: const [FontVariation('wght', 500)],
+          ),
         ),
       ],
     );

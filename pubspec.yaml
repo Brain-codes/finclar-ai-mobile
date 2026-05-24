@@ -85,6 +85,8 @@ dev_dependencies:
   flutter_native_splash: ^2.4.3
 
 flutter:
+  config:
+    enable-lldb-debugging: false
   uses-material-design: true
   assets:
     - assets/images/
@@ -105,6 +107,7 @@ flutter_launcher_icons:
   android: true
   ios: true
   image_path: "assets/logo/icon.png"
+  remove_alpha_ios: true
   adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: "assets/logo/icon_foreground.png"
   min_sdk_android: 21
@@ -112,13 +115,14 @@ flutter_launcher_icons:
     generate: false
 
 flutter_native_splash:
-  color: "#FFFFFF"
-  image: assets/logo/logo.png
+  background_image: assets/logo/splash-light-bg.png
+  background_image_dark: assets/logo/splash-dark-bg.png
   android_12:
-    color: "#FFFFFF"
-    image: assets/logo/logo.png
-    icon_background_color: "#FFFFFF"
+    background_image: assets/logo/splash-light-bg.png
+    background_image_dark: assets/logo/splash-dark-bg.png
   ios: true
   android: true
   web: false
   fullscreen: false
+
+#cd /Users/Efe/Projects/Mobile/finclar_ai && /Users/Efe/Development/flutter/bin/dart run flutter_native_splash:create 2>&1

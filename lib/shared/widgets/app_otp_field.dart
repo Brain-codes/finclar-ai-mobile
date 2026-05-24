@@ -13,6 +13,7 @@ class AppOtpField extends StatefulWidget {
   final int length;
   final bool obscureText;
   final bool hasError;
+  final bool autofocus;
   final String? errorText;
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onCompleted;
@@ -23,6 +24,7 @@ class AppOtpField extends StatefulWidget {
     this.length = 6,
     this.obscureText = false,
     this.hasError = false,
+    this.autofocus = false,
     this.errorText,
     this.onChanged,
     this.onCompleted,
@@ -46,6 +48,11 @@ class _AppOtpFieldState extends State<AppOtpField> {
       ..addListener(() {
         setState(() => _hasFocus = _focusNode.hasFocus);
       });
+    if (widget.autofocus) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _focusNode.requestFocus();
+      });
+    }
   }
 
   @override
@@ -81,6 +88,7 @@ class _AppOtpFieldState extends State<AppOtpField> {
                 child: TextField(
                   controller: _controller,
                   focusNode: _focusNode,
+                  autofocus: widget.autofocus,
                   keyboardType: TextInputType.number,
                   maxLength: widget.length,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
