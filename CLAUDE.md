@@ -196,7 +196,68 @@ final appProvider = ...
 
 ---
 
-## 7. Components Rule
+## 7. Screen Decomposition Rule
+
+**A screen file must be a thin composer. It owns state, navigation, and layout — not widget implementations.**
+
+Any widget class inside a screen file that is longer than ~20 lines, or that could meaningfully stand alone, must be extracted to its own file inside `features/<feature>/presentation/widgets/`.
+
+### When to extract
+Extract a private class from a screen file into a widget file when:
+- It has its own layout logic (Column, Row, Stack, ListView, etc.)
+- It could be reused by another screen or widget in the same feature
+- Moving it out would make the screen file noticeably easier to read
+
+### Naming convention
+Widget files are named after what they render, not the screen they came from:
+- `expense_tile.dart` not `expenses_screen_tile.dart`
+- `expense_empty_state.dart` not `empty_card.dart`
+- `expense_summary_card.dart` not `filled_card.dart`
+
+### What stays in the screen file
+- The `StatefulWidget` / `StatelessWidget` screen class itself
+- State variables and lifecycle methods
+- Navigation callbacks (`_onEdit`, `_onDelete`, `_pickMonth`)
+- The `build` method composing the extracted widgets
+- Very small local widgets (under ~15 lines, used only once in that screen) — e.g. a FAB
+
+### Shared helpers across a feature
+If multiple widgets or screens in the same feature use the same helper function (e.g. color/icon mapping by category), extract it into a dedicated utility file:
+- `features/<feature>/presentation/widgets/<feature>_<concern>_utils.dart`
+- Example: `expense_category_utils.dart` exports `expenseCategoryColor()`, `expenseCategoryBgColor()`, `expenseCategoryIcon()`
+- Never duplicate the same switch/map logic across multiple files — one source of truth.
+
+### Reuse before creating
+Before writing a new private widget, check if a similar public widget already exists in:
+1. `lib/shared/widgets/` — global reusables (buttons, inputs, sheets, top bars)
+2. `features/<feature>/presentation/widgets/` — feature-scoped reusables
+
+If a widget already exists but needs a slight variation for a new screen, add a parameter to the existing widget rather than creating a copy. Only create a new widget if the variation is structural, not cosmetic.
+
+### Example — before and after
+
+**Wrong** — everything in one file:
+```
+expenses_screen.dart  (400+ lines)
+  _Header, _EmptyCard, _FilledCard, _CategoryBar,
+  _CategoryLegend, _ExpenseList, _ExpenseTile, _ExpenseIcon, _Fab
+```
+
+**Correct** — screen is a thin composer:
+```
+expenses_screen.dart          (~80 lines — state + build only)
+widgets/
+  expense_header.dart
+  expense_empty_state.dart
+  expense_summary_card.dart   (includes CategoryBar + CategoryLegend)
+  expense_tile.dart           (includes ExpenseCategoryIcon)
+  expense_list.dart
+  expense_category_utils.dart (shared color/icon helpers)
+```
+
+---
+
+## 8. Components Rule (Shared Widgets)
 
 **If a UI element is used in more than one place, it must be a component.**
 
@@ -226,7 +287,7 @@ Standard shared components to build as needed:
 
 ---
 
-## 8. Navigation Rules
+## 9. Navigation Rules
 
 - Use **go_router** exclusively. Never use `Navigator.push` directly.
 - All route paths live in `RouteNames`. Never write a path string outside that file.
@@ -408,3 +469,102 @@ Push notifications are a core requirement.
 ## 16. Out of Scope (for now)
 
 - Offline-first / local caching — architecture supports it but do not implement yet.
+
+---
+
+## 17. Building Screens from Figma (TalkToFigma MCP)
+
+This section captures what to read, extract, and apply whenever a screen or flow is implemented from a Figma design using the TalkToFigma MCP.
+
+### Node ID format
+Figma node IDs use `:` as a separator (e.g. `29:50650`), not `-`. Always pass them in this format to `get_node_info` / `get_nodes_info`.
+
+### Read strategy
+- Fetch all nodes for a given task in a **single `get_nodes_info` call** to reduce round trips.
+- The result can be very large. Read it in `python3` character-slice chunks, not with the `Read` tool (lines are too long). Extract only what matters: text content, colors, cornerRadius, size/layout, and component names.
+- Extract these things from each node:
+  - **Text nodes**: `characters` (label copy), `style.fontFamily`, `style.fontWeight`, `style.fontSize`, `style.textAlignHorizontal`, `fills[].color`
+  - **Frame/Container nodes**: `fills[].color`, `cornerRadius`, `absoluteBoundingBox` (width/height for proportions)
+  - **Named component instances**: use the `name` field to identify the design system component being used (e.g. `button state`, `input field state`, `tab bar`)
+
+### What to extract before writing any code
+For every screen or sheet, identify and note:
+1. Background color → map to `context.scaffoldColor` or `context.surfaceColor`
+2. Top bar pattern → back arrow only, back + title, or back + action pill (edit/delete)
+3. Card shapes → `cornerRadius` maps to `AppRadius.*` (24 = `radiusSheet`, 16 = `radiusCard`, 100 = `radiusFull`)
+4. Empty state → icon or illustration + heading + subtitle, centered inside a surface card
+5. FAB presence → orange circle (`AppColors.primary`) with `AppIcons.add`, positioned bottom-right via `Stack + Positioned`
+6. Bottom sheet vs full screen → frames that are 393×852 are full screens; partial-height frames (or frames labeled as sheets) are bottom sheets using `showAppSheet`
+7. Button copy → extract exact label text (`Save changes`, `Done`, `Delete`, `Cancel`)
+8. Input field types → text vs numeric vs multiline (maxLines > 1)
+9. Tappable rows (select rows) → label on left, value + optional chevron on right — use the `_DetailRow` / `_SelectRow` pattern from `income_details_sheet.dart`
+10. Category colors → always use `AppColors.category*` constants, never hardcode hex
+
+### Reference files — always read these before building a new feature screen
+
+| What you need | Reference file |
+|---|---|
+| Full screen with back button top bar | `lib/features/home/presentation/screens/income_setup_screen.dart` |
+| Bottom sheet (title + close + content) | `lib/features/home/presentation/widgets/income_details_sheet.dart` |
+| Detail/select rows inside a card | `lib/features/home/presentation/widgets/income_details_sheet.dart` |
+| Add note bottom sheet pattern | `lib/features/home/presentation/widgets/add_note_sheet.dart` |
+| Expense tile (icon + name + category color + amount + date) | `lib/features/home/presentation/widgets/recent_expenses_section.dart` |
+| Auth screen top bar with back circle button | `lib/features/auth/presentation/screens/login_screen.dart` |
+| AppSheet wrapper | `lib/shared/widgets/app_sheet.dart` |
+| AppButton, AppTextField | `lib/shared/widgets/app_button.dart`, `lib/shared/widgets/app_text_field.dart` |
+| AppTopBar | `lib/shared/widgets/app_top_bar.dart` |
+| Theme tokens | `lib/core/utils/extensions/context_extensions.dart` |
+
+### Top bar patterns used in this app
+
+| Pattern | When to use | Implementation |
+|---|---|---|
+| Back circle only | Full screens where the only action is back | `GestureDetector` wrapping a 36×36 circle container with `context.surfaceVariant` bg + `AppIcons.back` |
+| Back circle + action pill | Preview/detail screens with Edit + Delete | Left: back circle. Right: white pill (`context.surfaceColor` + border) containing "Edit" text + divider + delete icon, each tappable |
+| No back (shell tabs) | Bottom nav screens (home, expenses, budget…) | Just a title row + optional action icon (filter, search) |
+
+### Bottom sheet pattern
+Always use `showAppSheet` from `lib/shared/widgets/app_sheet.dart`. Never build a raw `showModalBottomSheet`. Pass:
+- `title` — sheet heading (Bricolage Grotesque via `AppSheet` header)
+- `children` — list of content widgets
+- `avoidKeyboard: true` — when the sheet contains text fields
+- `heightFactor` — when the sheet needs a fixed height (e.g. calendar date picker)
+
+For sheets that return a value (category picker, month picker, note, date), make the `showAppSheet<T>` call typed and `pop` with the result.
+
+### Expense tile / transaction tile pattern
+Icon container: circular (`BoxShape.circle`) or rounded card (`AppRadius.radiusCard`), 40×40, category bg color.
+Icon inside: 16–20px, category fg color.
+Category label text: uses the category **foreground** color (e.g. `AppColors.categoryFood` for Food), not the bg.
+Amount: right-aligned, `context.textQuaternary`.
+Date: right-aligned below amount, `context.textSecondary`, 12px.
+
+### Category color mapping
+
+| Category | Foreground | Background |
+|---|---|---|
+| Food | `AppColors.categoryFood` | `AppColors.categoryFoodBg` |
+| Transport / Transportation | `AppColors.categoryTransport` | `AppColors.categoryTransportBg` |
+| Health | `AppColors.categoryHealth` | `AppColors.categoryHealthBg` |
+| Shopping | `AppColors.categoryShopping` | `AppColors.categoryShoppingBg` |
+| Default / Other | `AppColors.primary` | `AppColors.primaryMuted` |
+
+Always extract this mapping into a `_categoryColor()` / `_categoryBgColor()` helper in the screen file. Do not inline color logic.
+
+### Stacked bar chart (category breakdown)
+Use a `LayoutBuilder` → `Row` of `Container` widgets. Width of each segment = `totalWidth * (categoryAmount / totalAmount)`. Wrap in `ClipRRect` with `AppRadius.radiusXs` for rounded ends. Height: 14px. Segment colors use category foreground colors.
+
+### Month selection sheet
+3-column `GridView`, 12 months, `childAspectRatio: 2.6`. Selected month = `AppColors.primary` bg + white text. Unselected = `context.surfaceVariant` bg + `context.textQuaternary` text. Returns the selected month number (1–12).
+
+### Delete confirmation sheet
+Structure: centered red circle icon (bg `Color(0xFFF9EAEA)`, icon `AppColors.error`) → heading → subtitle → side-by-side Cancel + Delete buttons. Cancel = `context.surfaceVariant` bg + `context.textSecondary` text. Delete = `AppColors.error` bg + white text. Returns `bool?` (`true` = confirmed).
+
+### SVG / illustration assets
+Before using `AppSvgImage(AppSvg.something)`, verify the SVG file exists in `assets/svg/`. If no matching illustration exists, fall back to an `Icon` widget (e.g. `AppIcons.file`, `AppIcons.wallet`) for empty states. Never reference a non-existent `AppSvg` constant.
+
+### Route wiring for new screens
+1. Add the path constant to `RouteNames` in `lib/app/routes/route_names.dart`.
+2. Add the `GoRoute` to `app_router.dart`. For detail screens that receive an object, pass it via `state.extra` and cast it in the `pageBuilder`.
+3. Push with `context.push(RouteNames.yourRoute, extra: yourObject)` from the list tile.
+4. Detail screens that live outside the shell (no bottom nav) go **outside** the `ShellRoute` in `app_router.dart`.

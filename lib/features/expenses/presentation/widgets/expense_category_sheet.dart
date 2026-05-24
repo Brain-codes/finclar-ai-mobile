@@ -6,6 +6,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../shared/icons/app_icons.dart';
 import '../../../../shared/widgets/app_sheet.dart';
+import 'expense_category_utils.dart';
 
 const _categories = [
   ('Food', AppIcons.categoryFood, AppColors.categoryFood),
@@ -51,7 +52,7 @@ class _CategoryContent extends StatelessWidget {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: _bgColor(name),
+                    color: expenseCategoryBgColor(name),
                     borderRadius: AppRadius.radiusCard,
                   ),
                   child: Icon(icon, size: 18, color: color),
@@ -74,20 +75,5 @@ class _CategoryContent extends StatelessWidget {
         );
       }).toList(),
     );
-  }
-}
-
-Color _bgColor(String category) {
-  switch (category.toLowerCase()) {
-    case 'food':
-      return AppColors.categoryFoodBg;
-    case 'transport':
-      return AppColors.categoryTransportBg;
-    case 'health':
-      return AppColors.categoryHealthBg;
-    case 'shopping':
-      return AppColors.categoryShoppingBg;
-    default:
-      return AppColors.primaryMuted;
   }
 }
