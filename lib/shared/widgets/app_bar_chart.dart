@@ -5,6 +5,18 @@ import '../../core/theme/app_typography.dart';
 import '../../core/theme/app_radius.dart';
 import 'app_stripe_painter.dart';
 
+class AppBarChartReferenceLine {
+  final double value;
+  final Color color;
+  final String? label;
+
+  const AppBarChartReferenceLine({
+    required this.value,
+    required this.color,
+    this.label,
+  });
+}
+
 class AppBarChartBar {
   final double value;
   final Color color;
@@ -39,6 +51,7 @@ class AppBarChart extends StatelessWidget {
   final TextStyle? yAxisStyle;
   final Color? gridColor;
   final String Function(double)? formatY;
+  final AppBarChartReferenceLine? referenceLine;
 
   const AppBarChart({
     super.key,
@@ -52,6 +65,7 @@ class AppBarChart extends StatelessWidget {
     this.yAxisStyle,
     this.gridColor,
     this.formatY,
+    this.referenceLine,
   });
 
   @override
@@ -97,6 +111,7 @@ class AppBarChart extends StatelessWidget {
                   gridColor: gridColor ?? context.borderColor,
                   canvasWidth: constraints.maxWidth,
                   canvasHeight: constraints.maxHeight,
+                  referenceLine: referenceLine,
                 );
               },
             ),
@@ -143,6 +158,7 @@ class _AppBarChartCanvas extends StatelessWidget {
   final Color gridColor;
   final double canvasWidth;
   final double canvasHeight;
+  final AppBarChartReferenceLine? referenceLine;
 
   const _AppBarChartCanvas({
     required this.groups,
@@ -155,6 +171,7 @@ class _AppBarChartCanvas extends StatelessWidget {
     required this.gridColor,
     required this.canvasWidth,
     required this.canvasHeight,
+    this.referenceLine,
   });
 
   @override
@@ -227,6 +244,48 @@ class _AppBarChartCanvas extends StatelessWidget {
       );
     }
 
+    final refLineWidgets = <Widget>[];
+    if (referenceLine != null) {
+      final chartHeight = canvasHeight - bottomLabelHeight;
+      final ratio = maxY > 0
+          ? (referenceLine!.value / maxY).clamp(0.0, 1.0)
+          : 0.0;
+      final lineY = chartHeight * (1 - ratio);
+      refLineWidgets.add(
+        Positioned(
+          top: lineY,
+          left: 0,
+          right: 0,
+          child: CustomPaint(
+            size: const Size(double.infinity, 1),
+            painter: _DashedLinePainter(color: referenceLine!.color),
+          ),
+        ),
+      );
+      if (referenceLine!.label != null) {
+        refLineWidgets.add(
+          Positioned(
+            top: lineY - 16,
+            left: 0,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              decoration: BoxDecoration(
+                color: referenceLine!.color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                referenceLine!.label!,
+                style: AppTypography.labelXSmall.copyWith(
+                  color: referenceLine!.color,
+                  fontSize: 9,
+                ),
+              ),
+            ),
+          ),
+        );
+      }
+    }
+
     return Stack(
       children: [
         Positioned.fill(
@@ -238,6 +297,7 @@ class _AppBarChartCanvas extends StatelessWidget {
           ),
         ),
         ...barWidgets,
+        ...refLineWidgets,
       ],
     );
   }
@@ -264,4 +324,27 @@ class _GridPainter extends CustomPainter {
   @override
   bool shouldRepaint(_GridPainter old) =>
       old.yDivisions != yDivisions || old.color != color;
+}
+
+class _DashedLinePainter extends CustomPainter {
+  final Color color;
+
+  const _DashedLinePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1;
+    const dashWidth = 5.0;
+    const dashGap = 3.0;
+    double x = 0;
+    while (x < size.width) {
+      canvas.drawLine(Offset(x, 0), Offset(x + dashWidth, 0), paint);
+      x += dashWidth + dashGap;
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedLinePainter old) => old.color != color;
 }

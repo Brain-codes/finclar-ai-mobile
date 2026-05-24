@@ -1,3 +1,5 @@
+import 'package:finclar_ai/shared/widgets/gradient_icon.dart';
+import 'package:finclar_ai/shared/widgets/gradient_text.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -74,11 +76,25 @@ class SpendingCard extends StatelessWidget {
               const SizedBox(height: AppSpacing.md),
               _SpendingBar(percentage: percentage),
               const SizedBox(height: AppSpacing.sm),
-              Text(
-                insightText,
-                style: AppTypography.bodySmall.copyWith(
-                  color: context.textSecondary,
-                ),
+              Row(
+                spacing: 5,
+                children: [
+                  GradientIcon(
+                    icon: AppIcons.aiFill,
+                    size: 16,
+                    gradient: AppColors.claraGradient,
+                  ),
+
+                  Expanded(
+                    child: GradientText(
+                      insightText,
+                      gradient: AppColors.claraGradient,
+                      style: AppTypography.bodySmall.copyWith(
+                        color: context.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ],

@@ -19,9 +19,11 @@ abstract class RouteNames {
   static const String home = '/app/home';
   static const String incomeSetup = '/app/home/income-setup';
   static const String aiSetup = '/app/home/ai-setup';
+  static const String spending = '/app/home/spending';
 
   // Expenses
   static const String expenses = '/app/expenses';
+  static const String expenseDetail = '/app/expenses/detail';
   static const String addExpense = '/app/expenses/add';
   static const String addExpenseOcr = '/app/expenses/add/ocr';
   static const String bankIntegration = '/app/expenses/bank';

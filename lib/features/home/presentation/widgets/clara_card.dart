@@ -5,21 +5,9 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../shared/icons/app_icons.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
-
-// Gradient used for all text, dots, and icon tinting in the Clara card
-const _claraGradient = LinearGradient(
-  begin: Alignment.topLeft,
-  end: Alignment.bottomRight,
-  colors: [Color(0xFFFA5874), Color(0xFF800080), Color(0xFFF8853D)],
-  stops: [0.0, 0.53, 1.0],
-);
-
-// Border gradient on the card edge
-const _borderGradient = LinearGradient(
-  begin: Alignment.topLeft,
-  end: Alignment.bottomRight,
-  colors: [Color(0xFFFF751F), Color(0xFFDA4EBB)],
-);
+import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/widgets/gradient_text.dart';
+import '../../../../shared/widgets/gradient_icon.dart';
 
 class ClaraCard extends StatelessWidget {
   final bool isEmpty;
@@ -72,7 +60,7 @@ class _FilledClaraCard extends StatelessWidget {
               // Header row: Clara label + "Chat with Clara" link
               Row(
                 children: [
-                  _GradientIcon(icon: AppIcons.aiFill, size: 16),
+                  GradientIcon(icon: AppIcons.aiFill, size: 16, gradient: AppColors.claraGradient),
                   const SizedBox(width: AppSpacing.xs),
                   Text(
                     AppStrings.aiName,
@@ -81,16 +69,18 @@ class _FilledClaraCard extends StatelessWidget {
                     ),
                   ),
                   const Spacer(),
-                  _GradientText(
+                  GradientText(
                     'Chat with ${AppStrings.aiName}',
+                    gradient: AppColors.claraGradient,
                     style: AppTypography.labelSmall.copyWith(fontWeight: FontWeight.w500),
                   ),
                 ],
               ),
               const SizedBox(height: AppSpacing.md),
               // Insight body text
-              _GradientText(
+              GradientText(
                 insightText,
+                gradient: AppColors.claraGradient,
                 style: AppTypography.bodySmall.copyWith(
                   fontWeight: FontWeight.w500,
                   height: 20 / 14,
@@ -117,7 +107,7 @@ class _GradientBorderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        gradient: _borderGradient,
+        gradient: AppColors.claraBorderGradient,
         borderRadius: AppRadius.radiusSheet,
       ),
       padding: const EdgeInsets.all(1.5),
@@ -132,39 +122,6 @@ class _GradientBorderCard extends StatelessWidget {
   }
 }
 
-/// Renders [text] with the Clara gradient applied via ShaderMask.
-class _GradientText extends StatelessWidget {
-  final String text;
-  final TextStyle? style;
-
-  const _GradientText(this.text, {this.style});
-
-  @override
-  Widget build(BuildContext context) {
-    return ShaderMask(
-      blendMode: BlendMode.srcIn,
-      shaderCallback: (bounds) => _claraGradient.createShader(bounds),
-      child: Text(text, style: style),
-    );
-  }
-}
-
-/// Renders an icon tinted with the Clara gradient.
-class _GradientIcon extends StatelessWidget {
-  final IconData icon;
-  final double size;
-
-  const _GradientIcon({required this.icon, required this.size});
-
-  @override
-  Widget build(BuildContext context) {
-    return ShaderMask(
-      blendMode: BlendMode.srcIn,
-      shaderCallback: (bounds) => _claraGradient.createShader(bounds),
-      child: Icon(icon, size: size),
-    );
-  }
-}
 
 /// Three pill-shaped pagination indicators using the Clara gradient at 50% opacity.
 class _ClaraDots extends StatelessWidget {
@@ -229,11 +186,7 @@ class _EmptyClaraCard extends StatelessWidget {
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           children: [
-            ShaderMask(
-              blendMode: BlendMode.srcIn,
-              shaderCallback: (bounds) => _claraGradient.createShader(bounds),
-              child: const Icon(AppIcons.ai, size: 32),
-            ),
+            GradientIcon(icon: AppIcons.ai, size: 32, gradient: AppColors.claraGradient),
             const SizedBox(height: AppSpacing.md),
             Text(
               'No Insights Yet',

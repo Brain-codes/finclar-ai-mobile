@@ -26,12 +26,17 @@ class AppTopBar extends StatelessWidget {
   /// Optional widget injected after the step label (rarely needed).
   final Widget? trailing;
 
+  /// Optional centered title. When provided, renders between back button and
+  /// trailing — use instead of [stepLabel] when a screen title is needed.
+  final String? title;
+
   const AppTopBar({
     super.key,
     this.showBack = true,
     this.onBack,
     this.stepLabel,
     this.trailing,
+    this.title,
   });
 
   @override
@@ -41,39 +46,48 @@ class AppTopBar extends StatelessWidget {
         horizontal: AppSpacing.screenPadding,
         vertical: AppSpacing.sm,
       ),
-      child: Row(
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          if (showBack)
-            GestureDetector(
-              onTap: onBack,
-              child: Container(
-                // width: 40,
-                height: 40,
-                alignment: Alignment.centerLeft,
-                child: Icon(
-                  AppIcons.back,
-                  size: 22,
-                  color: context.textPrimary,
+          Row(
+            children: [
+              if (showBack)
+                GestureDetector(
+                  onTap: onBack,
+                  child: Container(
+                    height: 40,
+                    alignment: Alignment.centerLeft,
+                    child: Icon(
+                      AppIcons.back,
+                      size: 22,
+                      color: context.textPrimary,
+                    ),
+                  ),
+                )
+              else
+                const SizedBox(width: 40),
+              const Spacer(),
+              if (stepLabel != null)
+                Text(
+                  stepLabel!,
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: context.textSecondary,
+                  ),
                 ),
-              ),
-            )
-          else
-            const SizedBox(width: 40),
-
-          const Spacer(),
-
-          if (stepLabel != null)
+              if (trailing != null) ...[
+                if (stepLabel != null) const SizedBox(width: 8),
+                trailing!,
+              ],
+            ],
+          ),
+          if (title != null)
             Text(
-              stepLabel!,
-              style: AppTypography.bodyMedium.copyWith(
-                color: context.textSecondary,
+              title!,
+              style: AppTypography.labelMedium.copyWith(
+                color: context.textPrimary,
+                fontVariations: const [FontVariation('wght', 600)],
               ),
             ),
-
-          if (trailing != null) ...[
-            if (stepLabel != null) const SizedBox(width: 8),
-            trailing!,
-          ],
         ],
       ),
     );

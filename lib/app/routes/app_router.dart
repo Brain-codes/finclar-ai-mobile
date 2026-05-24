@@ -10,7 +10,10 @@ import '../../features/auth/presentation/screens/forgot_passcode_screen.dart';
 import '../../features/auth/presentation/screens/reset_passcode_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/home/presentation/screens/income_setup_screen.dart';
+import '../../features/expenses/data/models/expense_model.dart';
 import '../../features/expenses/presentation/screens/expenses_screen.dart';
+import '../../features/expenses/presentation/screens/expense_preview_screen.dart';
+import '../../features/expenses/presentation/screens/spending_screen.dart';
 import '../../features/budget/presentation/screens/budget_screen.dart';
 import '../../features/group/presentation/screens/group_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
@@ -28,7 +31,7 @@ Page<T> _page<T>(GoRouterState state, Widget child) {
 }
 
 final appRouter = GoRouter(
-  initialLocation: RouteNames.splash,
+  initialLocation: RouteNames.home,
   routes: [
     GoRoute(
       path: RouteNames.splash,
@@ -91,10 +94,23 @@ final appRouter = GoRouter(
       ],
     ),
 
+    // Expense sub-routes (outside shell — no bottom nav)
+    GoRoute(
+      path: RouteNames.expenseDetail,
+      pageBuilder: (context, state) {
+        final expense = state.extra as ExpenseModel;
+        return _page(state, ExpensePreviewScreen(expense: expense));
+      },
+    ),
+
     // Home sub-routes (outside shell — no bottom nav)
     GoRoute(
       path: RouteNames.incomeSetup,
       pageBuilder: (context, state) => _page(state, const IncomeSetupScreen()),
+    ),
+    GoRoute(
+      path: RouteNames.spending,
+      pageBuilder: (context, state) => _page(state, const SpendingScreen()),
     ),
 
     // Settings (outside shell)

@@ -104,4 +104,18 @@ abstract class AppColors {
   // ─── Utility ────────────────────────────────────────────────────────────────
   static const Color black       = Color(0xFF000000);
   static const Color transparent = Colors.transparent;
+
+  // ─── Clara AI gradients ──────────────────────────────────────────────────────
+  static const LinearGradient claraGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFFFA5874), Color(0xFF800080), Color(0xFFF8853D)],
+    stops: [0.0, 0.53, 1.0],
+  );
+
+  static const LinearGradient claraBorderGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFFFF751F), Color(0xFFDA4EBB)],
+  );
 }

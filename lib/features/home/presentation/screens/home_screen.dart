@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../app/routes/route_names.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../providers/income_setup_provider.dart';
@@ -70,7 +72,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ),
                       child: Column(
                         children: [
-                          SpendingCard(isEmpty: isEmpty),
+                          SpendingCard(
+                            isEmpty: isEmpty,
+                            onTap: () => context.push(RouteNames.spending),
+                          ),
                           const SizedBox(height: AppSpacing.base),
                           BudgetSection(isEmpty: isEmpty),
                           const SizedBox(height: AppSpacing.base),
