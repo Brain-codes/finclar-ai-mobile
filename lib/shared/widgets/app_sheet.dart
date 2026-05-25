@@ -19,6 +19,7 @@ Future<T?> showAppSheet<T>(
   return showModalBottomSheet<T>(
     context: context,
     isScrollControlled: true,
+    useRootNavigator: true,
     backgroundColor: context.surfaceColor,
     shape: const RoundedRectangleBorder(borderRadius: AppRadius.radiusSheetTop),
     builder: (ctx) => AppSheet(

@@ -92,6 +92,20 @@ abstract class AppIcons {
   static const IconData circle = Remix.circle_line;
   static const IconData addCircle = Remix.add_circle_line;
 
+  // Settings
+  static const IconData crown     = Remix.vip_crown_line;
+  static const IconData shield    = Remix.shield_check_line;
+  static const IconData star      = Remix.star_line;
+  static const IconData medal     = Remix.medal_line;
+  static const IconData passport  = Remix.passport_line;
+  static const IconData headphone = Remix.customer_service_2_line;
+  static const IconData question  = Remix.question_line;
+  static const IconData instagram = Remix.instagram_line;
+  static const IconData twitter   = Remix.twitter_x_line;
+  static const IconData linkedin  = Remix.linkedin_box_line;
+  static const IconData image     = Remix.image_line;
+  static const IconData whatsapp  = Remix.whatsapp_line;
+
   // Expense categories
   static const IconData categoryFood = Remix.restaurant_line;
   static const IconData categoryTransport = Remix.car_line;

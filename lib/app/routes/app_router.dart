@@ -15,6 +15,7 @@ import '../../features/expenses/presentation/screens/expenses_screen.dart';
 import '../../features/expenses/presentation/screens/expense_preview_screen.dart';
 import '../../features/expenses/presentation/screens/spending_screen.dart';
 import '../../features/budget/presentation/screens/budget_screen.dart';
+import '../../features/budget/presentation/screens/create_budget_screen.dart';
 import '../../features/group/presentation/screens/group_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/subscription/presentation/screens/subscription_screen.dart';
@@ -100,6 +101,15 @@ final appRouter = GoRouter(
       pageBuilder: (context, state) {
         final expense = state.extra as ExpenseModel;
         return _page(state, ExpensePreviewScreen(expense: expense));
+      },
+    ),
+
+    // Budget sub-routes (outside shell — no bottom nav)
+    GoRoute(
+      path: RouteNames.createBudget,
+      pageBuilder: (context, state) {
+        final title = state.extra as String? ?? 'Create budget';
+        return _page(state, CreateBudgetScreen(title: title));
       },
     ),
 

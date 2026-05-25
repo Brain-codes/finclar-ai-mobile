@@ -39,8 +39,14 @@ abstract class RouteNames {
   static const String addFriend = '/app/group/add-friend';
 
   // Settings
-  static const String settings = '/settings';
-  static const String subscription = '/settings/subscription';
+  static const String settings                = '/settings';
+  static const String subscription            = '/settings/subscription';
+  static const String settingsChangePasscode  = '/settings/change-passcode';
+  static const String settingsContactUs       = '/settings/contact-us';
+  static const String settingsFaq             = '/settings/faq';
+  static const String settingsMessage         = '/settings/message';
+  static const String settingsAccountDeletion = '/settings/delete-account';
+  static const String settingsMyAccounts      = '/settings/my-accounts';
 
   // Legal
   static const String termsOfService = '/terms-of-service';

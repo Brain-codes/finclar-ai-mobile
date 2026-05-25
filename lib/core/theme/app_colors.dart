@@ -101,6 +101,14 @@ abstract class AppColors {
   static const Color categoryShoppingBg     = Color(0xFFF9F0FA);    // light
   static const Color categoryShoppingBgDark = Color(0xFF1E0A22);    // dark
 
+  // ─── Settings icon circle colors (same in both modes) ───────────────────────
+  static const Color settingsRed   = Color(0xFF9A2329);
+  static const Color settingsCoral = Color(0xFFE55959);
+  static const Color settingsBrown = Color(0xFFA55F2B);
+  static const Color settingsNavy  = Color(0xFF1C4771);
+  static const Color settingsAmber = Color(0xFFAC5500);
+  static const Color toggleActive  = Color(0xFF34C759);
+
   // ─── Utility ────────────────────────────────────────────────────────────────
   static const Color black       = Color(0xFF000000);
   static const Color transparent = Colors.transparent;
