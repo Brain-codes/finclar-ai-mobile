@@ -56,7 +56,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 horizontal: AppSpacing.screenPadding,
                 vertical: AppSpacing.base,
               ),
-              child: HomeHeader(userName: 'Chinasa', greeting: _greeting()),
+              child: HomeHeader(
+                userName: 'Chinasa',
+                greeting: _greeting(),
+                onAvatarTap: () => context.push(RouteNames.settings),
+              ),
             ),
             Expanded(
               child: SingleChildScrollView(

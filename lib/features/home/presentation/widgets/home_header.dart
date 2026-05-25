@@ -10,26 +10,31 @@ class HomeHeader extends StatelessWidget {
   final String userName;
   final String greeting;
   final VoidCallback? onNotificationTap;
+  final VoidCallback? onAvatarTap;
 
   const HomeHeader({
     super.key,
     this.userName = 'Chinasa',
     this.greeting = 'Good evening',
     this.onNotificationTap,
+    this.onAvatarTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: const BoxDecoration(
-            color: AppColors.primaryMuted,
-            shape: BoxShape.circle,
+        GestureDetector(
+          onTap: onAvatarTap,
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: const BoxDecoration(
+              color: AppColors.primaryMuted,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(AppIcons.userFill, color: AppColors.primary, size: 20),
           ),
-          child: const Icon(AppIcons.userFill, color: AppColors.primary, size: 20),
         ),
         const SizedBox(width: AppSpacing.md),
         Expanded(

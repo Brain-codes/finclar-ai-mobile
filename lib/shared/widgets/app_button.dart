@@ -18,6 +18,9 @@ enum AppButtonVariant {
 
   /// Text only, no background or border — ghost / skip actions
   ghost,
+
+  /// Red filled — destructive actions (delete, account removal)
+  danger,
 }
 
 /// The single button widget used across the entire app.
@@ -81,6 +84,7 @@ class AppButton extends StatelessWidget {
           context: context,
         ),
         AppButtonVariant.ghost => _GhostButton(button: this, context: context),
+        AppButtonVariant.danger => _DangerButton(button: this),
       },
     );
     return fullWidth ? inner : IntrinsicWidth(child: inner);
@@ -155,6 +159,31 @@ class _OutlineButton extends StatelessWidget {
         child: _ButtonChild(
           button: button,
           textColor: button._isDisabled ? ctx.textSecondary : AppColors.primary,
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Danger ───────────────────────────────────────────────────────────────────
+
+class _DangerButton extends StatelessWidget {
+  final AppButton button;
+  const _DangerButton({required this.button});
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: button._isDisabled ? 0.5 : 1.0,
+      child: GestureDetector(
+        onTap: button._isDisabled ? null : button.onTap,
+        child: Container(
+          decoration: const BoxDecoration(
+            color: AppColors.error,
+            borderRadius: AppRadius.radiusFull,
+          ),
+          alignment: Alignment.center,
+          child: _ButtonChild(button: button, textColor: AppColors.white),
         ),
       ),
     );

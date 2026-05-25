@@ -18,6 +18,12 @@ import '../../features/budget/presentation/screens/budget_screen.dart';
 import '../../features/budget/presentation/screens/create_budget_screen.dart';
 import '../../features/group/presentation/screens/group_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
+import '../../features/settings/presentation/screens/change_passcode_screen.dart';
+import '../../features/settings/presentation/screens/contact_us_screen.dart';
+import '../../features/settings/presentation/screens/faq_screen.dart';
+import '../../features/settings/presentation/screens/message_screen.dart';
+import '../../features/settings/presentation/screens/account_deletion_screen.dart';
+import '../../features/settings/presentation/screens/my_accounts_screen.dart';
 import '../../features/subscription/presentation/screens/subscription_screen.dart';
 import '../../features/auth/presentation/screens/terms_of_service_screen.dart';
 import '../../features/auth/presentation/screens/privacy_policy_screen.dart';
@@ -131,6 +137,30 @@ final appRouter = GoRouter(
     GoRoute(
       path: RouteNames.subscription,
       pageBuilder: (context, state) => _page(state, const SubscriptionScreen()),
+    ),
+    GoRoute(
+      path: RouteNames.settingsChangePasscode,
+      pageBuilder: (context, state) => _page(state, const ChangePasscodeScreen()),
+    ),
+    GoRoute(
+      path: RouteNames.settingsContactUs,
+      pageBuilder: (context, state) => _page(state, const ContactUsScreen()),
+    ),
+    GoRoute(
+      path: RouteNames.settingsFaq,
+      pageBuilder: (context, state) => _page(state, const FaqScreen()),
+    ),
+    GoRoute(
+      path: RouteNames.settingsMessage,
+      pageBuilder: (context, state) => _page(state, const MessageScreen()),
+    ),
+    GoRoute(
+      path: RouteNames.settingsAccountDeletion,
+      pageBuilder: (context, state) => _page(state, const AccountDeletionScreen()),
+    ),
+    GoRoute(
+      path: RouteNames.settingsMyAccounts,
+      pageBuilder: (context, state) => _page(state, const MyAccountsScreen()),
     ),
 
     // Legal
