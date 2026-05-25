@@ -105,7 +105,8 @@ abstract class AppColors {
   static const Color settingsRed   = Color(0xFF9A2329);
   static const Color settingsCoral = Color(0xFFE55959);
   static const Color settingsBrown = Color(0xFFA55F2B);
-  static const Color settingsNavy  = Color(0xFF1C4771);
+  static const Color settingsNavy     = Color(0xFF1C4771);
+  static const Color settingsDeepNavy = Color(0xFF05294C);
   static const Color settingsAmber = Color(0xFFAC5500);
   static const Color toggleActive  = Color(0xFF34C759);
 
