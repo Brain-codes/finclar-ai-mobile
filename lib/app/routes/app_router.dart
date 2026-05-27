@@ -11,8 +11,11 @@ import '../../features/auth/presentation/screens/reset_passcode_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/home/presentation/screens/income_setup_screen.dart';
 import '../../features/expenses/data/models/expense_model.dart';
+import '../../features/expenses/data/models/scanned_receipt_model.dart';
 import '../../features/expenses/presentation/screens/expenses_screen.dart';
+import '../../features/expenses/presentation/screens/expense_ocr_screen.dart';
 import '../../features/expenses/presentation/screens/expense_preview_screen.dart';
+import '../../features/expenses/presentation/screens/scanned_expense_screen.dart';
 import '../../features/expenses/presentation/screens/spending_screen.dart';
 import '../../features/budget/presentation/screens/budget_screen.dart';
 import '../../features/budget/presentation/screens/create_budget_screen.dart';
@@ -113,6 +116,17 @@ final appRouter = GoRouter(
       pageBuilder: (context, state) {
         final expense = state.extra as ExpenseModel;
         return _page(state, ExpensePreviewScreen(expense: expense));
+      },
+    ),
+    GoRoute(
+      path: RouteNames.addExpenseOcr,
+      pageBuilder: (context, state) => _page(state, const ExpenseOcrScreen()),
+    ),
+    GoRoute(
+      path: RouteNames.scannedExpense,
+      pageBuilder: (context, state) {
+        final receipt = state.extra as ScannedReceiptModel;
+        return _page(state, ScannedExpenseScreen(receipt: receipt));
       },
     ),
 

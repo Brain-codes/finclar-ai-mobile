@@ -122,6 +122,7 @@ abstract class AppIcons {
   static const IconData categoryBills = Remix.flashlight_line;
   static const IconData categoryTravel = Remix.plane_line;
   static const IconData categoryOther = Remix.more_2_line;
+  static const IconData categoryUtilities = Remix.flashlight_line;
 
   // GROUP
   static const IconData message = Remix.discuss_line;

@@ -13,6 +13,9 @@ Color expenseCategoryColor(String category) {
       return AppColors.categoryHealth;
     case 'shopping':
       return AppColors.categoryShopping;
+    case 'utilities':
+    case 'bills':
+      return AppColors.categoryUtilities;
     default:
       return AppColors.primary;
   }
@@ -29,6 +32,9 @@ Color expenseCategoryBgColor(String category) {
       return AppColors.categoryHealthBg;
     case 'shopping':
       return AppColors.categoryShoppingBg;
+    case 'utilities':
+    case 'bills':
+      return AppColors.categoryUtilitiesBg;
     default:
       return AppColors.primaryMuted;
   }
@@ -45,6 +51,9 @@ IconData expenseCategoryIcon(String category) {
       return AppIcons.categoryHealth;
     case 'shopping':
       return AppIcons.categoryShopping;
+    case 'utilities':
+    case 'bills':
+      return AppIcons.categoryUtilities;
     default:
       return AppIcons.wallet;
   }

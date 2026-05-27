@@ -13,8 +13,9 @@ const _categories = [
   ('Transport', AppIcons.categoryTransport, AppColors.categoryTransport),
   ('Health', AppIcons.categoryHealth, AppColors.categoryHealth),
   ('Shopping', AppIcons.categoryShopping, AppColors.categoryShopping),
+  ('Utilities', AppIcons.categoryUtilities, AppColors.categoryUtilities),
   ('Entertainment', AppIcons.wallet, AppColors.primary),
-  ('Bills', AppIcons.wallet, AppColors.categoryTransport),
+  ('Bills', AppIcons.categoryBills, AppColors.categoryUtilities),
   ('Education', AppIcons.wallet, AppColors.categoryHealth),
   ('Others', AppIcons.wallet, AppColors.textSecondary),
 ];

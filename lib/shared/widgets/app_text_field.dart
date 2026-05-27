@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show TextInputFormatter;
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/theme/app_radius.dart';
@@ -24,6 +25,7 @@ class AppTextField extends StatelessWidget {
   final bool autofocus;
   final int? maxLength;
   final int maxLines;
+  final List<TextInputFormatter>? inputFormatters;
 
   const AppTextField({
     super.key,
@@ -46,6 +48,7 @@ class AppTextField extends StatelessWidget {
     this.autofocus = false,
     this.maxLength,
     this.maxLines = 1,
+    this.inputFormatters,
   });
 
   @override
@@ -79,6 +82,7 @@ class AppTextField extends StatelessWidget {
           autofocus: autofocus,
           maxLength: maxLength,
           maxLines: maxLines,
+          inputFormatters: inputFormatters,
           style: AppTypography.bodyMedium.copyWith(
             color: context.textPrimary,
           ),
@@ -92,7 +96,10 @@ class AppTextField extends StatelessWidget {
             prefixIcon: prefix,
             prefixIconConstraints: prefixConstraints,
             prefixText: prefixText,
-            prefixStyle: prefixStyle,
+            prefixStyle: prefixStyle ??
+                (prefixText != null
+                    ? AppTypography.bodyMedium.copyWith(color: context.textPrimary)
+                    : null),
             suffixIcon: suffix,
             counterText: '',
             contentPadding: const EdgeInsets.symmetric(
