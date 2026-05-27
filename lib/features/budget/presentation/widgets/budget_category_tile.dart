@@ -5,6 +5,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../shared/icons/app_icons.dart';
+import '../../../../shared/widgets/app_avatar.dart';
 import '../../../../shared/widgets/app_stripe_painter.dart';
 
 class BudgetCategoryItem {
@@ -57,14 +58,11 @@ class BudgetCategoryTile extends StatelessWidget {
             // Icon + name / entries row
             Row(
               children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: item.bgColor,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(item.icon, size: 16, color: item.color),
+                AppAvatar(
+                  size: 40,
+                  icon: item.icon,
+                  backgroundColor: item.bgColor,
+                  foregroundColor: item.color,
                 ),
                 const SizedBox(width: AppSpacing.md),
                 Column(

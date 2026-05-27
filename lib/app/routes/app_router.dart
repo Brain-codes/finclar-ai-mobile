@@ -16,7 +16,12 @@ import '../../features/expenses/presentation/screens/expense_preview_screen.dart
 import '../../features/expenses/presentation/screens/spending_screen.dart';
 import '../../features/budget/presentation/screens/budget_screen.dart';
 import '../../features/budget/presentation/screens/create_budget_screen.dart';
+import '../../features/group/data/models/group_item.dart';
 import '../../features/group/presentation/screens/group_screen.dart';
+import '../../features/group/presentation/screens/create_group_screen.dart';
+import '../../features/group/presentation/screens/group_detail_screen.dart';
+import '../../features/group/presentation/screens/group_friends_screen.dart';
+import '../../features/group/presentation/screens/group_chat_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/settings/presentation/screens/change_passcode_screen.dart';
 import '../../features/settings/presentation/screens/contact_us_screen.dart';
@@ -38,6 +43,7 @@ Page<T> _page<T>(GoRouterState state, Widget child) {
 }
 
 final appRouter = GoRouter(
+  // initialLocation: RouteNames.splash,
   initialLocation: RouteNames.home,
   routes: [
     GoRoute(
@@ -107,6 +113,33 @@ final appRouter = GoRouter(
       pageBuilder: (context, state) {
         final expense = state.extra as ExpenseModel;
         return _page(state, ExpensePreviewScreen(expense: expense));
+      },
+    ),
+
+    // Group sub-routes (outside shell — no bottom nav)
+    GoRoute(
+      path: RouteNames.createGroup,
+      pageBuilder: (context, state) => _page(state, const CreateGroupScreen()),
+    ),
+    GoRoute(
+      path: RouteNames.groupDetail,
+      pageBuilder: (context, state) {
+        final group = state.extra as GroupItem;
+        return _page(state, GroupDetailScreen(group: group));
+      },
+    ),
+    GoRoute(
+      path: RouteNames.groupFriends,
+      pageBuilder: (context, state) {
+        final group = state.extra as GroupItem;
+        return _page(state, GroupFriendsScreen(group: group));
+      },
+    ),
+    GoRoute(
+      path: RouteNames.groupChat,
+      pageBuilder: (context, state) {
+        final group = state.extra as GroupItem;
+        return _page(state, GroupChatScreen(group: group));
       },
     ),
 

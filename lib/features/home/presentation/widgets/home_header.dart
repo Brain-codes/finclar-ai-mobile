@@ -4,6 +4,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../shared/icons/app_icons.dart';
+import '../../../../shared/widgets/app_avatar.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 
 class HomeHeader extends StatelessWidget {
@@ -26,14 +27,11 @@ class HomeHeader extends StatelessWidget {
       children: [
         GestureDetector(
           onTap: onAvatarTap,
-          child: Container(
-            width: 40,
-            height: 40,
-            decoration: const BoxDecoration(
-              color: AppColors.primaryMuted,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(AppIcons.userFill, color: AppColors.primary, size: 20),
+          child: AppAvatar(
+            initials: userName,
+            size: 40,
+            icon: AppIcons.userFill,
+            color: AppColors.primary,
           ),
         ),
         const SizedBox(width: AppSpacing.md),

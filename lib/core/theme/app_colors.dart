@@ -9,6 +9,7 @@ abstract class AppColors {
   static const Color primary        = Color(0xFFFF751F); // orange — same in both modes
   static const Color primaryHover   = Color(0xFFEF5F00); // pressed / hover state
   static const Color primaryDark    = Color(0xFFCC4E00); // darker variant for states
+  static const Color onPrimary      = Color(0xFF1A0A00); // text/icons on primary bg
 
   // light
   static const Color primaryMuted   = Color(0xFFFFF7ED); // warm orange wash — light

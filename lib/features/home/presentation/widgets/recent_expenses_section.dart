@@ -1,5 +1,5 @@
 import 'package:finclar_ai/shared/icons/app_icons.dart';
-import 'package:finclar_ai/shared/widgets/app_svg_image.dart';
+import 'package:finclar_ai/shared/widgets/app_avatar.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -183,10 +183,6 @@ class _ExpenseTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final amountColor = item.isDebit
-        ? AppColors.error
-        : AppColors.categoryHealth;
-    final amountPrefix = item.isDebit ? '-' : '+';
 
     return Column(
       children: [
@@ -258,81 +254,30 @@ class _ExpenseIcon extends StatelessWidget {
 
   const _ExpenseIcon({required this.item});
 
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: AppRadius.radiusCard,
-      child: Container(
-        width: 40,
-        height: 40,
-        color: _bgColor(item.categoryColor),
-        child: _iconChild(),
-      ),
-    );
-  }
-
-  Widget _iconChild() {
-    switch (item.iconType) {
-      case HomeExpenseIconType.imageUrl:
-        if (item.imageUrl != null) {
-          return Image.network(
-            item.imageUrl!,
-            width: 40,
-            height: 40,
-            fit: BoxFit.cover,
-            errorBuilder: (_, _, _) => _fallbackIcon(),
-          );
-        }
-        return _fallbackIcon();
-
-      case HomeExpenseIconType.svgAsset:
-        if (item.svgPath != null) {
-          return Center(
-            child: AppSvgImage(
-              item.svgPath!,
-              width: 22,
-              height: 22,
-              color: item.categoryColor,
-            ),
-          );
-        }
-        return _fallbackIcon();
-
-      case HomeExpenseIconType.svgNetwork:
-        if (item.svgPath != null) {
-          return Center(
-            child: AppSvgImage.network(
-              item.svgPath!,
-              width: 22,
-              height: 22,
-              color: item.categoryColor,
-            ),
-          );
-        }
-        return _fallbackIcon();
-
-      case HomeExpenseIconType.appIcon:
-        return Center(
-          child: Icon(
-            item.iconData ?? AppIcons.wallet,
-            size: 20,
-            color: item.categoryColor,
-          ),
-        );
-    }
-  }
-
-  Widget _fallbackIcon() {
-    return Center(
-      child: Icon(AppIcons.wallet, size: 20, color: item.categoryColor),
-    );
-  }
-
   Color _bgColor(Color c) {
     if (c == AppColors.categoryFood) return AppColors.categoryFoodBg;
     if (c == AppColors.categoryTransport) return AppColors.categoryTransportBg;
     if (c == AppColors.categoryHealth) return AppColors.categoryHealthBg;
     if (c == AppColors.categoryShopping) return AppColors.categoryShoppingBg;
     return AppColors.primaryMuted;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = _bgColor(item.categoryColor);
+    final fg = item.categoryColor;
+    final radius = AppRadius.radiusCard.topLeft.x;
+
+    return AppAvatar(
+      size: 40,
+      shape: BoxShape.rectangle,
+      borderRadius: radius,
+      imageUrl: item.iconType == HomeExpenseIconType.imageUrl ? item.imageUrl : null,
+      svgAsset: item.iconType == HomeExpenseIconType.svgAsset ? item.svgPath : null,
+      svgNetwork: item.iconType == HomeExpenseIconType.svgNetwork ? item.svgPath : null,
+      icon: item.iconData ?? AppIcons.wallet,
+      backgroundColor: bg,
+      foregroundColor: fg,
+    );
   }
 }

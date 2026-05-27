@@ -52,35 +52,55 @@ class AppSheet extends StatelessWidget {
         ? MediaQuery.of(context).viewInsets.bottom
         : 0.0;
 
-    final inner = Padding(
-      padding: EdgeInsets.fromLTRB(
-        AppSpacing.screenPadding,
-        AppSpacing.xl,
-        AppSpacing.screenPadding,
-        AppSpacing.xxxl + keyboardHeight,
-      ),
-      child: Column(
-        mainAxisSize: heightFactor != null ? MainAxisSize.max : MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _AppSheetHeader(
-            title: title,
-            onClose: () => Navigator.of(context).pop(),
-          ),
-          const SizedBox(height: AppSpacing.xl),
-          ...children,
-        ],
-      ),
+    final header = _AppSheetHeader(
+      title: title,
+      onClose: () => Navigator.of(context).pop(),
+    );
+
+    final basePadding = EdgeInsets.fromLTRB(
+      AppSpacing.screenPadding,
+      AppSpacing.xl,
+      AppSpacing.screenPadding,
+      AppSpacing.xxxl + keyboardHeight,
     );
 
     if (heightFactor != null) {
       return SizedBox(
         height: screenHeight * heightFactor!,
-        child: inner,
+        child: Padding(
+          padding: basePadding,
+          child: Column(
+            mainAxisSize: MainAxisSize.max,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              header,
+              const SizedBox(height: AppSpacing.xl),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: children,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
-    return inner;
+    return Padding(
+      padding: basePadding,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          header,
+          const SizedBox(height: AppSpacing.xl),
+          ...children,
+        ],
+      ),
+    );
   }
 }
 

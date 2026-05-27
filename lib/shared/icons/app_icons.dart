@@ -44,6 +44,7 @@ abstract class AppIcons {
   static const IconData scan = Remix.scan_line;
   static const IconData camera = Remix.camera_line;
   static const IconData attachment = Remix.attachment_line;
+  static const IconData download = Remix.download_line;
 
   // Finance
   static const IconData wallet = Remix.wallet_fill;
@@ -63,6 +64,7 @@ abstract class AppIcons {
   static const IconData briefcase = Remix.briefcase_4_fill;
   static const IconData aiFill = Remix.sparkling_2_fill;
   static const IconData send = Remix.send_plane_line;
+  static const IconData send2 = Remix.send_plane_fill;
   static const IconData chat = Remix.chat_3_line;
   static const IconData chatFill = Remix.chat_3_fill;
   static const IconData mic = Remix.mic_line;
@@ -91,6 +93,8 @@ abstract class AppIcons {
   static const IconData radioUnchecked = Remix.radio_button_line;
   static const IconData circle = Remix.circle_line;
   static const IconData addCircle = Remix.add_circle_line;
+  static const IconData flag = Remix.flag_line;
+  static const IconData target = Remix.focus_line;
 
   // Settings
   static const IconData crown = Remix.vip_crown_line;
@@ -116,4 +120,8 @@ abstract class AppIcons {
   static const IconData categoryBills = Remix.flashlight_line;
   static const IconData categoryTravel = Remix.plane_line;
   static const IconData categoryOther = Remix.more_2_line;
+
+  // GROUP
+  static const IconData message = Remix.discuss_line;
+  // static const IconData link = Remix.link;
 }

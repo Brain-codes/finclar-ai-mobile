@@ -35,7 +35,9 @@ abstract class RouteNames {
   // Group
   static const String group = '/app/group';
   static const String createGroup = '/app/group/create';
-  static const String groupDetail = '/app/group/:id';
+  static const String groupDetail = '/group/detail';
+  static const String groupFriends = '/group/friends';
+  static const String groupChat = '/group/chat';
   static const String addFriend = '/app/group/add-friend';
 
   // Settings

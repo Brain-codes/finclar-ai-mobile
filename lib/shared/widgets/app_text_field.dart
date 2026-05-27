@@ -12,6 +12,9 @@ class AppTextField extends StatelessWidget {
   final bool obscureText;
   final Widget? suffix;
   final Widget? prefix;
+  final BoxConstraints? prefixConstraints;
+  final String? prefixText;
+  final TextStyle? prefixStyle;
   final String? errorText;
   final ValueChanged<String>? onChanged;
   final TextInputAction? textInputAction;
@@ -31,6 +34,9 @@ class AppTextField extends StatelessWidget {
     this.obscureText = false,
     this.suffix,
     this.prefix,
+    this.prefixConstraints,
+    this.prefixText,
+    this.prefixStyle,
     this.errorText,
     this.onChanged,
     this.textInputAction,
@@ -84,6 +90,9 @@ class AppTextField extends StatelessWidget {
             filled: true,
             fillColor: enabled ? context.inputFill : context.surfaceVariant,
             prefixIcon: prefix,
+            prefixIconConstraints: prefixConstraints,
+            prefixText: prefixText,
+            prefixStyle: prefixStyle,
             suffixIcon: suffix,
             counterText: '',
             contentPadding: const EdgeInsets.symmetric(
