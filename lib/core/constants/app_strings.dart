@@ -186,6 +186,40 @@ abstract class AppStrings {
   static const String scanReceipt = 'Scan Receipt';
   static const String connectBankAccount = 'Connect Bank Account';
 
+  // Bank Integration Modal
+  static const String getStarted = 'Get started';
+  static const String bankNoMoreTracking = 'No more manual tracking';
+  static const String bankNoMoreTrackingDesc =
+      'Transactions are synced and categorized for you';
+  static const String bankSeeMoneyGoes = 'See where your money goes';
+  static const String bankSeeMoneyGoesDesc =
+      'Get clear breakdowns of your spending across categories.';
+  static const String bankSmarterInsights = 'Smarter insights, faster';
+  static const String bankSmarterInsightsDesc =
+      'Finclar learns your habits and gives you useful tips instantly.';
+  static const String bankSecureProtected = 'Secure & protected';
+  static const String bankSecureProtectedDesc =
+      'Your data is encrypted and securely handled.';
+
+  // Bank Selection Screen
+  static const String selectBank = 'Select bank';
+  static const String searchForBankName = 'Search for bank name';
+
+  // Bank Linking Sheets
+  static const String bankLinkingInProgress = 'Account linking in progress';
+  static const String bankLinkingInProgressDesc =
+      'Your account is currently being linked. Do not close this page';
+  static const String bankLinkingTimeoutDesc =
+      'Linking is taking too long. Please try again';
+  static const String bankLinkingFailed = 'Account linking failed';
+  static const String bankLinkingFailedDesc =
+      'We could not complete the account linking. Please try again.';
+
+  // Bank Linking Success
+  static const String bankLinkedSuccess = 'Successfully linked';
+  static const String bankLinkedSuccessDesc =
+      'Your account has been successfully linked and your transactions will now be synced automatically';
+
   // Budget screen
   static const String budget = 'Budget';
   static const String createBudget = 'Create Budget';

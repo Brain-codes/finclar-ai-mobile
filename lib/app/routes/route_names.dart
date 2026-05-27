@@ -28,6 +28,7 @@ abstract class RouteNames {
   static const String addExpenseOcr = '/app/expenses/add/ocr';
   static const String scannedExpense = '/app/expenses/scanned';
   static const String bankIntegration = '/app/expenses/bank';
+  static const String bankLinkingSuccess = '/app/expenses/bank/success';
 
   // Budget
   static const String budget = '/app/budget';

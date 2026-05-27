@@ -17,6 +17,8 @@ import '../../features/expenses/presentation/screens/expense_ocr_screen.dart';
 import '../../features/expenses/presentation/screens/expense_preview_screen.dart';
 import '../../features/expenses/presentation/screens/scanned_expense_screen.dart';
 import '../../features/expenses/presentation/screens/spending_screen.dart';
+import '../../features/expenses/presentation/screens/bank_selection_screen.dart';
+import '../../features/expenses/presentation/screens/bank_linking_success_screen.dart';
 import '../../features/budget/presentation/screens/budget_screen.dart';
 import '../../features/budget/presentation/screens/create_budget_screen.dart';
 import '../../features/group/data/models/group_item.dart';
@@ -127,6 +129,18 @@ final appRouter = GoRouter(
       pageBuilder: (context, state) {
         final receipt = state.extra as ScannedReceiptModel;
         return _page(state, ScannedExpenseScreen(receipt: receipt));
+      },
+    ),
+    GoRoute(
+      path: RouteNames.bankIntegration,
+      pageBuilder: (context, state) =>
+          _page(state, const BankSelectionScreen()),
+    ),
+    GoRoute(
+      path: RouteNames.bankLinkingSuccess,
+      pageBuilder: (context, state) {
+        final bankName = state.extra as String? ?? '';
+        return _page(state, BankLinkingSuccessScreen(bankName: bankName));
       },
     ),
 

@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../app/routes/route_names.dart';
+import '../../../../core/services/logger_service.dart';
+import '../../../../core/services/ocr_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../data/models/scanned_receipt_model.dart';
 
 enum _OcrStatus { idle, scanning, failed }
 
@@ -28,6 +29,7 @@ class _ExpenseOcrScreenState extends State<ExpenseOcrScreen> {
   }
 
   Future<void> _launchCamera() async {
+    Log.i('[OCR Screen] Opening camera');
     final picker = ImagePicker();
     final picked = await picker.pickImage(
       source: ImageSource.camera,
@@ -35,10 +37,12 @@ class _ExpenseOcrScreenState extends State<ExpenseOcrScreen> {
     );
 
     if (picked == null) {
+      Log.w('[OCR Screen] Camera dismissed — no image selected');
       if (mounted) context.pop();
       return;
     }
 
+    Log.i('[OCR Screen] Image captured: ${picked.path}');
     if (!mounted) return;
     setState(() {
       _imageFile = File(picked.path);
@@ -46,116 +50,45 @@ class _ExpenseOcrScreenState extends State<ExpenseOcrScreen> {
       _progress = 0.0;
     });
 
-    _startFakeScanProgress();
+    _startProgressAnimation();
+    _runOcr();
   }
 
-  // Simulates scan progress — replaced with real OCR later.
-  void _startFakeScanProgress() {
+  // Advances progress to 90% while OCR runs, then holds until OCR resolves.
+  void _startProgressAnimation() {
     Future.doWhile(() async {
       await Future.delayed(const Duration(milliseconds: 60));
       if (!mounted || _status != _OcrStatus.scanning) return false;
-      final next = (_progress + 0.015).clamp(0.0, 0.95);
-      setState(() => _progress = next);
-      return next < 0.95;
-    }).then((_) {
-      if (!mounted || _status != _OcrStatus.scanning) return;
-      _onScanComplete();
+      if (_progress >= 0.9) return true;
+      setState(() => _progress = (_progress + 0.015).clamp(0.0, 0.9));
+      return true;
     });
   }
 
-  void _onScanComplete() {
-    // Placeholder — real OCR response wired here later.
-    final mockReceipt = ScannedReceiptModel(
-      merchantName: 'Bokku Mart',
-      totalAmount: 250000,
-      imagePath: _imageFile?.path,
-      items: [
-        ScannedItemModel(
-          id: '1',
-          name: 'Indomie Instant Noodle 70g',
-          category: 'Food',
-          amount: 5000,
-          quantity: 1,
-          unitPrice: 5000,
-        ),
-        ScannedItemModel(
-          id: '2',
-          name: 'Bokku Egg Big Size 15g',
-          category: 'Food',
-          amount: 12000,
-          quantity: 2,
-          unitPrice: 6000,
-        ),
-        ScannedItemModel(
-          id: '3',
-          name: 'Bull Basmati Rice 12kg',
-          category: 'Food',
-          amount: 24000,
-          quantity: 1,
-          unitPrice: 24000,
-        ),
-        ScannedItemModel(
-          id: '4',
-          name: 'Golden Penny Spaghetti 12g',
-          category: 'Food',
-          amount: 24000,
-          quantity: 2,
-          unitPrice: 12000,
-        ),
-        ScannedItemModel(
-          id: '5',
-          name: 'Maltina 400ml',
-          category: 'Food',
-          amount: 20000,
-          quantity: 4,
-          unitPrice: 5000,
-        ),
-        ScannedItemModel(
-          id: '6',
-          name: 'Welch Orange Drink 60ml',
-          category: 'Food',
-          amount: 27000,
-          quantity: 5,
-          unitPrice: 5400,
-        ),
-        ScannedItemModel(
-          id: '7',
-          name: 'Fabuloso House Cleaning Liquid Soap 600ml',
-          category: 'Utilities',
-          amount: 27000,
-          quantity: 1,
-          unitPrice: 27000,
-        ),
-        ScannedItemModel(
-          id: '8',
-          name: 'Pinky Lush Toilet Tissue Paper 50g',
-          category: 'Utilities',
-          amount: 10000,
-          quantity: 2,
-          unitPrice: 5000,
-        ),
-        ScannedItemModel(
-          id: '9',
-          name: 'Zara Man White Tripple Knit Singlet 1kg',
-          category: 'Shopping',
-          amount: 15000,
-          quantity: 3,
-          unitPrice: 5000,
-        ),
-      ],
-    );
-
-    if (mounted) {
-      context.pushReplacement(RouteNames.scannedExpense, extra: mockReceipt);
+  Future<void> _runOcr() async {
+    try {
+      final receipt = await OcrService.scanReceipt(_imageFile!);
+      if (!mounted || _status != _OcrStatus.scanning) return;
+      Log.i('[OCR Screen] OCR succeeded — navigating to scanned expense screen');
+      setState(() => _progress = 1.0);
+      await Future.delayed(const Duration(milliseconds: 300));
+      if (mounted) {
+        context.pushReplacement(RouteNames.scannedExpense, extra: receipt);
+      }
+    } catch (e) {
+      Log.e('[OCR Screen] OCR failed — showing failed state', error: e);
+      if (mounted) setState(() => _status = _OcrStatus.failed);
     }
   }
 
   void _onCancel() {
+    Log.d('[OCR Screen] Scan cancelled by user');
     setState(() => _status = _OcrStatus.idle);
     if (mounted) context.pop();
   }
 
   void _onRetry() {
+    Log.d('[OCR Screen] Retry tapped — relaunching camera');
     Navigator.of(context).pop();
     _launchCamera();
   }

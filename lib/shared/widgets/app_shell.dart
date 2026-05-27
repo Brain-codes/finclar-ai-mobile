@@ -6,6 +6,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/constants/app_strings.dart';
 import '../../core/utils/extensions/context_extensions.dart';
+import '../../features/expenses/presentation/widgets/bank_integration_modal.dart';
 import 'app_sheet.dart';
 
 class AppShell extends StatelessWidget {
@@ -66,7 +67,7 @@ class AppShell extends StatelessWidget {
           subtitle: 'Integrate your account to Finclar',
           onTap: () {
             Navigator.of(context, rootNavigator: true).pop();
-            context.push(RouteNames.bankIntegration);
+            showBankIntegrationModal(context);
           },
         ),
       ],
