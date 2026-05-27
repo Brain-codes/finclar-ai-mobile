@@ -4,8 +4,8 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/constants/app_strings.dart';
-import '../../../../shared/icons/app_icons.dart';
-import '../../../../core/utils/extensions/context_extensions.dart';
+// import '../../../../shared/icons/app_icons.dart';
+// import '../../../../core/utils/extensions/context_extensions.dart';
 
 class BalanceCard extends StatefulWidget {
   final String balance;

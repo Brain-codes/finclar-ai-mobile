@@ -3,7 +3,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
-import '../../../../core/utils/extensions/text_style_extensions.dart';
+// import '../../../../core/utils/extensions/text_style_extensions.dart';
 
 class SplashBottomSection extends StatelessWidget {
   final String heading;
