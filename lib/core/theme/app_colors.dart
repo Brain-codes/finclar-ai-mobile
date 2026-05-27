@@ -91,6 +91,7 @@ abstract class AppColors {
   static const Color categoryFoodBgDark   = Color(0xFF2D1800);      // dark
 
   static const Color categoryTransport       = Color(0xFF004AAD);
+  static const Color categoryPurple          = Color(0xFF8347B9);
   static const Color categoryTransportBg     = Color(0xFFB8DFF2);   // light
   static const Color categoryTransportBgDark = Color(0xFF00193D);   // dark
 

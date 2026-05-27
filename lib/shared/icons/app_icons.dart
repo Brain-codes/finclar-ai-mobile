@@ -32,6 +32,7 @@ abstract class AppIcons {
   static const IconData close = Remix.close_line;
   static const IconData check = Remix.check_line;
   static const IconData edit = Remix.edit_line;
+  static const IconData editFill = Remix.edit_fill;
   static const IconData delete = Remix.delete_bin_line;
   static const IconData more = Remix.more_2_line;
   static const IconData search = Remix.search_line;
@@ -43,6 +44,7 @@ abstract class AppIcons {
   static const IconData copy = Remix.file_copy_line;
   static const IconData scan = Remix.scan_line;
   static const IconData camera = Remix.camera_line;
+  static const IconData cameraFill = Remix.camera_fill;
   static const IconData attachment = Remix.attachment_line;
   static const IconData download = Remix.download_line;
 

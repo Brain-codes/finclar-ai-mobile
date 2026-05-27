@@ -34,7 +34,7 @@ class GroupChatUserBubble extends StatelessWidget {
         child: Text(
           text,
           style: AppTypography.bodySmall.copyWith(
-            color: context.textQuaternary,
+            color: context.textPrimary,
             fontSize: 14,
             fontVariations: const [FontVariation('wght', 400)],
           ),
@@ -164,10 +164,7 @@ class GroupChatOtherImageBubble extends StatelessWidget {
       children: [
         if (showName)
           Padding(
-            padding: const EdgeInsets.only(
-              left: avatarWidth + gap,
-              bottom: 4,
-            ),
+            padding: const EdgeInsets.only(left: avatarWidth + gap, bottom: 4),
             child: Text(
               name,
               style: AppTypography.labelSmall.copyWith(
@@ -181,7 +178,11 @@ class GroupChatOtherImageBubble extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             if (showAvatar)
-              AppAvatar(initials: name, size: avatarWidth, shape: BoxShape.circle)
+              AppAvatar(
+                initials: name,
+                size: avatarWidth,
+                shape: BoxShape.circle,
+              )
             else
               const SizedBox(width: avatarWidth),
             const SizedBox(width: gap),
@@ -366,7 +367,7 @@ class GroupChatUserFileBubble extends StatelessWidget {
               child: Text(
                 caption!,
                 style: AppTypography.bodySmall.copyWith(
-                  color: context.textQuaternary,
+                  color: context.textPrimary,
                   fontSize: 14,
                   fontVariations: const [FontVariation('wght', 400)],
                 ),

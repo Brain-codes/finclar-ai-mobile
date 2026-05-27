@@ -38,9 +38,9 @@ class _MediaPreviewDialogState extends State<_MediaPreviewDialog> {
   }
 
   void _send() {
-    Navigator.of(context).pop(
-      (filePath: widget.filePath, caption: _captionController.text.trim()),
-    );
+    Navigator.of(
+      context,
+    ).pop((filePath: widget.filePath, caption: _captionController.text.trim()));
   }
 
   @override
@@ -97,7 +97,10 @@ class _MediaPreviewDialogState extends State<_MediaPreviewDialog> {
                     padding: const EdgeInsets.all(AppSpacing.base),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(16),
-                      child: Image.file(File(widget.filePath), fit: BoxFit.contain),
+                      child: Image.file(
+                        File(widget.filePath),
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
                 ),
@@ -110,7 +113,8 @@ class _MediaPreviewDialogState extends State<_MediaPreviewDialog> {
                 AppSpacing.base,
                 AppSpacing.sm,
                 AppSpacing.base,
-                (bottomInset > 0 ? bottomInset : bottomPadding) + AppSpacing.base,
+                (bottomInset > 0 ? bottomInset : bottomPadding) +
+                    AppSpacing.base,
               ),
               child: Row(
                 children: [
@@ -142,6 +146,7 @@ class _MediaPreviewDialogState extends State<_MediaPreviewDialog> {
                                   fontSize: 14,
                                 ),
                                 border: InputBorder.none,
+                                fillColor: Colors.transparent,
                                 enabledBorder: InputBorder.none,
                                 focusedBorder: InputBorder.none,
                                 isDense: true,

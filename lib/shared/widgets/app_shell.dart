@@ -6,6 +6,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/constants/app_strings.dart';
 import '../../core/utils/extensions/context_extensions.dart';
+import 'app_sheet.dart';
 
 class AppShell extends StatelessWidget {
   final Widget child;
@@ -34,11 +35,41 @@ class AppShell extends StatelessWidget {
   }
 
   void _onAddTap(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => const _AddBottomSheet(),
+    showAppSheet(
+      context,
+      title: 'Add expense',
+      children: [
+        _AddOption(
+          icon: AppIcons.cameraFill,
+          iconColor: AppColors.categoryPurple,
+          title: 'Scan receipt',
+          subtitle: 'Snap and categorize your expense',
+          onTap: () {
+            Navigator.of(context, rootNavigator: true).pop();
+            context.push(RouteNames.addExpenseOcr);
+          },
+        ),
+        _AddOption(
+          icon: AppIcons.editFill,
+          iconColor: AppColors.primary,
+          title: 'Type expense',
+          subtitle: 'Manually type in expense',
+          onTap: () {
+            Navigator.of(context, rootNavigator: true).pop();
+            context.push(RouteNames.addExpense);
+          },
+        ),
+        _AddOption(
+          icon: AppIcons.wallet,
+          iconColor: AppColors.categoryTransport,
+          title: 'Account integration',
+          subtitle: 'Integrate your account to Finclar',
+          onTap: () {
+            Navigator.of(context, rootNavigator: true).pop();
+            context.push(RouteNames.bankIntegration);
+          },
+        ),
+      ],
     );
   }
 
@@ -183,27 +214,73 @@ class _AddButton extends StatelessWidget {
   }
 }
 
-class _AddBottomSheet extends StatelessWidget {
-  const _AddBottomSheet();
+class _AddOption extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  final Color? iconColor;
+
+  const _AddOption({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.iconColor,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: context.surfaceColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // TODO: add quick action options (Add Expense, Add Income, etc.)
-          Text('Quick Actions',
-              style: AppTypography.headingSmall.copyWith(
-                color: context.textPrimary,
-              )),
-          const SizedBox(height: 24),
-        ],
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        height: 72,
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: context.surfaceVariant,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: 20,
+                color: iconColor ?? context.textSecondary,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontFamily: AppFonts.body,
+                    fontSize: 14,
+                    fontVariations: const [FontVariation('wght', 500)],
+                    color: context.textPrimary,
+                    height: 1.43,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontFamily: AppFonts.body,
+                    fontSize: 12,
+                    fontVariations: const [FontVariation('wght', 400)],
+                    color: context.textSecondary,
+                    height: 1.33,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
