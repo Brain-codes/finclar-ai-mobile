@@ -124,6 +124,12 @@ abstract class AppIcons {
   static const IconData categoryOther = Remix.more_2_line;
   static const IconData categoryUtilities = Remix.flashlight_line;
 
+  // Gamification
+  static const IconData flame   = Remix.fire_line;
+  static const IconData trophy  = Remix.trophy_line;
+  static const IconData game    = Remix.gamepad_line;
+  static const IconData sparkle = Remix.sparkling_line;
+
   // GROUP
   static const IconData message = Remix.discuss_line;
   // static const IconData link = Remix.link;

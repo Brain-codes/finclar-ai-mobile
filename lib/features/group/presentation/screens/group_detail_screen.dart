@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/routes/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -7,6 +8,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../shared/icons/app_icons.dart';
+import '../../../../core/config/app_config_notifier.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_snackbar.dart';
 import '../../../../shared/widgets/app_top_bar.dart';
@@ -62,12 +64,13 @@ final _mockFriends = [
   ),
 ];
 
-class GroupDetailScreen extends StatelessWidget {
+class GroupDetailScreen extends ConsumerWidget {
   final GroupItem group;
   const GroupDetailScreen({super.key, required this.group});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final symbol = ref.watch(currencySymbolProvider);
     return Scaffold(
       backgroundColor: context.scaffoldColor,
       body: SafeArea(
@@ -127,9 +130,9 @@ class GroupDetailScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    _StatsSection(group: group),
+                    _StatsSection(group: group, symbol: symbol),
                     const SizedBox(height: AppSpacing.base),
-                    _FriendsCard(group: group),
+                    _FriendsCard(group: group, symbol: symbol),
                   ],
                 ),
               ),
@@ -144,7 +147,8 @@ class GroupDetailScreen extends StatelessWidget {
 
 class _StatsSection extends StatelessWidget {
   final GroupItem group;
-  const _StatsSection({required this.group});
+  final String symbol;
+  const _StatsSection({required this.group, required this.symbol});
 
   @override
   Widget build(BuildContext context) {
@@ -229,7 +233,7 @@ class _StatsSection extends StatelessWidget {
               const SizedBox(width: 36),
               _StatChip(
                 label: 'Balance',
-                value: '₦350,000',
+                value: '${symbol}350,000',
                 labelColor: AppColors.primary,
                 icon: AppIcons.walletLine,
               ),
@@ -294,7 +298,8 @@ class _StatChip extends StatelessWidget {
 
 class _FriendsCard extends StatelessWidget {
   final GroupItem group;
-  const _FriendsCard({required this.group});
+  final String symbol;
+  const _FriendsCard({required this.group, required this.symbol});
 
   @override
   Widget build(BuildContext context) {
@@ -350,8 +355,8 @@ class _FriendsCard extends StatelessWidget {
                         context,
                         name: f.name,
                         contributed:
-                            '₦${f.contributedAmount.toStringAsFixed(0)}',
-                        target: '₦${f.targetAmount.toStringAsFixed(0)}',
+                            '$symbol${f.contributedAmount.toStringAsFixed(0)}',
+                        target: '$symbol${f.targetAmount.toStringAsFixed(0)}',
                         onRemove: () => showDeleteFriendSheet(context),
                       )
                     : null,

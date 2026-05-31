@@ -2,6 +2,8 @@
 
 import 'package:finclar_ai/shared/icons/app_icons.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/config/app_config_notifier.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -24,7 +26,7 @@ class IncomeExpenseData {
   });
 }
 
-class IncomeExpenseChartSection extends StatefulWidget {
+class IncomeExpenseChartSection extends ConsumerStatefulWidget {
   final bool isEmpty;
   final List<IncomeExpenseData> data;
   final double totalIncome;
@@ -45,11 +47,12 @@ class IncomeExpenseChartSection extends StatefulWidget {
   });
 
   @override
-  State<IncomeExpenseChartSection> createState() =>
+  ConsumerState<IncomeExpenseChartSection> createState() =>
       _IncomeExpenseChartSectionState();
 }
 
-class _IncomeExpenseChartSectionState extends State<IncomeExpenseChartSection> {
+class _IncomeExpenseChartSectionState
+    extends ConsumerState<IncomeExpenseChartSection> {
   int _selectedPeriodIndex = 4;
 
   static const _periods = ['1y', 'Jan', 'Feb', 'Mar', 'Apr', 'May'];
@@ -138,15 +141,23 @@ class _IncomeExpenseChartSectionState extends State<IncomeExpenseChartSection> {
                 _LegendItem(
                   stripeColor: AppColors.primary,
                   label: AppStrings.incomeLabel,
-                  amount:
-                      '₦${formatAmount(widget.totalIncome, abbreviate: false, withCommas: true)}',
+                  amount: formatCurrency(
+                    widget.totalIncome,
+                    ref.watch(currencySymbolProvider),
+                    abbreviate: false,
+                    withCommas: true,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.base),
                 _LegendItem(
                   stripeColor: AppColors.categoryTransport,
                   label: AppStrings.expenseLabel,
-                  amount:
-                      '₦${formatAmount(widget.totalExpense, abbreviate: false, withCommas: true)}',
+                  amount: formatCurrency(
+                    widget.totalExpense,
+                    ref.watch(currencySymbolProvider),
+                    abbreviate: false,
+                    withCommas: true,
+                  ),
                 ),
               ],
             ),

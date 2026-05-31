@@ -37,6 +37,9 @@ import '../../features/settings/presentation/screens/my_accounts_screen.dart';
 import '../../features/subscription/presentation/screens/subscription_screen.dart';
 import '../../features/auth/presentation/screens/terms_of_service_screen.dart';
 import '../../features/auth/presentation/screens/privacy_policy_screen.dart';
+import '../../features/gamification/presentation/screens/badges_screen.dart';
+import '../../features/gamification/presentation/screens/gamification_preview_screen.dart';
+import '../../features/gamification/presentation/screens/wrapped_screen.dart';
 import '../../shared/widgets/app_shell.dart';
 import 'route_names.dart';
 
@@ -222,6 +225,21 @@ final appRouter = GoRouter(
     GoRoute(
       path: RouteNames.settingsMyAccounts,
       pageBuilder: (context, state) => _page(state, const MyAccountsScreen()),
+    ),
+
+    // Gamification
+    GoRoute(
+      path: RouteNames.gamificationPreview,
+      pageBuilder: (context, state) =>
+          _page(state, const GamificationPreviewScreen()),
+    ),
+    GoRoute(
+      path: RouteNames.badges,
+      pageBuilder: (context, state) => _page(state, const BadgesScreen()),
+    ),
+    GoRoute(
+      path: RouteNames.wrapped,
+      pageBuilder: (context, state) => _page(state, const WrappedScreen()),
     ),
 
     // Legal

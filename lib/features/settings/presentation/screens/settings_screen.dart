@@ -94,7 +94,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           icon: AppIcons.medal,
                           iconBg: AppColors.settingsBrown,
                           label: 'My badges',
-                          onTap: () {},
+                          onTap: () => context.push(RouteNames.badges),
+                        ),
+                        SettingsRow(
+                          icon: AppIcons.game,
+                          iconBg: AppColors.categoryPurple,
+                          label: 'Gamify',
+                          onTap: () => context.push(RouteNames.gamificationPreview),
                         ),
                         SettingsRow(
                           icon: AppIcons.bank,

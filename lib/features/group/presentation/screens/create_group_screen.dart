@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -11,18 +12,19 @@ import '../../../../shared/widgets/app_date_sheet.dart';
 import '../../../../shared/widgets/app_snackbar.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../widgets/add_friend_sheet.dart';
+import '../../../../core/config/app_config_notifier.dart';
 
 final _dateFormat = DateFormat('dd/MM/yyyy');
 final _numberFormat = NumberFormat('#,##0', 'en');
 
-class CreateGroupScreen extends StatefulWidget {
+class CreateGroupScreen extends ConsumerStatefulWidget {
   const CreateGroupScreen({super.key});
 
   @override
-  State<CreateGroupScreen> createState() => _CreateGroupScreenState();
+  ConsumerState<CreateGroupScreen> createState() => _CreateGroupScreenState();
 }
 
-class _CreateGroupScreenState extends State<CreateGroupScreen> {
+class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
   final _nameController = TextEditingController();
   final _amountController = TextEditingController();
   DateTime? _endDate;
@@ -81,6 +83,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final symbol = ref.watch(currencySymbolProvider);
     return Scaffold(
       backgroundColor: context.surfaceColor,
       body: SafeArea(
@@ -118,7 +121,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                       controller: _amountController,
                       keyboardType: TextInputType.number,
                       onChanged: _onAmountChanged,
-                      prefixText: '₦ ',
+                      prefixText: '$symbol ',
                       prefixStyle: AppTypography.bodyMedium.copyWith(
                         color: context.textSecondary,
                       ),

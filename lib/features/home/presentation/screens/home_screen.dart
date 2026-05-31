@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/routes/route_names.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
+import '../../../../core/config/app_config_notifier.dart';
+import '../../../../core/utils/number_formatter.dart';
 import '../../providers/income_setup_provider.dart';
 import '../widgets/home_header.dart';
 import '../widgets/balance_card.dart';
@@ -45,6 +47,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final hasIncome = ref.watch(incomeSetupProvider).hasIncome;
     final isEmpty = false;
     // final isEmpty = !hasIncome;
+    final symbol = ref.watch(currencySymbolProvider);
 
     return Scaffold(
       backgroundColor: context.scaffoldColor,
@@ -68,7 +71,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 child: Column(
                   children: [
                     const SizedBox(height: AppSpacing.base),
-                    BalanceCard(balance: isEmpty ? '₦00.00' : '₦1,850,000.00'),
+                    BalanceCard(
+                      balance: isEmpty
+                          ? '${symbol}0.00'
+                          : formatCurrency(1850000, symbol,
+                              abbreviate: false, withCommas: true),
+                    ),
                     const SizedBox(height: AppSpacing.base),
                     Padding(
                       padding: const EdgeInsets.symmetric(

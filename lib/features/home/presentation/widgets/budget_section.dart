@@ -1,6 +1,8 @@
 import 'package:finclar_ai/shared/icons/app_icons.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/config/app_config_notifier.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -25,7 +27,7 @@ class BudgetCategory {
   double get percentage => total > 0 ? (spent / total).clamp(0.0, 1.0) : 0;
 }
 
-class BudgetSection extends StatelessWidget {
+class BudgetSection extends ConsumerWidget {
   final bool isEmpty;
   final List<BudgetCategory> categories;
   final VoidCallback? onBreakdownTap;
@@ -63,7 +65,8 @@ class BudgetSection extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final symbol = ref.watch(currencySymbolProvider);
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -111,14 +114,14 @@ class BudgetSection extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _BudgetDonutChart(categories: categories),
+                _BudgetDonutChart(categories: categories, symbol: symbol),
                 const SizedBox(width: AppSpacing.base),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: AppSpacing.base),
                     for (int i = 0; i < categories.length; i++) ...[
-                      _BudgetItemRow(category: categories[i]),
+                      _BudgetItemRow(category: categories[i], symbol: symbol),
                       if (i < categories.length - 1) ...[
                         const SizedBox(height: AppSpacing.base),
                         Divider(height: 1, color: context.borderColor),
@@ -146,8 +149,9 @@ class BudgetSection extends StatelessWidget {
 
 class _BudgetDonutChart extends StatelessWidget {
   final List<BudgetCategory> categories;
+  final String symbol;
 
-  const _BudgetDonutChart({required this.categories});
+  const _BudgetDonutChart({required this.categories, required this.symbol});
 
   @override
   Widget build(BuildContext context) {
@@ -225,16 +229,17 @@ class _BudgetDonutChart extends StatelessWidget {
   }
 
   String _formatAmount(double amount) {
-    if (amount >= 1000000) return '₦${(amount / 1000000).toStringAsFixed(1)}m';
-    if (amount >= 1000) return '₦${(amount / 1000).toStringAsFixed(0)}k';
-    return '₦${amount.toStringAsFixed(0)}';
+    if (amount >= 1000000) return '$symbol${(amount / 1000000).toStringAsFixed(1)}m';
+    if (amount >= 1000) return '$symbol${(amount / 1000).toStringAsFixed(0)}k';
+    return '$symbol${amount.toStringAsFixed(0)}';
   }
 }
 
 class _BudgetItemRow extends StatelessWidget {
   final BudgetCategory category;
+  final String symbol;
 
-  const _BudgetItemRow({required this.category});
+  const _BudgetItemRow({required this.category, required this.symbol});
 
   @override
   Widget build(BuildContext context) {
@@ -259,7 +264,7 @@ class _BudgetItemRow extends StatelessWidget {
           ),
         ),
         Text(
-          '₦${_format(category.spent)} / ₦${_format(category.total)}',
+          '$symbol${_format(category.spent)} / $symbol${_format(category.total)}',
           style: AppTypography.bodySmall.copyWith(
             color: context.textPrimary,
             fontVariations: const [FontVariation('wght', 500)],

@@ -1,22 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/config/app_config_notifier.dart';
 // import '../../../../shared/icons/app_icons.dart';
 // import '../../../../core/utils/extensions/context_extensions.dart';
 
-class BalanceCard extends StatefulWidget {
+class BalanceCard extends ConsumerStatefulWidget {
   final String balance;
 
   const BalanceCard({super.key, this.balance = '₦1,850,000.00'});
 
   @override
-  State<BalanceCard> createState() => _BalanceCardState();
+  ConsumerState<BalanceCard> createState() => _BalanceCardState();
 }
 
-class _BalanceCardState extends State<BalanceCard> {
+class _BalanceCardState extends ConsumerState<BalanceCard> {
   bool _isHidden = false;
 
   @override
@@ -48,7 +50,9 @@ class _BalanceCardState extends State<BalanceCard> {
                   ),
                   const SizedBox(height: AppSpacing.lg),
                   Text(
-                    _isHidden ? '₦ ••••••' : widget.balance,
+                    _isHidden
+                        ? '${ref.watch(currencySymbolProvider)} ••••••'
+                        : widget.balance,
                     style: AppTypography.amountLarge.copyWith(
                       color: AppColors.white,
                     ),

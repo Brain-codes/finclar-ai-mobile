@@ -120,6 +120,15 @@ abstract class AppColors {
   static const Color black       = Color(0xFF000000);
   static const Color transparent = Colors.transparent;
 
+  // ─── Gamification ───────────────────────────────────────────────────────────
+  static const Color streakGold        = Color(0xFFFE9400); // streak counter + active day
+  static const Color streakGoldMuted   = Color(0xFFFFF3E0); // streak day bg light
+  static const Color challengePurple   = Color(0xFF844FAE); // category budget challenge
+  static const Color onChallengePurple = Color(0xFFFFFFFF); // text on purple buttons
+  static const Color onPrimaryDeep     = Color(0xFF4D1E00); // text on orange gamification buttons
+  static const Color badgeTealStart    = Color(0xFF49F0BC); // badge front gradient start
+  static const Color badgeTealEnd      = Color(0xFF29DCCC); // badge front gradient end
+
   // ─── Clara AI gradients ──────────────────────────────────────────────────────
   static const LinearGradient claraGradient = LinearGradient(
     begin: Alignment.topLeft,

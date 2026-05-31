@@ -568,3 +568,21 @@ Before using `AppSvgImage(AppSvg.something)`, verify the SVG file exists in `ass
 2. Add the `GoRoute` to `app_router.dart`. For detail screens that receive an object, pass it via `state.extra` and cast it in the `pageBuilder`.
 3. Push with `context.push(RouteNames.yourRoute, extra: yourObject)` from the list tile.
 4. Detail screens that live outside the shell (no bottom nav) go **outside** the `ShellRoute` in `app_router.dart`.
+
+---
+
+## 18. Backend API Reference
+
+The full backend API is documented in [`docs/API.md`](docs/API.md).
+
+- **Base URL:** `https://finclar-ai.onrender.com/api/v1`
+- **Swagger UI:** `https://finclar-ai.onrender.com/docs`
+- `docs/API.md` is the single source of truth for all endpoint paths, request bodies, and response schemas.
+- `lib/core/api/api_endpoints.dart` must always mirror `docs/API.md`.
+
+### Rules
+- **Before implementing any repository method or API call**, check `docs/API.md` to confirm the endpoint exists and is live.
+- Endpoints listed under "Planned — not yet live" in `docs/API.md` must not be called until confirmed.
+- When a new endpoint is added to the backend: update `docs/API.md` first, then update `api_endpoints.dart`.
+- `default_currency` arrives in `UserResponseDto` after login/register. Always pass it to `AppConfigNotifier.applyCurrency()` immediately after a successful auth response.
+- Income sources from `GET /income/sources` serve as the selectable source list in the income setup screen.

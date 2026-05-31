@@ -1,6 +1,8 @@
 import 'package:finclar_ai/shared/icons/app_icons.dart';
 import 'package:finclar_ai/shared/widgets/app_avatar.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/config/app_config_notifier.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -36,7 +38,7 @@ class HomeExpenseItem {
   });
 }
 
-class RecentExpensesSection extends StatelessWidget {
+class RecentExpensesSection extends ConsumerWidget {
   final bool isEmpty;
   final List<HomeExpenseItem> expenses;
   final VoidCallback? onViewAll;
@@ -90,7 +92,8 @@ class RecentExpensesSection extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final symbol = ref.watch(currencySymbolProvider);
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -165,7 +168,11 @@ class RecentExpensesSection extends StatelessWidget {
               children: expenses
                   .map(
                     (e) =>
-                        _ExpenseTile(item: e, showDivider: e != expenses.last),
+                        _ExpenseTile(
+                          item: e,
+                          showDivider: e != expenses.last,
+                          symbol: symbol,
+                        ),
                   )
                   .toList(),
             ),
@@ -178,8 +185,13 @@ class RecentExpensesSection extends StatelessWidget {
 class _ExpenseTile extends StatelessWidget {
   final HomeExpenseItem item;
   final bool showDivider;
+  final String symbol;
 
-  const _ExpenseTile({required this.item, required this.showDivider});
+  const _ExpenseTile({
+    required this.item,
+    required this.showDivider,
+    required this.symbol,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -221,7 +233,7 @@ class _ExpenseTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    '₦${item.amount}',
+                    '$symbol${item.amount}',
                     style: AppTypography.bodySmall.copyWith(
                       color: context.textQuaternary,
                       fontSize: 14,

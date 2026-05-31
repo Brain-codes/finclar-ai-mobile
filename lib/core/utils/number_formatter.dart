@@ -1,10 +1,7 @@
 import 'package:intl/intl.dart';
 
 /// Formats a numeric amount with optional abbreviation and comma separation.
-///
-/// [abbreviate] — when true, values ≥ 1,000 are shortened to k/m (e.g. 2,000,000 → 2.0m).
-/// [withCommas] — when true, the raw number is formatted with comma separators.
-/// Both can be combined: abbreviate takes precedence when the value qualifies.
+/// Does NOT prepend a currency symbol — use [formatCurrency] for that.
 String formatAmount(
   double value, {
   bool abbreviate = true,
@@ -22,4 +19,20 @@ String formatAmount(
   return value % 1 == 0
       ? value.toStringAsFixed(0)
       : value.toStringAsFixed(2);
+}
+
+/// Formats a value with a currency symbol prefix.
+/// Pass [symbol] explicitly (from [currencySymbolProvider]) or fall back to
+/// the supplied default. Never hardcode '₦' — use this instead.
+///
+/// Example:
+///   formatCurrency(1500000, symbol: ref.watch(currencySymbolProvider))
+///   // → '₦1.5m'  or  '$1.5m'  depending on user's currency
+String formatCurrency(
+  double value,
+  String symbol, {
+  bool abbreviate = true,
+  bool withCommas = false,
+}) {
+  return '$symbol${formatAmount(value, abbreviate: abbreviate, withCommas: withCommas)}';
 }

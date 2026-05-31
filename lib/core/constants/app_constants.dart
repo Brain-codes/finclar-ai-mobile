@@ -7,6 +7,8 @@ abstract class AppConstants {
   static const String onboardingKey = 'onboarding_complete';
   static const String incomeSetupKey = 'income_setup_complete';
   static const String aiSetupKey = 'ai_setup_complete';
+  static const String currencyCodeKey = 'currency_code';
+  static const String categoriesKey = 'categories_cache';
 
   // API
   static const Duration connectTimeout = Duration(seconds: 30);

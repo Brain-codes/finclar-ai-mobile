@@ -54,6 +54,13 @@ class AppButton extends StatelessWidget {
   /// Fixed height — defaults to 52 (design system standard)
   final double height;
 
+  /// Override background color (e.g. gamification purple button).
+  /// Only applies when [variant] is [AppButtonVariant.primary].
+  final Color? backgroundColor;
+
+  /// Override text/icon color when [backgroundColor] is set.
+  final Color? foregroundColor;
+
   const AppButton({
     super.key,
     required this.label,
@@ -64,6 +71,8 @@ class AppButton extends StatelessWidget {
     this.svgIcon,
     this.fullWidth = true,
     this.height = 52,
+    this.backgroundColor,
+    this.foregroundColor,
   });
 
   bool get _isDisabled => onTap == null;
@@ -74,7 +83,7 @@ class AppButton extends StatelessWidget {
       width: fullWidth ? double.infinity : null,
       height: height,
       child: switch (variant) {
-        AppButtonVariant.primary => _PrimaryButton(button: this),
+        AppButtonVariant.primary => _PrimaryButton(button: this, backgroundColor: backgroundColor, foregroundColor: foregroundColor),
         AppButtonVariant.secondary => _SecondaryButton(
           button: this,
           context: context,
@@ -95,17 +104,34 @@ class AppButton extends StatelessWidget {
 
 class _PrimaryButton extends StatelessWidget {
   final AppButton button;
-  const _PrimaryButton({required this.button});
+  final Color? backgroundColor;
+  final Color? foregroundColor;
+  const _PrimaryButton({required this.button, this.backgroundColor, this.foregroundColor});
 
   @override
   Widget build(BuildContext context) {
+    final textColor = foregroundColor ?? AppColors.white;
+    if (backgroundColor != null) {
+      return Opacity(
+        opacity: button.isLoading ? 0.6 : 1.0,
+        child: GestureDetector(
+          onTap: (button._isDisabled || button.isLoading) ? null : button.onTap,
+          child: Container(
+            decoration: BoxDecoration(
+              color: button._isDisabled ? backgroundColor!.withValues(alpha: 0.5) : backgroundColor,
+              borderRadius: AppRadius.radiusFull,
+            ),
+            alignment: Alignment.center,
+            child: _ButtonChild(button: button, textColor: textColor),
+          ),
+        ),
+      );
+    }
     return Opacity(
       opacity: button.isLoading ? 0.6 : 1.0,
       child: ElevatedButton(
-        onPressed: (button._isDisabled || button.isLoading)
-            ? null
-            : button.onTap,
-        child: _ButtonChild(button: button, textColor: AppColors.white),
+        onPressed: (button._isDisabled || button.isLoading) ? null : button.onTap,
+        child: _ButtonChild(button: button, textColor: textColor),
       ),
     );
   }
