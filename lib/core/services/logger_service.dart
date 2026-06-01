@@ -32,4 +32,11 @@ abstract class Log {
     if (body != null) buffer.writeln('Body: $body');
     _logger.i(buffer.toString());
   }
+
+  static void apiResponse(String method, String url, int statusCode, dynamic data) {
+    final buffer = StringBuffer();
+    buffer.writeln('[$method] $url → $statusCode');
+    buffer.writeln('Response: $data');
+    _logger.d(buffer.toString());
+  }
 }

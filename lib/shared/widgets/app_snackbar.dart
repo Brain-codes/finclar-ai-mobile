@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:toastification/toastification.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/theme/app_radius.dart';
-import '../../core/theme/app_spacing.dart';
 import '../icons/app_icons.dart';
 
 enum SnackbarType { success, error, warning, info }
@@ -19,22 +19,40 @@ class AppSnackbar {
     VoidCallback? onAction,
     Duration duration = const Duration(seconds: 3),
   }) {
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: _SnackbarContent(
-          message: message,
-          type: type,
-          title: title,
-          actionLabel: actionLabel,
-          onAction: onAction,
+    final style = _styleFor(type);
+
+    toastification.show(
+      context: context,
+      type: style.toastType,
+      style: ToastificationStyle.flat,
+      title: title != null
+          ? Text(
+              title,
+              style: AppTypography.labelLarge.copyWith(color: AppColors.white),
+            )
+          : null,
+      description: Text(
+        message,
+        style: AppTypography.bodySmall.copyWith(
+          color: AppColors.white.withValues(alpha: 0.75),
         ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        behavior: SnackBarBehavior.floating,
-        duration: duration,
-        margin: const EdgeInsets.all(AppSpacing.base),
-        padding: EdgeInsets.zero,
+      ),
+      icon: Icon(style.icon, color: style.iconColor, size: 20),
+      primaryColor: style.indicatorColor,
+      backgroundColor: AppColors.textPrimary,
+      foregroundColor: AppColors.white,
+      borderRadius: AppRadius.radiusCard,
+      showProgressBar: false,
+      autoCloseDuration: duration,
+      alignment: Alignment.topLeft,
+      dragToClose: true,
+      applyBlurEffect: true,
+      animationBuilder: (context, animation, alignment, child) =>
+          FadeTransition(opacity: animation, child: child),
+      callbacks: ToastificationCallbacks(
+        onTap: onAction != null && actionLabel != null
+            ? (_) => onAction()
+            : null,
       ),
     );
   }
@@ -50,117 +68,45 @@ class AppSnackbar {
 
   static void info(BuildContext context, String message, {String? title}) =>
       show(context, message: message, type: SnackbarType.info, title: title);
-}
 
-class _SnackbarContent extends StatelessWidget {
-  final String message;
-  final SnackbarType type;
-  final String? title;
-  final String? actionLabel;
-  final VoidCallback? onAction;
-
-  const _SnackbarContent({
-    required this.message,
-    required this.type,
-    this.title,
-    this.actionLabel,
-    this.onAction,
-  });
-
-  _SnackbarStyle get _style => switch (type) {
-        SnackbarType.success => _SnackbarStyle(
-            background: AppColors.textPrimary,
-            iconColor: AppColors.success,
-            icon: AppIcons.success,
-            indicator: AppColors.success,
-          ),
-        SnackbarType.error => _SnackbarStyle(
-            background: AppColors.textPrimary,
-            iconColor: AppColors.error,
-            icon: AppIcons.error,
-            indicator: AppColors.error,
-          ),
-        SnackbarType.warning => _SnackbarStyle(
-            background: AppColors.textPrimary,
-            iconColor: AppColors.warning,
-            icon: AppIcons.warning,
-            indicator: AppColors.warning,
-          ),
-        SnackbarType.info => _SnackbarStyle(
-            background: AppColors.textPrimary,
-            iconColor: AppColors.info,
-            icon: AppIcons.info,
-            indicator: AppColors.info,
-          ),
-      };
-
-  @override
-  Widget build(BuildContext context) {
-    final style = _style;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: style.background,
-        borderRadius: AppRadius.radiusCard,
-        border: Border(
-          left: BorderSide(color: style.indicator, width: 4),
-        ),
-      ),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.base,
-        vertical: AppSpacing.md,
-      ),
-      child: Row(
-        children: [
-          Icon(style.icon, color: style.iconColor, size: 20),
-          AppSpacing.horizontalMd,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (title != null) ...[
-                  Text(
-                    title!,
-                    style: AppTypography.labelLarge.copyWith(color: AppColors.white),
-                  ),
-                  AppSpacing.verticalXs,
-                ],
-                Text(
-                  message,
-                  style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.white.withValues(alpha: 0.75),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (actionLabel != null) ...[
-            AppSpacing.horizontalMd,
-            GestureDetector(
-              onTap: onAction,
-              child: Text(
-                actionLabel!,
-                style: AppTypography.labelMedium.copyWith(color: style.indicator),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
+  static _SnackbarStyle _styleFor(SnackbarType type) => switch (type) {
+    SnackbarType.success => _SnackbarStyle(
+      toastType: ToastificationType.success,
+      icon: AppIcons.success,
+      iconColor: AppColors.success,
+      indicatorColor: AppColors.success,
+    ),
+    SnackbarType.error => _SnackbarStyle(
+      toastType: ToastificationType.error,
+      icon: AppIcons.error,
+      iconColor: AppColors.error,
+      indicatorColor: AppColors.error,
+    ),
+    SnackbarType.warning => _SnackbarStyle(
+      toastType: ToastificationType.warning,
+      icon: AppIcons.warning,
+      iconColor: AppColors.warning,
+      indicatorColor: AppColors.warning,
+    ),
+    SnackbarType.info => _SnackbarStyle(
+      toastType: ToastificationType.info,
+      icon: AppIcons.info,
+      iconColor: AppColors.info,
+      indicatorColor: AppColors.info,
+    ),
+  };
 }
 
 class _SnackbarStyle {
-  final Color background;
-  final Color iconColor;
+  final ToastificationType toastType;
   final IconData icon;
-  final Color indicator;
+  final Color iconColor;
+  final Color indicatorColor;
 
   const _SnackbarStyle({
-    required this.background,
-    required this.iconColor,
+    required this.toastType,
     required this.icon,
-    required this.indicator,
+    required this.iconColor,
+    required this.indicatorColor,
   });
 }

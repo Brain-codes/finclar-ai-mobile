@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/routes/route_names.dart';
+import '../../../../core/services/auth_state_service.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/constants/app_strings.dart';
@@ -45,8 +46,14 @@ class _SplashScreenState extends State<SplashScreen>
         curve: Curves.easeInOut,
       );
     } else {
+      authStateService.completeOnboarding();
       context.go(RouteNames.signUp);
     }
+  }
+
+  void _skip() {
+    authStateService.completeOnboarding();
+    context.go(RouteNames.login);
   }
 
   @override
@@ -68,7 +75,7 @@ class _SplashScreenState extends State<SplashScreen>
                   child: Align(
                     alignment: Alignment.centerRight,
                     child: GestureDetector(
-                      onTap: () => context.go(RouteNames.login),
+                      onTap: _skip,
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 4,
@@ -101,7 +108,7 @@ class _SplashScreenState extends State<SplashScreen>
                   currentPage: _currentPage,
                   totalPages: _totalPages,
                   onCta: _next,
-                  onLogin: () => context.go(RouteNames.login),
+                  onLogin: _skip,
                 ),
               ],
             ),

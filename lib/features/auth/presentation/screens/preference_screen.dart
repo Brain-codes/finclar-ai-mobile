@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import '../../../../app/routes/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -10,6 +8,8 @@ import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../shared/icons/app_icons.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_screen_header.dart';
+import '../../../../shared/widgets/app_snackbar.dart';
+import '../../providers/preference_provider.dart';
 
 // ─── Preference data model ────────────────────────────────────────────────────
 
@@ -69,24 +69,38 @@ class PreferenceScreen extends ConsumerStatefulWidget {
   ConsumerState<PreferenceScreen> createState() => _PreferenceScreenState();
 }
 
+// Maps the local preference ID to the backend goal string.
+const _goalIds = {
+  'save': 'save_more',
+  'track': 'track_expenses',
+  'budget': 'budget_better',
+  'control': 'financial_control',
+};
+
 class _PreferenceScreenState extends ConsumerState<PreferenceScreen> {
-  String? _selectedId = 'save'; // "Save more money" pre-selected per Figma
-  bool _isLoading = false;
+  String? _selectedId;
 
   Future<void> _onContinue() async {
     if (_selectedId == null) return;
-    setState(() => _isLoading = true);
-    try {
-      // TODO: ApiClient — save preference to backend
-      await Future.delayed(const Duration(milliseconds: 600));
-      if (mounted) context.go(RouteNames.home);
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+    final goal = _goalIds[_selectedId!]!;
+    await ref.read(preferenceProvider.notifier).saveGoals([goal]);
+  }
+
+  Future<void> _onSkip() async {
+    await ref.read(preferenceProvider.notifier).skipGoals();
   }
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(preferenceProvider);
+
+    ref.listen(preferenceProvider, (_, next) {
+      if (next.snackbarError != null) {
+        AppSnackbar.error(context, next.snackbarError!);
+        ref.read(preferenceProvider.notifier).clearSnackbarError();
+      }
+    });
+
     return Scaffold(
       backgroundColor: context.scaffoldColor,
       body: Stack(
@@ -153,15 +167,15 @@ class _PreferenceScreenState extends ConsumerState<PreferenceScreen> {
                     children: [
                       AppButton(
                         label: AppStrings.continueText,
-                        onTap: (_selectedId == null || _isLoading)
+                        onTap: (_selectedId == null || state.isLoading)
                             ? null
                             : _onContinue,
-                        isLoading: _isLoading,
+                        isLoading: state.isLoading,
                       ),
                       const SizedBox(height: AppSpacing.base),
                       AppButton(
                         label: AppStrings.skipForNow,
-                        onTap: () => context.go(RouteNames.home),
+                        onTap: state.isLoading ? null : _onSkip,
                         variant: AppButtonVariant.ghost,
                       ),
                     ],

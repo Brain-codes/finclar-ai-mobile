@@ -39,7 +39,11 @@ class ApiClient {
   }) async {
     try {
       final response = await _dio.get(path, queryParameters: queryParams);
-      return ApiResponse.fromJson(response.data as Map<String, dynamic>, fromData);
+      Log.apiResponse('GET', path, response.statusCode ?? 0, response.data);
+      return ApiResponse.fromJson(
+        response.data as Map<String, dynamic>,
+        fromData,
+      );
     } on DioException catch (e) {
       throw _handleError(e);
     }
@@ -52,7 +56,11 @@ class ApiClient {
   }) async {
     try {
       final response = await _dio.post(path, data: body);
-      return ApiResponse.fromJson(response.data as Map<String, dynamic>, fromData);
+      Log.apiResponse('POST', path, response.statusCode ?? 0, response.data);
+      return ApiResponse.fromJson(
+        response.data as Map<String, dynamic>,
+        fromData,
+      );
     } on DioException catch (e) {
       throw _handleError(e);
     }
@@ -65,7 +73,11 @@ class ApiClient {
   }) async {
     try {
       final response = await _dio.put(path, data: body);
-      return ApiResponse.fromJson(response.data as Map<String, dynamic>, fromData);
+      Log.apiResponse('PUT', path, response.statusCode ?? 0, response.data);
+      return ApiResponse.fromJson(
+        response.data as Map<String, dynamic>,
+        fromData,
+      );
     } on DioException catch (e) {
       throw _handleError(e);
     }
@@ -78,7 +90,11 @@ class ApiClient {
   }) async {
     try {
       final response = await _dio.patch(path, data: body);
-      return ApiResponse.fromJson(response.data as Map<String, dynamic>, fromData);
+      Log.apiResponse('PATCH', path, response.statusCode ?? 0, response.data);
+      return ApiResponse.fromJson(
+        response.data as Map<String, dynamic>,
+        fromData,
+      );
     } on DioException catch (e) {
       throw _handleError(e);
     }
@@ -90,7 +106,11 @@ class ApiClient {
   }) async {
     try {
       final response = await _dio.delete(path);
-      return ApiResponse.fromJson(response.data as Map<String, dynamic>, fromData);
+      Log.apiResponse('DELETE', path, response.statusCode ?? 0, response.data);
+      return ApiResponse.fromJson(
+        response.data as Map<String, dynamic>,
+        fromData,
+      );
     } on DioException catch (e) {
       throw _handleError(e);
     }
@@ -108,27 +128,34 @@ class ApiClient {
         data: formData,
         onSendProgress: onProgress,
       );
-      return ApiResponse.fromJson(response.data as Map<String, dynamic>, fromData);
+      return ApiResponse.fromJson(
+        response.data as Map<String, dynamic>,
+        fromData,
+      );
     } on DioException catch (e) {
       throw _handleError(e);
     }
   }
 
   AppException _handleError(DioException e) {
-    Log.e('API Error', error: e);
+    Log.e('API Error', error: e.message, stackTrace: e.stackTrace);
     switch (e.type) {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.receiveTimeout:
       case DioExceptionType.sendTimeout:
-        return const NetworkException('Connection timed out. Please try again.');
+        return const NetworkException(
+          'Connection timed out. Please try again.',
+        );
       case DioExceptionType.connectionError:
         return const NetworkException('No internet connection.');
       case DioExceptionType.badResponse:
         final statusCode = e.response?.statusCode ?? 0;
-        final message = _extractMessage(e.response?.data) ?? 'Something went wrong';
+        final message =
+            _extractMessage(e.response?.data) ?? 'Something went wrong';
         if (statusCode == 401) return UnauthorizedException(message);
         if (statusCode == 403) return ForbiddenException(message);
         if (statusCode == 404) return NotFoundException(message);
+        if (statusCode == 409) return ConflictException(message);
         if (statusCode == 422) return ValidationException(message);
         if (statusCode >= 500) return ServerException(message);
         return ApiException(message, statusCode: statusCode);

@@ -1,8 +1,10 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/routes/route_names.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../shared/svg/app_svg.dart';
 import '../../../../core/constants/app_strings.dart';
@@ -11,6 +13,7 @@ import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_screen_header.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/app_text_link.dart';
+import '../../../../shared/icons/app_icons.dart';
 import '../../../../shared/widgets/app_top_bar.dart';
 import '../../providers/sign_up_provider.dart';
 
@@ -36,13 +39,13 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     super.dispose();
   }
 
-  Future<void> _onContinue() async {
+  void _onContinue() {
     FocusScope.of(context).unfocus();
-    final success = await ref
+    final success = ref
         .read(signUpProvider.notifier)
         .submit(_emailController.text, _usernameController.text);
-    if (success && mounted) {
-      context.push(RouteNames.verifyEmail, extra: _emailController.text.trim());
+    if (success) {
+      context.push(RouteNames.setPasscode);
     }
   }
 
@@ -120,9 +123,12 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                                     textInputAction: TextInputAction.done,
                                     onEditingComplete: _onContinue,
                                     errorText: formState.usernameError,
-                                    onChanged: (_) => ref
+                                    onChanged: (v) => ref
                                         .read(signUpProvider.notifier)
-                                        .clearUsernameError(),
+                                        .onUsernameChanged(v),
+                                    suffix: _UsernameSuffix(
+                                      status: formState.usernameStatus,
+                                    ),
                                   ),
                                   const SizedBox(height: AppSpacing.xxl),
 
@@ -213,6 +219,27 @@ class _OrDivider extends StatelessWidget {
         Expanded(child: Container(height: 1, color: context.borderColor)),
       ],
     );
+  }
+}
+
+// ─── Username suffix icon ─────────────────────────────────────────────────────
+
+class _UsernameSuffix extends StatelessWidget {
+  const _UsernameSuffix({required this.status});
+
+  final UsernameStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    return switch (status) {
+      UsernameStatus.checking => const CupertinoActivityIndicator(radius: 9),
+      UsernameStatus.available => Icon(
+          AppIcons.success,
+          color: AppColors.success,
+          size: 20,
+        ),
+      _ => const SizedBox.shrink(),
+    };
   }
 }
 

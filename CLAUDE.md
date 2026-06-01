@@ -277,6 +277,48 @@ widgets/
 | `AppOtpField` | `shared/widgets/app_otp_field.dart` | OTP and passcode input boxes. |
 | `AppSnackbar` | `shared/widgets/app_snackbar.dart` | Always call via `AppSnackbar.success/error/warning/info(context, message)`. Never use `ScaffoldMessenger` directly. |
 
+### Error display rule
+
+| Error type | How to display |
+|---|---|
+| API / network errors (any failed HTTP call) | `AppSnackbar.error(context, message)` — always a snackbar, never inline |
+| Field validation errors (empty, invalid format, mismatch) | `errorText` prop on `AppTextField` or `AppOtpField` — inline under the field |
+| Critical blocking errors (e.g. email not verified, account suspended) | `showAppSheet` bottom sheet with a clear action (e.g. resend, contact support) |
+
+Never put API response messages inline on an input field. The snackbar is the single channel for all backend-originated errors.
+
+### Loading state rule
+
+Choose the correct loading pattern based on what's happening:
+
+| Situation | Loading pattern |
+|---|---|
+| API call triggered by a **button** (login, save, submit) | `AppButton(isLoading: true)` — button shows its own spinner |
+| API call triggered by an **input field** (OTP auto-submit, passcode complete) | `AppLoadingOverlay` — full-screen blur overlay |
+| API call triggered by a **text link** (resend code, retry) | `AppLoadingOverlay` — full-screen blur overlay |
+| **Fetching a list or detail** on screen load | `AppSkeleton` / `SkeletonCard` / `SkeletonTransactionList` — shimmer placeholders, never a spinner |
+
+#### `AppLoadingOverlay` placement rules
+
+- `AppLoadingOverlay` (`lib/shared/widgets/app_loading_overlay.dart`) — blur background + `CupertinoActivityIndicator`.
+- **Must always be the last child** of the root `Stack` so it renders on top of all content:
+
+```dart
+Stack(
+  fit: StackFit.expand,
+  children: [
+    Image.asset(...),   // background
+    SafeArea(...),      // screen content
+    // ↓ overlay LAST — renders on top of everything
+    if (state.isLoading) const AppLoadingOverlay(),
+  ],
+)
+```
+
+- Never place it before `SafeArea` or any content widget — it will be hidden behind them.
+- Never use `CircularProgressIndicator` directly in screens.
+- Applies to all button-less async triggers: OTP completion, passcode confirmation, resend OTP, etc.
+
 Standard shared components to build as needed:
 - `AppCard` — rounded container with shadow
 - `AppLoader` — consistent loading indicator

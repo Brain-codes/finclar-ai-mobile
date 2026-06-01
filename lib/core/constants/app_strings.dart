@@ -88,6 +88,7 @@ abstract class AppStrings {
   static const String forgotPasscodeEmailSubtitle =
       'We will send a 6 digit code to verify it\'s you';
   static const String emailDoesNotExist = 'This email does not exist';
+  static const String enterVerificationCode = 'Enter verification code';
   static const String createNewPasscode = 'Create new passcode';
   static const String confirmNewPasscodeSubtitle = 'Confirm your new passcode';
 

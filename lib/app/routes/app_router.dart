@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/services/auth_state_service.dart';
 import '../../features/splash/presentation/screens/splash_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/sign_up_screen.dart';
@@ -43,6 +44,61 @@ import '../../features/gamification/presentation/screens/wrapped_screen.dart';
 import '../../shared/widgets/app_shell.dart';
 import 'route_names.dart';
 
+// Routes accessible when the user is not authenticated.
+const _unauthenticatedPaths = {
+  RouteNames.splash,
+  RouteNames.login,
+  RouteNames.signUp,
+  RouteNames.verifyEmail,
+  RouteNames.setPasscode,
+  RouteNames.forgotPasscode,
+  RouteNames.resetPasscode,
+  RouteNames.termsOfService,
+  RouteNames.privacyPolicy,
+};
+
+String? _redirect(GoRouterState state) {
+  final auth = authStateService;
+  final loc = state.matchedLocation;
+
+  // Wait on startup screen until storage reads complete.
+  if (!auth.initialized) return loc == RouteNames.startup ? null : RouteNames.startup;
+
+  // Never stay on /startup once initialized.
+  if (loc == RouteNames.startup) {
+    if (!auth.isOnboardingComplete) return RouteNames.splash;
+    if (!auth.isLoggedIn) return RouteNames.login;
+    return auth.needsGoalsPrompt ? RouteNames.preference : RouteNames.home;
+  }
+
+  // ── Onboarding gate ────────────────────────────────────────────────────────
+  if (!auth.isOnboardingComplete) {
+    return loc == RouteNames.splash ? null : RouteNames.splash;
+  }
+
+  // ── Auth gate ──────────────────────────────────────────────────────────────
+  if (!auth.isLoggedIn) {
+    return _unauthenticatedPaths.contains(loc) ? null : RouteNames.login;
+  }
+
+  // ── Goals gate ────────────────────────────────────────────────────────────
+  // Logged-in users who haven't set or skipped goals must stay on preference.
+  if (auth.needsGoalsPrompt && loc != RouteNames.preference) {
+    return RouteNames.preference;
+  }
+  // Once goals are done/skipped, bounce away from preference screen.
+  if (!auth.needsGoalsPrompt && loc == RouteNames.preference) {
+    return RouteNames.home;
+  }
+
+  // ── Logged-in bounce ───────────────────────────────────────────────────────
+  if (_unauthenticatedPaths.contains(loc)) {
+    return RouteNames.home;
+  }
+
+  return null;
+}
+
 // MaterialPage maps to CupertinoPageRoute on iOS → native slide transition +
 // swipe-back gesture. On Android it maps to MaterialPageRoute → predictive
 // back works via android:enableOnBackInvokedCallback in the manifest.
@@ -51,15 +107,23 @@ Page<T> _page<T>(GoRouterState state, Widget child) {
 }
 
 final appRouter = GoRouter(
-  // initialLocation: RouteNames.splash,
-  initialLocation: RouteNames.home,
+  initialLocation: RouteNames.startup,
+  refreshListenable: authStateService,
+  redirect: (_, state) => _redirect(state),
   routes: [
+    // ── Startup loading screen ───────────────────────────────────────────────
+    GoRoute(
+      path: RouteNames.startup,
+      builder: (context, state) => const _StartupScreen(),
+    ),
+
+    // ── Onboarding ───────────────────────────────────────────────────────────
     GoRoute(
       path: RouteNames.splash,
       builder: (context, state) => const SplashScreen(),
     ),
 
-    // Auth
+    // ── Auth ─────────────────────────────────────────────────────────────────
     GoRoute(
       path: RouteNames.login,
       pageBuilder: (context, state) => _page(state, const LoginScreen()),
@@ -89,10 +153,13 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: RouteNames.resetPasscode,
-      pageBuilder: (context, state) => _page(state, const ResetPasscodeScreen()),
+      pageBuilder: (context, state) {
+        final email = state.extra as String? ?? '';
+        return _page(state, ResetPasscodeScreen(email: email));
+      },
     ),
 
-    // Main shell with bottom navigation
+    // ── Main shell with bottom navigation ────────────────────────────────────
     ShellRoute(
       builder: (context, state, child) => AppShell(child: child),
       routes: [
@@ -115,7 +182,7 @@ final appRouter = GoRouter(
       ],
     ),
 
-    // Expense sub-routes (outside shell — no bottom nav)
+    // ── Expense sub-routes (outside shell) ───────────────────────────────────
     GoRoute(
       path: RouteNames.expenseDetail,
       pageBuilder: (context, state) {
@@ -147,7 +214,7 @@ final appRouter = GoRouter(
       },
     ),
 
-    // Group sub-routes (outside shell — no bottom nav)
+    // ── Group sub-routes (outside shell) ─────────────────────────────────────
     GoRoute(
       path: RouteNames.createGroup,
       pageBuilder: (context, state) => _page(state, const CreateGroupScreen()),
@@ -174,7 +241,7 @@ final appRouter = GoRouter(
       },
     ),
 
-    // Budget sub-routes (outside shell — no bottom nav)
+    // ── Budget sub-routes (outside shell) ────────────────────────────────────
     GoRoute(
       path: RouteNames.createBudget,
       pageBuilder: (context, state) {
@@ -183,7 +250,7 @@ final appRouter = GoRouter(
       },
     ),
 
-    // Home sub-routes (outside shell — no bottom nav)
+    // ── Home sub-routes (outside shell) ──────────────────────────────────────
     GoRoute(
       path: RouteNames.incomeSetup,
       pageBuilder: (context, state) => _page(state, const IncomeSetupScreen()),
@@ -193,7 +260,7 @@ final appRouter = GoRouter(
       pageBuilder: (context, state) => _page(state, const SpendingScreen()),
     ),
 
-    // Settings (outside shell)
+    // ── Settings (outside shell) ─────────────────────────────────────────────
     GoRoute(
       path: RouteNames.settings,
       pageBuilder: (context, state) => _page(state, const SettingsScreen()),
@@ -227,7 +294,7 @@ final appRouter = GoRouter(
       pageBuilder: (context, state) => _page(state, const MyAccountsScreen()),
     ),
 
-    // Gamification
+    // ── Gamification ─────────────────────────────────────────────────────────
     GoRoute(
       path: RouteNames.gamificationPreview,
       pageBuilder: (context, state) =>
@@ -242,7 +309,7 @@ final appRouter = GoRouter(
       pageBuilder: (context, state) => _page(state, const WrappedScreen()),
     ),
 
-    // Legal
+    // ── Legal ─────────────────────────────────────────────────────────────────
     GoRoute(
       path: RouteNames.termsOfService,
       pageBuilder: (context, state) => _page(state, const TermsOfServiceScreen()),
@@ -253,3 +320,14 @@ final appRouter = GoRouter(
     ),
   ],
 );
+
+/// Blank screen shown for a brief moment while [AuthStateService] reads
+/// from secure storage. The redirect fires automatically once initialized.
+class _StartupScreen extends StatelessWidget {
+  const _StartupScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold();
+  }
+}

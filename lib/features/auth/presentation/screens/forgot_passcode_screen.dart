@@ -32,7 +32,7 @@ class _ForgotPasscodeScreenState extends ConsumerState<ForgotPasscodeScreen> {
         .read(forgotPasscodeProvider.notifier)
         .sendCode(_emailController.text.trim());
     if (success && mounted) {
-      context.push(RouteNames.verifyEmail);
+      context.push(RouteNames.resetPasscode, extra: _emailController.text.trim());
     }
   }
 

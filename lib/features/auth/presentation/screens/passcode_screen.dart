@@ -5,10 +5,13 @@ import '../../../../app/routes/route_names.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
+import '../../../../shared/widgets/app_loading_overlay.dart';
 import '../../../../shared/widgets/app_otp_field.dart';
 import '../../../../shared/widgets/app_screen_header.dart';
+import '../../../../shared/widgets/app_snackbar.dart';
 import '../../../../shared/widgets/app_top_bar.dart';
 import '../../providers/passcode_provider.dart';
+import '../../providers/sign_up_provider.dart';
 
 class PasscodeScreen extends ConsumerStatefulWidget {
   const PasscodeScreen({super.key});
@@ -46,7 +49,8 @@ class _PasscodeScreenState extends ConsumerState<PasscodeScreen> {
     } else {
       final success = await notifier.onPasscodeConfirmed(code);
       if (success && mounted) {
-        context.pushReplacement(RouteNames.preference);
+        final email = ref.read(signUpProvider).email;
+        context.push(RouteNames.verifyEmail, extra: email);
       } else if (mounted) {
         _controller.clear();
       }
@@ -58,6 +62,13 @@ class _PasscodeScreenState extends ConsumerState<PasscodeScreen> {
     final state = ref.watch(passcodeProvider);
     final isConfirm = state.phase == PasscodePhase.confirm;
 
+    ref.listen(passcodeProvider, (prev, next) {
+      if (next.apiError != null && next.apiError != prev?.apiError) {
+        AppSnackbar.error(context, next.apiError!);
+        ref.read(passcodeProvider.notifier).clearApiError();
+      }
+    });
+
     final title = isConfirm
         ? AppStrings.confirmPasscode
         : AppStrings.createPasscode;
@@ -66,12 +77,9 @@ class _PasscodeScreenState extends ConsumerState<PasscodeScreen> {
         : AppStrings.createPasscodeSubtitle;
 
     return PopScope(
-      // Allow the OS to pop when in create phase (swipe-back exits the screen).
-      // Block it in confirm phase so the gesture goes back to create instead.
       canPop: !isConfirm,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) {
-          // Only fires in confirm phase (canPop == false).
           _controller.clear();
           ref.read(passcodeProvider.notifier).backToCreate();
         }
@@ -86,10 +94,7 @@ class _PasscodeScreenState extends ConsumerState<PasscodeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Top bar ──────────────────────────────────────────────────
-                  AppTopBar(onBack: _onBackTap, stepLabel: AppStrings.step3of3),
-
-                  // ── Body ─────────────────────────────────────────────────────
+                  AppTopBar(onBack: _onBackTap, stepLabel: AppStrings.step2of3),
                   Expanded(
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.symmetric(
@@ -99,7 +104,6 @@ class _PasscodeScreenState extends ConsumerState<PasscodeScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const SizedBox(height: AppSpacing.lg),
-
                           AnimatedSwitcher(
                             duration: const Duration(milliseconds: 200),
                             child: Align(
@@ -112,7 +116,6 @@ class _PasscodeScreenState extends ConsumerState<PasscodeScreen> {
                             ),
                           ),
                           const SizedBox(height: AppSpacing.xxl),
-
                           AppOtpField(
                             controller: _controller,
                             obscureText: true,
@@ -130,6 +133,7 @@ class _PasscodeScreenState extends ConsumerState<PasscodeScreen> {
                 ],
               ),
             ),
+            if (state.isLoading) const AppLoadingOverlay(),
           ],
         ),
       ),

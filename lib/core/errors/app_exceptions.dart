@@ -35,6 +35,10 @@ class ServerException extends ApiException {
   const ServerException(super.message) : super(statusCode: 500);
 }
 
+class ConflictException extends ApiException {
+  const ConflictException(super.message) : super(statusCode: 409);
+}
+
 class CacheException extends AppException {
   const CacheException(super.message);
 }

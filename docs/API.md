@@ -182,6 +182,18 @@ Save the user's selected financial goals during onboarding.
 
 ### User
 
+#### `GET /user/check-username?username=`
+Check whether a username is available before registration. No auth required.
+
+**Query parameter**
+| Param | Type | Required | Rules |
+|---|---|---|---|
+| `username` | string | ✅ | min 1 char, max 50 chars |
+
+**Response** `ApiResponse<dict>`
+
+---
+
 #### `GET /user/me` 🔒
 Fetch the authenticated user's profile.
 

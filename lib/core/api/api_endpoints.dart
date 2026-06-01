@@ -21,7 +21,8 @@ abstract class ApiEndpoints {
   static const String onboardingGoals = '/auth/onboarding/goals';
 
   // ─── User ─────────────────────────────────────────────────────────────────
-  static const String me = '/user/me';
+  static const String checkUsername = '/user/check-username';
+  static const String me            = '/user/me';
 
   // ─── Income ───────────────────────────────────────────────────────────────
   static const String incomeSources = '/income/sources';

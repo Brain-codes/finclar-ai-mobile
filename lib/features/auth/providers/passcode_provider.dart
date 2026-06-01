@@ -1,4 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/constants/app_strings.dart';
+import '../../../core/errors/app_exceptions.dart';
+import '../../../core/services/logger_service.dart';
+import 'auth_repository_provider.dart';
+import 'sign_up_provider.dart';
 
 enum PasscodePhase { create, confirm }
 
@@ -9,6 +14,7 @@ class PasscodeState {
   final String? errorText;
   final bool isLoading;
   final bool completed;
+  final String? apiError;
 
   const PasscodeState({
     this.phase = PasscodePhase.create,
@@ -17,6 +23,7 @@ class PasscodeState {
     this.errorText,
     this.isLoading = false,
     this.completed = false,
+    this.apiError,
   });
 
   PasscodeState copyWith({
@@ -26,7 +33,9 @@ class PasscodeState {
     String? errorText,
     bool? isLoading,
     bool? completed,
+    String? apiError,
     bool clearError = false,
+    bool clearApiError = false,
   }) {
     return PasscodeState(
       phase: phase ?? this.phase,
@@ -35,6 +44,7 @@ class PasscodeState {
       errorText: clearError ? null : (errorText ?? this.errorText),
       isLoading: isLoading ?? this.isLoading,
       completed: completed ?? this.completed,
+      apiError: clearApiError ? null : (apiError ?? this.apiError),
     );
   }
 }
@@ -44,9 +54,8 @@ class PasscodeNotifier extends Notifier<PasscodeState> {
   PasscodeState build() => const PasscodeState();
 
   void clearError() => state = state.copyWith(clearError: true);
+  void clearApiError() => state = state.copyWith(clearApiError: true);
 
-  // Called when user completes entry in create phase.
-  // Stores the passcode and moves to confirm phase.
   void onPasscodeCreated(String passcode) {
     state = state.copyWith(
       passcode: passcode,
@@ -55,33 +64,39 @@ class PasscodeNotifier extends Notifier<PasscodeState> {
     );
   }
 
-  // Called when user completes entry in confirm phase.
-  // Returns true if they match and the flow should advance.
   Future<bool> onPasscodeConfirmed(String confirmation) async {
     if (confirmation != state.passcode) {
       state = state.copyWith(
         hasError: true,
-        errorText: 'Passcodes do not match',
+        errorText: AppStrings.passcodeDoNotMatch,
       );
       return false;
     }
+
     state = state.copyWith(isLoading: true, clearError: true);
+
     try {
-      // TODO: call ApiClient to save passcode
-      await Future.delayed(const Duration(milliseconds: 800));
+      final signUpState = ref.read(signUpProvider);
+      await ref.read(authRepositoryProvider).register(
+            email: signUpState.email,
+            username: signUpState.username,
+            passcode: state.passcode,
+          );
       state = state.copyWith(isLoading: false, completed: true);
       return true;
-    } catch (_) {
+    } on ConflictException catch (e) {
+      state = state.copyWith(isLoading: false, apiError: e.message);
+      return false;
+    } on AppException catch (e) {
+      Log.e('Register failed', error: e);
       state = state.copyWith(
         isLoading: false,
-        hasError: true,
-        errorText: 'Something went wrong. Please try again.',
+        apiError: AppStrings.somethingWentWrong,
       );
       return false;
     }
   }
 
-  // Let user go back from confirm phase to create phase
   void backToCreate() {
     state = const PasscodeState();
   }

@@ -1,4 +1,7 @@
 abstract class RouteNames {
+  // Startup (auth-gate loading screen)
+  static const String startup = '/startup';
+
   // Splash
   static const String splash = '/';
 

@@ -7,6 +7,8 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../shared/widgets/app_button.dart';
+import '../../../../shared/widgets/app_loading_overlay.dart';
+import '../../../../shared/widgets/app_snackbar.dart';
 import '../../../../shared/widgets/app_otp_field.dart';
 import '../../../../shared/widgets/app_screen_header.dart';
 import '../../../../shared/widgets/app_top_bar.dart';
@@ -31,9 +33,10 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
   }
 
   Future<void> _onCompleted(String code) async {
-    final success = await ref.read(verifyEmailProvider.notifier).verify(code);
+    final success =
+        await ref.read(verifyEmailProvider.notifier).verify(widget.email, code);
     if (success && mounted) {
-      context.push(RouteNames.setPasscode);
+      context.go(RouteNames.preference);
     }
   }
 
@@ -51,6 +54,10 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
       if (!prev!.hasError && next.hasError) {
         _controller.clear();
       }
+      if (next.snackbarError != null && next.snackbarError != prev.snackbarError) {
+        AppSnackbar.error(context, next.snackbarError!);
+        ref.read(verifyEmailProvider.notifier).clearSnackbarError();
+      }
     });
 
     return Scaffold(
@@ -64,7 +71,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
               children: [
                 AppTopBar(
                   onBack: () => context.pop(),
-                  stepLabel: AppStrings.step2of3,
+                  stepLabel: AppStrings.step3of3,
                 ),
                 Expanded(
                   child: SingleChildScrollView(
@@ -98,7 +105,7 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
                                     _controller.clear();
                                     ref
                                         .read(verifyEmailProvider.notifier)
-                                        .resend();
+                                        .resend(widget.email);
                                   },
                                 )
                               : _ResendCountdown(seconds: state.resendSeconds),
@@ -123,13 +130,12 @@ class _VerifyScreenState extends ConsumerState<VerifyScreen> {
               ],
             ),
           ),
+          if (state.isLoading || state.isResending) const AppLoadingOverlay(),
         ],
       ),
     );
   }
 }
-
-// ─── Resend link ──────────────────────────────────────────────────────────────
 
 class _ResendLink extends StatelessWidget {
   final VoidCallback onTap;
@@ -143,9 +149,7 @@ class _ResendLink extends StatelessWidget {
         Text(
           AppStrings.didntReceiveCode,
           style: AppTypography.bodyMedium.copyWith(
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.6),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
           ),
         ),
         const SizedBox(width: 4),
@@ -160,8 +164,6 @@ class _ResendLink extends StatelessWidget {
     );
   }
 }
-
-// ─── Resend countdown ─────────────────────────────────────────────────────────
 
 class _ResendCountdown extends StatelessWidget {
   final int seconds;

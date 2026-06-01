@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../app/routes/route_names.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
+import '../../../../shared/widgets/app_loading_overlay.dart';
 import '../../../../shared/widgets/app_otp_field.dart';
 import '../../../../shared/widgets/app_screen_header.dart';
+import '../../../../shared/widgets/app_snackbar.dart';
 import '../../../../shared/widgets/app_top_bar.dart';
 import '../../providers/reset_passcode_provider.dart';
 
 class ResetPasscodeScreen extends ConsumerStatefulWidget {
-  const ResetPasscodeScreen({super.key});
+  final String email;
+
+  const ResetPasscodeScreen({super.key, required this.email});
 
   @override
-  ConsumerState<ResetPasscodeScreen> createState() =>
-      _ResetPasscodeScreenState();
+  ConsumerState<ResetPasscodeScreen> createState() => _ResetPasscodeScreenState();
 }
 
 class _ResetPasscodeScreenState extends ConsumerState<ResetPasscodeScreen> {
@@ -29,28 +31,27 @@ class _ResetPasscodeScreenState extends ConsumerState<ResetPasscodeScreen> {
 
   void _onBackTap() {
     final phase = ref.read(resetPasscodeProvider).phase;
+    _controller.clear();
     if (phase == ResetPasscodePhase.confirm) {
-      _controller.clear();
       ref.read(resetPasscodeProvider.notifier).backToCreate();
+    } else if (phase == ResetPasscodePhase.create) {
+      ref.read(resetPasscodeProvider.notifier).backToOtp();
     } else {
-      context.pop();
+      if (context.canPop()) context.pop();
     }
   }
 
   Future<void> _onCompleted(String code) async {
     final notifier = ref.read(resetPasscodeProvider.notifier);
     final phase = ref.read(resetPasscodeProvider).phase;
+    _controller.clear();
 
-    if (phase == ResetPasscodePhase.create) {
-      _controller.clear();
+    if (phase == ResetPasscodePhase.otp) {
+      notifier.onOtpEntered(code);
+    } else if (phase == ResetPasscodePhase.create) {
       notifier.onPasscodeCreated(code);
     } else {
-      final success = await notifier.onPasscodeConfirmed(code);
-      if (success && mounted) {
-        context.go(RouteNames.login);
-      } else if (mounted) {
-        _controller.clear();
-      }
+      await notifier.onPasscodeConfirmed(widget.email, code);
     }
   }
 
@@ -58,22 +59,37 @@ class _ResetPasscodeScreenState extends ConsumerState<ResetPasscodeScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(resetPasscodeProvider);
     final isConfirm = state.phase == ResetPasscodePhase.confirm;
+    final isOtp = state.phase == ResetPasscodePhase.otp;
 
-    final title =
-        isConfirm ? AppStrings.confirmPasscode : AppStrings.createNewPasscode;
-    final subtitle = isConfirm
-        ? AppStrings.confirmNewPasscodeSubtitle
-        : AppStrings.createPasscodeSubtitle;
-    final stepLabel =
-        isConfirm ? AppStrings.step3of3 : AppStrings.step2of3;
+    ref.listen(resetPasscodeProvider, (_, next) {
+      if (next.snackbarError != null) {
+        AppSnackbar.error(context, next.snackbarError!);
+        ref.read(resetPasscodeProvider.notifier).clearSnackbarError();
+      }
+    });
+
+    final title = isOtp
+        ? AppStrings.enterVerificationCode
+        : isConfirm
+            ? AppStrings.confirmPasscode
+            : AppStrings.createNewPasscode;
+
+    final subtitle = isOtp
+        ? '${AppStrings.verificationSubtitle}${widget.email}'
+        : isConfirm
+            ? AppStrings.confirmNewPasscodeSubtitle
+            : AppStrings.createPasscodeSubtitle;
+
+    final stepLabel = isOtp
+        ? AppStrings.step1of3
+        : isConfirm
+            ? AppStrings.step3of3
+            : AppStrings.step2of3;
 
     return PopScope(
-      canPop: !isConfirm,
+      canPop: state.phase == ResetPasscodePhase.otp,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) {
-          _controller.clear();
-          ref.read(resetPasscodeProvider.notifier).backToCreate();
-        }
+        if (!didPop) _onBackTap();
       },
       child: Scaffold(
         backgroundColor: context.scaffoldColor,
@@ -109,12 +125,11 @@ class _ResetPasscodeScreenState extends ConsumerState<ResetPasscodeScreen> {
                           const SizedBox(height: AppSpacing.xxl),
                           AppOtpField(
                             controller: _controller,
-                            obscureText: true,
+                            obscureText: !isOtp,
                             hasError: state.hasError,
                             errorText: state.errorText,
-                            onChanged: (_) => ref
-                                .read(resetPasscodeProvider.notifier)
-                                .clearError(),
+                            onChanged: (_) =>
+                                ref.read(resetPasscodeProvider.notifier).clearError(),
                             onCompleted: _onCompleted,
                           ),
                         ],
@@ -124,6 +139,7 @@ class _ResetPasscodeScreenState extends ConsumerState<ResetPasscodeScreen> {
                 ],
               ),
             ),
+            if (state.isLoading) const AppLoadingOverlay(),
           ],
         ),
       ),
