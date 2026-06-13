@@ -167,12 +167,12 @@ Reset the passcode using the OTP received from forgot-passcode.
 ---
 
 #### `POST /auth/onboarding/goals` 🔒
-Save the user's selected financial goals during onboarding.
+Save the user's selected financial goals during onboarding. **Goals are UUIDs** from `GET /goals`, not string keys.
 
 **Request body**
 ```json
 {
-  "goals": ["save_more", "track_expenses", "budget_better"]
+  "goals": ["d99a17f5-8c0b-4ea3-94d9-cc8d5532b375", "c2e49ef2-02bd-4217-b889-8fb787cfb143"]
 }
 ```
 
@@ -267,6 +267,169 @@ Update an existing income record. All fields are optional — send only what cha
 
 ---
 
+### Goals
+
+#### `GET /goals` 🔒
+List the selectable financial goals (for onboarding).
+
+**Response** `ApiResponse<FinancialGoalDto[]>`
+
+Live data (4 goals): keys are `smart_money_saving`, `track_my_spending`, `stick_to_a_budget`, `feel_more_in_control`; `icon_name` values are `wallet`, `bar-chart`, `pie-chart`, `briefcase`.
+
+---
+
+### Categories
+
+#### `GET /categories` 🔒
+List all expense categories.
+
+**Response** `ApiResponse<CategoryDto[]>`
+
+Live data (10): Education, Entertainment, Food, Health, Investment, Other, Rent, Shopping, Transportation, Utilities — each with `id` (uuid), `name`, `description`.
+
+---
+
+### Expenses
+
+#### `GET /expenses` 🔒
+Paginated, filterable expense list. **Note: this is the only endpoint that does NOT use the standard `ApiResponse` envelope — it returns `PaginatedResponse`.**
+
+**Query parameters** (all optional)
+| Param | Type | Default | Notes |
+|---|---|---|---|
+| `page` | int | 1 | |
+| `page_size` | int | 20 | |
+| `search` | string | — | matches description |
+| `category_id` | uuid | — | |
+| `source` | enum | — | `manual` \| `receipt` \| `bank_sync` |
+| `status` | enum | — | `pending` \| `completed` \| `failed` \| `cancelled` |
+| `start_date` | datetime | — | ISO 8601 |
+| `end_date` | datetime | — | ISO 8601 |
+| `order_by` | enum | `expense_date` | `expense_date` \| `amount` \| `created_at` |
+| `order_dir` | enum | `desc` | `asc` \| `desc` |
+
+**Response** `PaginatedResponse<ExpenseResponseDto[]>`
+```json
+{
+  "success": true,
+  "message": null,
+  "data": [ ...ExpenseResponseDto ],
+  "pagination": {
+    "page": 1, "page_size": 20, "total": 0,
+    "total_pages": 0, "has_next": false, "has_prev": false
+  }
+}
+```
+
+---
+
+#### `POST /expenses` 🔒
+Create a manual expense.
+
+**Request body**
+```json
+{
+  "amount": 2500,
+  "description": "Lunch",              // optional
+  "category_ids": ["uuid"],            // optional, defaults []
+  "expense_date": "2026-06-13T10:00:00Z",
+  "currency": "NGN",                   // optional
+  "items": [                           // optional, defaults []
+    { "name": "Jollof rice", "quantity": 2, "unit_price": 1250, "category_id": null }
+  ]
+}
+```
+
+**Response** `ApiResponse<ExpenseResponseDto>` — message: `"Expense recorded."`
+
+---
+
+#### `GET /expenses/{expense_id}` 🔒
+Fetch a single expense.
+
+**Response** `ApiResponse<ExpenseResponseDto>`
+
+---
+
+#### `PATCH /expenses/{expense_id}` 🔒
+Update an expense. All fields optional — send only what changed.
+
+**Request body**
+```json
+{
+  "amount": 3000,
+  "description": "Updated",
+  "category_ids": ["uuid"],
+  "expense_date": "2026-06-13T10:00:00Z",
+  "currency": "NGN",
+  "status": "completed"
+}
+```
+
+**Response** `ApiResponse<ExpenseResponseDto>`
+
+---
+
+#### `DELETE /expenses/{expense_id}` 🔒
+Delete an expense.
+
+**Response** `ApiResponse<dict>` — `data: { "message": "Expense deleted." }`
+
+---
+
+#### `POST /expenses/receipt` 🔒
+OCR receipt scan. Upload a receipt image; backend extracts the expense.
+
+**Request:** `multipart/form-data` with a single required `image` file field.
+
+**Response** `ApiResponse<ExpenseResponseDto>` — `source` will be `"receipt"`, `file`/`receipt_url` populated.
+
+---
+
+### Banks (Mono)
+
+#### `GET /banks` 🔒
+List the user's linked bank accounts.
+
+**Response** `ApiResponse<BankResponseDto[]>`
+
+---
+
+#### `GET /banks/available` 🔒
+List all banks available for linking (Nigerian institutions).
+
+**Response** `ApiResponse<dict[]>` — each item: `{ "id": "uuid", "name": "Access Bank", "code": "044", "logo_url": null }`
+
+---
+
+#### `POST /banks/link` 🔒
+Link a bank account. Send the `code` returned after the user completes Mono Connect on mobile.
+
+**Request body**
+```json
+{
+  "code": "<mono_connect_code>"
+}
+```
+
+**Response** `ApiResponse<BankResponseDto>`
+
+---
+
+#### `POST /banks/{bank_id}/sync` 🔒
+Pull transactions from the linked bank into expenses.
+
+**Response** `ApiResponse<dict>`
+
+---
+
+#### `DELETE /banks/{bank_id}` 🔒
+Disconnect a linked bank.
+
+**Response** `ApiResponse<dict>`
+
+---
+
 ### Health
 
 #### `GET /health`
@@ -327,6 +490,82 @@ Health check. No auth required.
 daily | weekly | monthly | one_time
 ```
 
+### `FinancialGoalDto`
+```json
+{
+  "id": "uuid",
+  "key": "smart_money_saving",
+  "name": "Save more money",
+  "description": "Help me understand my spending...",
+  "icon_name": "wallet"
+}
+```
+
+### `CategoryDto`
+```json
+{
+  "id": "uuid",
+  "name": "Food",
+  "description": "Groceries, restaurants, and food delivery."
+}
+```
+
+### `ExpenseResponseDto`
+```json
+{
+  "id": "uuid",
+  "amount": "2500",
+  "type": "debit",
+  "direction": "outbound",
+  "status": "completed",
+  "currency": null,
+  "description": "Lunch",
+  "expense_date": "2026-06-13T10:00:00Z",
+  "source": "manual",
+  "file": null,
+  "categories": [ { "id": "uuid", "name": "Food" } ],
+  "items": [
+    {
+      "id": "uuid",
+      "name": "Jollof rice",
+      "quantity": 2,
+      "unit_price": "1250.00",
+      "total_price": "2500.00",
+      "category_id": null
+    }
+  ],
+  "receipt_url": null
+}
+```
+`type`, `direction`, `status`, `currency`, `description`, `source` are all nullable. `source` is `manual | receipt | bank_sync`.
+
+### `ExpenseStatus` (enum)
+```
+pending | completed | failed | cancelled
+```
+
+### `BankResponseDto`
+```json
+{
+  "id": "uuid",
+  "name": "Access Bank",
+  "account_number": "0123456789",
+  "mono_account_id": "..."
+}
+```
+
+### `PaginationMeta`
+```json
+{
+  "page": 1,
+  "page_size": 20,
+  "total": 0,
+  "total_pages": 0,
+  "has_next": false,
+  "has_prev": false
+}
+```
+
 ---
 
 ## Planned / Not Yet Live
@@ -335,12 +574,6 @@ These endpoints are referenced in `ApiEndpoints` but have **not been added to th
 
 | Endpoint | Feature |
 |---|---|
-| `GET /expenses` | Expenses list |
-| `POST /expenses` | Add manual expense |
-| `GET /expenses/:id` | Single expense |
-| `PATCH /expenses/:id` | Edit expense |
-| `DELETE /expenses/:id` | Delete expense |
-| `POST /expenses/ocr` | OCR receipt scan |
 | `GET /budgets` | Budget list |
 | `POST /budgets` | Create budget |
 | `GET /groups` | Group savings list |
@@ -350,7 +583,6 @@ These endpoints are referenced in `ApiEndpoints` but have **not been added to th
 | `GET /ai/chat/history` | Chat history |
 | `GET /subscription/plans` | Subscription plans |
 | `POST /subscription` | Subscribe |
-| `GET /categories` | Expense categories |
 
 ---
 
@@ -361,3 +593,6 @@ These endpoints are referenced in `ApiEndpoints` but have **not been added to th
 - The backend sends `amount` as a **string** in response DTOs (e.g. `"500000.00"`). Parse with `double.tryParse()`.
 - OTP codes are 6 digits. Match `AppConstants.otpLength = 6`.
 - Passcodes are 6 digits. Match `AppConstants.passcodeLength = 6`.
+- **`GET /expenses` does not use `ApiResponse`** — it has a top-level `pagination` object alongside `data`. Handle it with a dedicated paginated parser, not `ApiResponse.fromJson`.
+- **Onboarding goals are UUIDs** — fetch `GET /goals` first, submit the selected goal `id`s to `POST /auth/onboarding/goals`.
+- OCR is `POST /expenses/receipt` (multipart `image` field) — the old planned path `/expenses/ocr` never shipped.

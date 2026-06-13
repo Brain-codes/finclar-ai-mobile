@@ -4,6 +4,7 @@ import '../../../core/services/auth_state_service.dart';
 import '../../../core/services/logger_service.dart';
 import '../../../core/services/storage_service.dart';
 import 'auth_repository_provider.dart';
+import 'user_profile_provider.dart';
 
 enum LoginPhase { email, passcode }
 
@@ -102,6 +103,7 @@ class LoginNotifier extends Notifier<LoginState> {
           );
       await StorageService.saveLastEmail(state.email);
       await authStateService.logIn(tokens.accessToken, tokens.refreshToken, isNewUser: false);
+      ref.read(userProfileProvider.notifier).fetch();
       state = state.copyWith(isLoading: false);
     } on ForbiddenException catch (e) {
       final isNotVerified = e.message.toLowerCase().contains('not verified');

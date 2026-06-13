@@ -8,6 +8,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../features/auth/providers/auth_repository_provider.dart';
+import '../../../../features/auth/providers/user_profile_provider.dart';
 import '../../../../shared/icons/app_icons.dart';
 
 Future<void> showLogoutSheet(BuildContext context) {
@@ -43,6 +44,7 @@ class _LogoutSheetContentState extends ConsumerState<_LogoutSheetContent> {
       Log.e('Logout API call failed — clearing session anyway', error: e);
     }
     // Always clear local session even if API call fails.
+    ref.read(userProfileProvider.notifier).clear();
     await authStateService.logOut();
     if (mounted) Navigator.of(context).pop();
   }

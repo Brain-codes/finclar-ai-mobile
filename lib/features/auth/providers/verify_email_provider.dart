@@ -4,6 +4,7 @@ import '../../../core/errors/app_exceptions.dart';
 import '../../../core/services/auth_state_service.dart';
 import '../../../core/services/logger_service.dart';
 import 'auth_repository_provider.dart';
+import 'user_profile_provider.dart';
 
 class VerifyEmailState {
   final bool isLoading;
@@ -89,6 +90,7 @@ class VerifyEmailNotifier extends Notifier<VerifyEmailState> {
             code: code,
           );
       await authStateService.logIn(tokens.accessToken, tokens.refreshToken, isNewUser: true);
+      ref.read(userProfileProvider.notifier).fetch();
       state = state.copyWith(isLoading: false, verified: true);
       return true;
     } on AppException catch (e) {

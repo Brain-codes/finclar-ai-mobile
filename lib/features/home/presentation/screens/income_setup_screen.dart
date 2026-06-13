@@ -57,7 +57,7 @@ class _IncomeSetupScreenState extends State<IncomeSetupScreen> {
                       ),
                     ),
                   ),
-                  const Spacer(),
+                  const Flexible(child: SizedBox()),
                   ListenableBuilder(
                     listenable: _keypad,
                     builder: (context, _) => Text(
@@ -71,7 +71,7 @@ class _IncomeSetupScreenState extends State<IncomeSetupScreen> {
                       ),
                     ),
                   ),
-                  const Spacer(),
+                  const Flexible(child: SizedBox()),
                   AppKeypad(controller: _keypad),
                 ],
               ),

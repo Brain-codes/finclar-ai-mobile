@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/routes/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -11,22 +12,21 @@ import '../widgets/logout_sheet.dart';
 import '../widgets/settings_card.dart';
 import '../widgets/settings_profile_header.dart';
 import '../widgets/settings_row.dart';
+import '../../../auth/providers/user_profile_provider.dart';
 
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _notificationsEnabled = true;
-  String _username = 'estizzy';
-  final String _email = 'chinasa.it@gmail.com';
 
-  Future<void> _onEditUsername() async {
-    final result = await showEditUsernameSheet(context, current: _username);
-    if (result != null && mounted) setState(() => _username = result);
+  Future<void> _onEditUsername(String current) async {
+    final result = await showEditUsernameSheet(context, current: current);
+    if (result != null && mounted) setState(() {});
   }
 
   Future<void> _onLogout() async {
@@ -35,6 +35,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(userProfileProvider).valueOrNull;
+    final email = user?.email ?? '';
+    final username = user?.username ?? '';
+
     return Scaffold(
       backgroundColor: context.scaffoldColor,
       body: SafeArea(
@@ -52,9 +56,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     Center(
                       child: SettingsProfileHeader(
-                        email: _email,
-                        username: _username,
-                        onEditTap: _onEditUsername,
+                        email: email,
+                        username: username,
+                        onEditTap: () => _onEditUsername(username),
                       ),
                     ),
                     const SizedBox(height: AppSpacing.xl),

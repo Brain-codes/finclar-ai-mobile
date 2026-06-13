@@ -9,6 +9,8 @@ import '../../../../shared/widgets/app_otp_field.dart';
 import '../../../../shared/widgets/app_screen_header.dart';
 import '../../../../shared/widgets/app_snackbar.dart';
 import '../../../../shared/widgets/app_top_bar.dart';
+import '../../../../app/routes/route_names.dart';
+import '../../../../core/services/auth_state_service.dart';
 import '../../providers/reset_passcode_provider.dart';
 
 class ResetPasscodeScreen extends ConsumerStatefulWidget {
@@ -22,6 +24,13 @@ class ResetPasscodeScreen extends ConsumerStatefulWidget {
 
 class _ResetPasscodeScreenState extends ConsumerState<ResetPasscodeScreen> {
   final _controller = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() =>
+        ref.read(resetPasscodeProvider.notifier).sendOtp(widget.email));
+  }
 
   @override
   void dispose() {
@@ -51,7 +60,16 @@ class _ResetPasscodeScreenState extends ConsumerState<ResetPasscodeScreen> {
     } else if (phase == ResetPasscodePhase.create) {
       notifier.onPasscodeCreated(code);
     } else {
-      await notifier.onPasscodeConfirmed(widget.email, code);
+      final success = await notifier.onPasscodeConfirmed(widget.email, code);
+      if (success && mounted) {
+        await authStateService.logOut();
+        if (mounted) {
+          AppSnackbar.success(context, 'Passcode changed successfully');
+          context.go(RouteNames.login);
+        }
+      } else if (mounted) {
+        _controller.clear();
+      }
     }
   }
 
@@ -139,7 +157,7 @@ class _ResetPasscodeScreenState extends ConsumerState<ResetPasscodeScreen> {
                 ],
               ),
             ),
-            if (state.isLoading) const AppLoadingOverlay(),
+            if (state.isLoading || state.isSendingOtp) const AppLoadingOverlay(),
           ],
         ),
       ),

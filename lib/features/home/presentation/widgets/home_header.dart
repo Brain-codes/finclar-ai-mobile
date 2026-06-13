@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -12,6 +12,7 @@ class HomeHeader extends StatelessWidget {
   final String greeting;
   final VoidCallback? onNotificationTap;
   final VoidCallback? onAvatarTap;
+  final bool isLoading;
 
   const HomeHeader({
     super.key,
@@ -19,6 +20,7 @@ class HomeHeader extends StatelessWidget {
     this.greeting = 'Good evening',
     this.onNotificationTap,
     this.onAvatarTap,
+    this.isLoading = false,
   });
 
   @override
@@ -53,19 +55,28 @@ class HomeHeader extends StatelessWidget {
             ],
           ),
         ),
-        GestureDetector(
-          onTap: onNotificationTap,
-          child: Container(
+        if (isLoading)
+          const SizedBox(
             width: 40,
             height: 40,
-            decoration: BoxDecoration(
-              color: context.surfaceColor,
-              shape: BoxShape.circle,
-              border: Border.all(color: context.borderColor),
+            child: Center(
+              child: CupertinoActivityIndicator(radius: 10),
             ),
-            child: Icon(AppIcons.notification, color: context.textSecondary, size: 20),
+          )
+        else
+          GestureDetector(
+            onTap: onNotificationTap,
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: context.surfaceColor,
+                shape: BoxShape.circle,
+                border: Border.all(color: context.borderColor),
+              ),
+              child: Icon(AppIcons.notification, color: context.textSecondary, size: 20),
+            ),
           ),
-        ),
       ],
     );
   }

@@ -4,6 +4,25 @@ This file is the single source of truth for how this project is built. Every cod
 
 ---
 
+## 0. Keep MEMORY.md up to date
+
+This project has a `MEMORY.md` — a running, dated log of project state, recent work,
+and open threads. It's the "where are we right now" companion to this spec (this
+file holds the *how*; `MEMORY.md` holds the *current state*).
+
+**At the end of any session where you made meaningful changes**, update `MEMORY.md`:
+- Add a dated entry (`### YYYY-MM-DD — <short title>`) summarizing what changed —
+  features/screens added, notable decisions, refactors, fixes.
+- Update the feature-status table and the **Open threads / known issues** list: mark
+  what's done, add anything newly discovered or deferred.
+- Keep it concise — it's a changelog and handoff note, not a transcript. Architecture
+  and "how to build" rules stay here in `CLAUDE.md`.
+
+The point is that the next session can read `MEMORY.md` and know the current state
+without re-deriving it from the code or git history. Don't wait to be asked.
+
+---
+
 ## 1. Architecture
 
 ### Pattern

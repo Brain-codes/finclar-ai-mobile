@@ -7,20 +7,20 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../shared/icons/app_icons.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_sheet.dart';
+import '../../../../shared/widgets/app_skeleton.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
+import '../../data/models/income_source_model.dart';
 import '../../providers/income_setup_provider.dart';
 import 'add_source_sheet.dart';
 
-Future<String?> showSelectSourceSheet(
+Future<IncomeSourceModel?> showSelectSourceSheet(
   BuildContext context, {
-  String? selected,
+  IncomeSourceModel? selected,
 }) {
-  return showAppSheet<String>(
+  return showAppSheet<IncomeSourceModel>(
     context,
     title: 'Select source',
     heightFactor: 0.8,
-    // Expanded fills the space between the header and the bottom of the sheet,
-    // allowing the button inside to sit at the very bottom.
     children: [
       Expanded(child: _SelectSourceContent(initialSelected: selected)),
     ],
@@ -28,7 +28,7 @@ Future<String?> showSelectSourceSheet(
 }
 
 class _SelectSourceContent extends ConsumerStatefulWidget {
-  final String? initialSelected;
+  final IncomeSourceModel? initialSelected;
   const _SelectSourceContent({this.initialSelected});
 
   @override
@@ -37,7 +37,7 @@ class _SelectSourceContent extends ConsumerStatefulWidget {
 }
 
 class _SelectSourceContentState extends ConsumerState<_SelectSourceContent> {
-  String? _selected;
+  IncomeSourceModel? _selected;
 
   @override
   void initState() {
@@ -47,48 +47,49 @@ class _SelectSourceContentState extends ConsumerState<_SelectSourceContent> {
 
   Future<void> _addSource() async {
     final result = await showAddSourceSheet(context);
-    if (result != null && result.isNotEmpty) {
-      ref.read(incomeSetupProvider.notifier).addSource(result);
-      setState(() => _selected = result);
-    }
+    if (result != null) setState(() => _selected = result);
   }
 
   @override
   Widget build(BuildContext context) {
-    final sources = ref.watch(incomeSetupProvider).sources;
+    final sourcesAsync = ref.watch(incomeSourcesProvider);
 
     return Column(
       children: [
-        // Scrollable list area
         Expanded(
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: context.surfaceColor,
-                    borderRadius: AppRadius.radiusSheet,
-                    border: Border.all(color: context.borderColor),
-                  ),
-                  child: Column(
-                    children: [
-                      for (int i = 0; i < sources.length; i++) ...[
-                        _SourceRow(
-                          label: sources[i],
-                          isSelected: _selected == sources[i],
-                          onTap: () => setState(() => _selected = sources[i]),
-                        ),
-                        if (i < sources.length - 1)
-                          Divider(
-                            height: 1,
-                            thickness: 1,
-                            color: context.borderColor,
-                            indent: AppSpacing.base,
-                            endIndent: AppSpacing.base,
+                sourcesAsync.when(
+                  loading: () => const SkeletonCard(),
+                  error: (_, _) => const SizedBox.shrink(),
+                  data: (sources) => Container(
+                    decoration: BoxDecoration(
+                      color: context.surfaceColor,
+                      borderRadius: AppRadius.radiusSheet,
+                      border: Border.all(color: context.borderColor),
+                    ),
+                    child: Column(
+                      children: [
+                        for (int i = 0; i < sources.length; i++) ...[
+                          _SourceRow(
+                            label: sources[i].name,
+                            isSelected: _selected?.id == sources[i].id,
+                            onTap: () =>
+                                setState(() => _selected = sources[i]),
                           ),
+                          if (i < sources.length - 1)
+                            Divider(
+                              height: 1,
+                              thickness: 1,
+                              color: context.borderColor,
+                              indent: AppSpacing.base,
+                              endIndent: AppSpacing.base,
+                            ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.base),
@@ -113,7 +114,6 @@ class _SelectSourceContentState extends ConsumerState<_SelectSourceContent> {
             ),
           ),
         ),
-        // Pinned button
         const SizedBox(height: AppSpacing.base),
         AppButton(
           label: 'Continue',

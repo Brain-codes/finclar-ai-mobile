@@ -10,6 +10,7 @@ import '../../../../shared/widgets/app_snackbar.dart';
 import '../../../../shared/widgets/app_text_link.dart';
 import '../../../../shared/widgets/app_top_bar.dart';
 import '../../providers/change_passcode_provider.dart';
+import '../../../auth/presentation/widgets/passcode_changed_sheet.dart';
 
 class ChangePasscodeScreen extends ConsumerStatefulWidget {
   const ChangePasscodeScreen({super.key});
@@ -51,8 +52,9 @@ class _ChangePasscodeScreenState extends ConsumerState<ChangePasscodeScreen> {
     } else {
       final success = await notifier.onNewPasscodeConfirmed(code);
       if (success && mounted) {
-        AppSnackbar.success(context, 'Passcode updated successfully');
-        context.pop();
+        await showPasscodeChangedSheet(context);
+      } else if (mounted) {
+        _controller.clear();
       }
     }
   }

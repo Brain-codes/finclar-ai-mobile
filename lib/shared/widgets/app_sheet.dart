@@ -13,6 +13,9 @@ Future<T?> showAppSheet<T>(
   required String title,
   required List<Widget> children,
   bool avoidKeyboard = false,
+  bool isDismissible = true,
+  bool enableDrag = true,
+  bool showClose = true,
   // Fraction of screen height, e.g. 0.7 = 70%. Null = wrap content.
   double? heightFactor,
 }) {
@@ -20,12 +23,15 @@ Future<T?> showAppSheet<T>(
     context: context,
     isScrollControlled: true,
     useRootNavigator: true,
+    isDismissible: isDismissible,
+    enableDrag: enableDrag,
     backgroundColor: context.surfaceColor,
     shape: const RoundedRectangleBorder(borderRadius: AppRadius.radiusSheetTop),
     builder: (ctx) => AppSheet(
       title: title,
       avoidKeyboard: avoidKeyboard,
       heightFactor: heightFactor,
+      showClose: showClose,
       children: children,
     ),
   );
@@ -35,6 +41,7 @@ class AppSheet extends StatelessWidget {
   final String title;
   final List<Widget> children;
   final bool avoidKeyboard;
+  final bool showClose;
   final double? heightFactor;
 
   const AppSheet({
@@ -42,6 +49,7 @@ class AppSheet extends StatelessWidget {
     required this.title,
     required this.children,
     this.avoidKeyboard = false,
+    this.showClose = true,
     this.heightFactor,
   });
 
@@ -54,6 +62,7 @@ class AppSheet extends StatelessWidget {
 
     final header = _AppSheetHeader(
       title: title,
+      showClose: showClose,
       onClose: () => Navigator.of(context).pop(),
     );
 
@@ -75,14 +84,7 @@ class AppSheet extends StatelessWidget {
             children: [
               header,
               const SizedBox(height: AppSpacing.xl),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: children,
-                  ),
-                ),
-              ),
+              ...children,
             ],
           ),
         ),
@@ -107,7 +109,12 @@ class AppSheet extends StatelessWidget {
 class _AppSheetHeader extends StatelessWidget {
   final String title;
   final VoidCallback onClose;
-  const _AppSheetHeader({required this.title, required this.onClose});
+  final bool showClose;
+  const _AppSheetHeader({
+    required this.title,
+    required this.onClose,
+    this.showClose = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -121,19 +128,20 @@ class _AppSheetHeader extends StatelessWidget {
             fontFamily: AppFonts.display,
           ),
         ),
-        GestureDetector(
-          onTap: onClose,
-          child: Container(
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(
-              color: context.surfaceVariant,
-              shape: BoxShape.circle,
-              border: Border.all(color: context.borderStrong),
+        if (showClose)
+          GestureDetector(
+            onTap: onClose,
+            child: Container(
+              width: 28,
+              height: 28,
+              decoration: BoxDecoration(
+                color: context.surfaceVariant,
+                shape: BoxShape.circle,
+                border: Border.all(color: context.borderStrong),
+              ),
+              child: Icon(AppIcons.close, size: 14, color: context.textSecondary),
             ),
-            child: Icon(AppIcons.close, size: 14, color: context.textSecondary),
           ),
-        ),
       ],
     );
   }

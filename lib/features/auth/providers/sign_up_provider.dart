@@ -46,6 +46,7 @@ class SignUpFormState {
 
 class SignUpNotifier extends Notifier<SignUpFormState> {
   Timer? _debounce;
+  String _currentInput = '';
 
   @override
   SignUpFormState build() {
@@ -59,12 +60,12 @@ class SignUpNotifier extends Notifier<SignUpFormState> {
 
   void onUsernameChanged(String value) {
     _debounce?.cancel();
+    final trimmed = value.trim();
+    _currentInput = trimmed;
     state = state.copyWith(
       clearUsernameError: true,
       usernameStatus: UsernameStatus.idle,
     );
-
-    final trimmed = value.trim();
     if (trimmed.length < 3) return;
 
     final validationErr = _validateUsernameFormat(trimmed);
@@ -79,12 +80,16 @@ class SignUpNotifier extends Notifier<SignUpFormState> {
       final available = await ref
           .read(authRepositoryProvider)
           .checkUsernameAvailable(username);
+      // Discard stale result if the user has typed a different username since
+      if (state.usernameStatus != UsernameStatus.checking) return;
+      if (_currentInput != username) return;
       state = state.copyWith(
         usernameStatus: available ? UsernameStatus.available : UsernameStatus.taken,
         usernameError: available ? null : 'Username is already taken',
       );
     } on AppException catch (e) {
       Log.e('Username check failed', error: e);
+      if (_currentInput != username) return;
       state = state.copyWith(usernameStatus: UsernameStatus.error);
     }
   }

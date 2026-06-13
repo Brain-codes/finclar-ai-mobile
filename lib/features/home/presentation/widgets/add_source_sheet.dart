@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_sheet.dart';
+import '../../../../shared/widgets/app_snackbar.dart';
 import '../../../../shared/widgets/app_text_field.dart';
+import '../../data/models/income_source_model.dart';
+import '../../providers/income_setup_provider.dart';
 
-Future<String?> showAddSourceSheet(BuildContext context) {
-  return showAppSheet<String>(
+Future<IncomeSourceModel?> showAddSourceSheet(BuildContext context) {
+  return showAppSheet<IncomeSourceModel>(
     context,
     title: 'Add a source',
     avoidKeyboard: true,
@@ -13,16 +17,17 @@ Future<String?> showAddSourceSheet(BuildContext context) {
   );
 }
 
-class _AddSourceContent extends StatefulWidget {
+class _AddSourceContent extends ConsumerStatefulWidget {
   const _AddSourceContent();
 
   @override
-  State<_AddSourceContent> createState() => _AddSourceContentState();
+  ConsumerState<_AddSourceContent> createState() => _AddSourceContentState();
 }
 
-class _AddSourceContentState extends State<_AddSourceContent> {
+class _AddSourceContentState extends ConsumerState<_AddSourceContent> {
   final _controller = TextEditingController();
   bool _hasText = false;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -36,6 +41,21 @@ class _AddSourceContentState extends State<_AddSourceContent> {
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final name = _controller.text.trim();
+    setState(() => _isLoading = true);
+    try {
+      final source =
+          await ref.read(incomeSourcesProvider.notifier).addSource(name);
+      if (mounted) Navigator.of(context).pop(source);
+    } catch (e) {
+      if (mounted) {
+        AppSnackbar.error(context, e.toString());
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -52,9 +72,8 @@ class _AddSourceContentState extends State<_AddSourceContent> {
         const SizedBox(height: AppSpacing.xl),
         AppButton(
           label: 'Done',
-          onTap: _hasText
-              ? () => Navigator.of(context).pop(_controller.text.trim())
-              : null,
+          onTap: _hasText && !_isLoading ? _submit : null,
+          isLoading: _isLoading,
           height: 48,
         ),
       ],

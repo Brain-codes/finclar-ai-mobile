@@ -28,10 +28,23 @@ abstract class ApiEndpoints {
   static const String incomeSources = '/income/sources';
   static const String income        = '/income';
 
+  // ─── Goals & Categories ───────────────────────────────────────────────────
+  static const String goals      = '/goals';
+  static const String categories = '/categories';
+
+  // ─── Expenses ─────────────────────────────────────────────────────────────
+  static const String expenses       = '/expenses';
+  static String expense(String id)   => '/expenses/$id';
+  static const String expenseReceipt = '/expenses/receipt';
+
+  // ─── Banks ────────────────────────────────────────────────────────────────
+  static const String banks               = '/banks';
+  static const String banksAvailable      = '/banks/available';
+  static const String bankLink            = '/banks/link';
+  static String bankSync(String id)       => '/banks/$id/sync';
+  static String bank(String id)           => '/banks/$id';
+
   // ─── Planned — not yet live on backend (see docs/API.md) ──────────────────
-  static const String expenses         = '/expenses';
-  static String expense(String id)     => '/expenses/$id';
-  static const String expenseOcr       = '/expenses/ocr';
   static const String budgets          = '/budgets';
   static String budget(String id)      => '/budgets/$id';
   static const String groups           = '/groups';
@@ -39,7 +52,6 @@ abstract class ApiEndpoints {
   static String groupMembers(String id)=> '/groups/$id/members';
   static const String transactions     = '/transactions';
   static String transaction(String id) => '/transactions/$id';
-  static const String categories       = '/categories';
   static const String chat             = '/ai/chat';
   static const String chatHistory      = '/ai/chat/history';
   static const String subscription     = '/subscription';

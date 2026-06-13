@@ -72,7 +72,7 @@ class ChangePasscodeNotifier extends Notifier<ChangePasscodeState> {
         state = state.copyWith(isSendingOtp: false, snackbarError: 'Could not find your email. Please log out and log in again.');
         return;
       }
-      await ref.read(authRepositoryProvider).resendOtp(email: email);
+      await ref.read(authRepositoryProvider).forgotPasscode(email: email);
       state = state.copyWith(isSendingOtp: false);
     } on AppException catch (e) {
       Log.e('Send passcode change OTP failed', error: e);
@@ -117,11 +117,16 @@ class ChangePasscodeNotifier extends Notifier<ChangePasscodeState> {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final email = await StorageService.getLastEmail() ?? '';
-      await ref.read(authRepositoryProvider).resetPasscode(
+      final tokens = await ref.read(authRepositoryProvider).resetPasscode(
             email: email,
             code: state.otp,
             newPasscode: state.newPasscode,
           );
+      // Save fresh tokens so logoutAll (called from the sheet) is authenticated.
+      await StorageService.saveTokens(
+        access: tokens.accessToken,
+        refresh: tokens.refreshToken,
+      );
       state = state.copyWith(isLoading: false);
       return true;
     } on AppException catch (e) {
