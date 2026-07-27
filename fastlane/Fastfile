@@ -31,9 +31,11 @@ PUBSPEC      = File.join(PROJECT_ROOT, "pubspec.yaml")
 def current_pubspec_version
   line = File.readlines(PUBSPEC).find { |l| l =~ /^version:\s/ }
   UI.user_error!("No `version:` line found in pubspec.yaml") unless line
-  name = line.sub(/^version:\s*/, "").strip.split("+").first
+  value = line.sub(/^version:\s*/, "").strip
+  name = value.split("+").first
+  build = value.split("+")[1].to_i
   major, minor, patch = name.split(".").map(&:to_i)
-  { name: name, major: major.to_i, minor: minor.to_i, patch: patch.to_i }
+  { name: name, major: major.to_i, minor: minor.to_i, patch: patch.to_i, build: build }
 end
 
 def last_release_tag
@@ -76,8 +78,12 @@ def apply_bump(base, bump)
   end
 end
 
+# Build number increments by 1 on each release. The value in pubspec.yaml is the
+# last released build; the next release ships current + 1, and the umbrella `beta`
+# lane commits the new pubspec so the counter persists. Must always increase — never
+# lower it once a build has been distributed (Google Play rejects a lower versionCode).
 def build_number
-  `git -C #{PROJECT_ROOT.shellescape} rev-list --count HEAD`.strip.to_i
+  current_pubspec_version[:build] + 1
 end
 
 def release_notes(commits)
@@ -180,11 +186,22 @@ lane :beta do |options|
   Fastlane::LaneManager.cruise_lane("ios", "beta", options) unless options[:skip_ios]
 
   unless options[:skip_git]
-    if v[:changed]
-      git_commit(path: [PUBSPEC], message: "chore(release): #{v[:tag]} [skip ci]")
+    build_label = "#{v[:name]}+#{v[:build]}"
+    # Build number changes every release, so always commit the bumped pubspec —
+    # this is what persists the +1 counter for the next run.
+    git_commit(path: [PUBSPEC], message: "chore(release): #{build_label} [skip ci]")
+
+    tag_exists = !`git -C #{PROJECT_ROOT.shellescape} tag -l #{v[:tag].shellescape}`.strip.empty?
+    if v[:changed] && !tag_exists
+      add_git_tag(tag: v[:tag])
+      UI.success("Tagged #{v[:tag]}.")
+    elsif v[:changed] && tag_exists
+      UI.important("Tag #{v[:tag]} already exists — skipping tag creation.")
+    else
+      UI.message("Version name unchanged (#{v[:name]}) — build-only release, no new tag.")
     end
-    add_git_tag(tag: v[:tag])
+
     push_to_git_remote(tags: true)
-    UI.success("Tagged and pushed #{v[:tag]}.")
+    UI.success("Pushed #{build_label}.")
   end
 end
