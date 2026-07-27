@@ -34,36 +34,75 @@ class BadgesScreen extends StatelessWidget {
                     _BadgeSection(
                       month: 'April badges',
                       badges: const [
-                        _BadgeEntry(type: BadgeType.fridaySavings, count: 2, earned: true),
-                        _BadgeEntry(type: BadgeType.categoryBudget, count: 1, earned: true),
-                        _BadgeEntry(type: BadgeType.weekendChallenge, count: 2, earned: true),
+                        _BadgeEntry(
+                          type: BadgeType.fridaySavings,
+                          count: 2,
+                          earned: true,
+                        ),
+                        _BadgeEntry(
+                          type: BadgeType.categoryBudget,
+                          count: 1,
+                          earned: true,
+                        ),
+                        _BadgeEntry(
+                          type: BadgeType.weekendChallenge,
+                          count: 2,
+                          earned: true,
+                        ),
                       ],
                     ),
                     const SizedBox(height: AppSpacing.xl),
                     _BadgeSection(
                       month: 'May badges',
                       badges: const [
-                        _BadgeEntry(type: BadgeType.fridaySavings, earned: false),
-                        _BadgeEntry(type: BadgeType.categoryBudget, earned: false),
-                        _BadgeEntry(type: BadgeType.weekendChallenge, earned: false),
+                        _BadgeEntry(
+                          type: BadgeType.fridaySavings,
+                          earned: false,
+                        ),
+                        _BadgeEntry(
+                          type: BadgeType.categoryBudget,
+                          earned: false,
+                        ),
+                        _BadgeEntry(
+                          type: BadgeType.weekendChallenge,
+                          earned: false,
+                        ),
                       ],
                     ),
                     const SizedBox(height: AppSpacing.xl),
                     _BadgeSection(
                       month: 'June badges',
                       badges: const [
-                        _BadgeEntry(type: BadgeType.fridaySavings, earned: false),
-                        _BadgeEntry(type: BadgeType.categoryBudget, earned: false),
-                        _BadgeEntry(type: BadgeType.weekendChallenge, earned: false),
+                        _BadgeEntry(
+                          type: BadgeType.fridaySavings,
+                          earned: false,
+                        ),
+                        _BadgeEntry(
+                          type: BadgeType.categoryBudget,
+                          earned: false,
+                        ),
+                        _BadgeEntry(
+                          type: BadgeType.weekendChallenge,
+                          earned: false,
+                        ),
                       ],
                     ),
                     const SizedBox(height: AppSpacing.xl),
                     _BadgeSection(
                       month: 'July badges',
                       badges: const [
-                        _BadgeEntry(type: BadgeType.fridaySavings, earned: false),
-                        _BadgeEntry(type: BadgeType.categoryBudget, earned: false),
-                        _BadgeEntry(type: BadgeType.weekendChallenge, earned: false),
+                        _BadgeEntry(
+                          type: BadgeType.fridaySavings,
+                          earned: false,
+                        ),
+                        _BadgeEntry(
+                          type: BadgeType.categoryBudget,
+                          earned: false,
+                        ),
+                        _BadgeEntry(
+                          type: BadgeType.weekendChallenge,
+                          earned: false,
+                        ),
                       ],
                     ),
                     const SizedBox(height: AppSpacing.xxl),
@@ -103,18 +142,30 @@ class _BadgeSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.base),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: badges
-              .map(
-                (e) => BadgeWidget(
-                  type: e.type,
-                  count: e.count,
-                  earned: e.earned,
-                  size: 110,
-                ),
-              )
-              .toList(),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final count = badges.length;
+            final spacing = AppSpacing.base;
+            final available =
+                constraints.maxWidth - (spacing * (count > 1 ? count - 1 : 0));
+            final size = (available / (count == 0 ? 1 : count)).clamp(
+              0.0,
+              110.0,
+            );
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: badges
+                  .map(
+                    (e) => BadgeWidget(
+                      type: e.type,
+                      count: e.count,
+                      earned: e.earned,
+                      size: size,
+                    ),
+                  )
+                  .toList(),
+            );
+          },
         ),
       ],
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/services/auth_state_service.dart';
 import '../../../../core/services/logger_service.dart';
+import '../../../../core/services/session_reset.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -45,6 +46,7 @@ class _LogoutSheetContentState extends ConsumerState<_LogoutSheetContent> {
     }
     // Always clear local session even if API call fails.
     ref.read(userProfileProvider.notifier).clear();
+    clearUserScopedData(ref);
     await authStateService.logOut();
     if (mounted) Navigator.of(context).pop();
   }

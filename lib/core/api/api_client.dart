@@ -7,6 +7,7 @@ import 'api_endpoints.dart';
 import 'api_response.dart';
 import 'interceptors/auth_interceptor.dart';
 import 'interceptors/logging_interceptor.dart';
+import 'interceptors/retry_interceptor.dart';
 
 class ApiClient {
   late final Dio _dio;
@@ -27,7 +28,8 @@ class ApiClient {
     );
 
     _dio.interceptors.addAll([
-      AuthInterceptor(secureStorage),
+      AuthInterceptor(secureStorage, _dio),
+      RetryInterceptor(_dio),
       LoggingInterceptor(),
     ]);
   }
@@ -47,6 +49,52 @@ class ApiClient {
     } on DioException catch (e) {
       throw _handleError(e);
     }
+  }
+
+  Future<PaginatedResponse<T>> getPaginated<T>(
+    String path, {
+    Map<String, dynamic>? queryParams,
+    required T Function(Map<String, dynamic>) fromItem,
+  }) async {
+    try {
+      final response = await _dio.get(path, queryParameters: queryParams);
+      Log.apiResponse('GET', path, response.statusCode ?? 0, response.data);
+      return PaginatedResponse.fromJson(
+        response.data as Map<String, dynamic>,
+        fromItem,
+      );
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Walks every page of a paginated endpoint and returns the flattened list.
+  /// Use for list endpoints the app treats as "give me everything" (categories,
+  /// banks, friends, groups, etc.) now that the backend paginates them.
+  Future<List<T>> getAllPaginated<T>(
+    String path, {
+    Map<String, dynamic>? queryParams,
+    required T Function(Map<String, dynamic>) fromItem,
+    int pageSize = 100,
+  }) async {
+    final items = <T>[];
+    var page = 1;
+    while (true) {
+      final query = <String, dynamic>{
+        ...?queryParams,
+        'page': page,
+        'page_size': pageSize,
+      };
+      final response = await getPaginated<T>(
+        path,
+        queryParams: query,
+        fromItem: fromItem,
+      );
+      items.addAll(response.items);
+      if (!response.hasNext || response.items.isEmpty) break;
+      page++;
+    }
+    return items;
   }
 
   Future<ApiResponse<T>> post<T>(

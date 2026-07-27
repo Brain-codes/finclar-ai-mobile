@@ -1,5 +1,3 @@
-// ignore_for_file: unused_element
-
 import 'package:finclar_ai/shared/icons/app_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,8 +9,10 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../shared/widgets/app_bar_chart.dart';
+import '../../../../shared/widgets/app_skeleton.dart';
 import '../../../../shared/widgets/app_stripe_painter.dart';
 import '../../../../core/utils/number_formatter.dart';
+import '../../providers/home_dashboard_provider.dart';
 
 class IncomeExpenseData {
   final String month;
@@ -26,39 +26,27 @@ class IncomeExpenseData {
   });
 }
 
-class IncomeExpenseChartSection extends ConsumerStatefulWidget {
-  final bool isEmpty;
-  final List<IncomeExpenseData> data;
-  final double totalIncome;
-  final double totalExpense;
+class IncomeExpenseChartSection extends ConsumerWidget {
+  final List<IncomeExpenseData>? data;
+  final double? totalIncome;
+  final double? totalExpense;
+
+  /// Bar-rise reveal factor (0..1), forwarded to [AppBarChart.progress].
+  /// Defaults to 1.0 (fully drawn) — used by Clara to animate the chart in.
+  final double chartProgress;
 
   const IncomeExpenseChartSection({
     super.key,
-    this.isEmpty = false,
-    this.data = const [
-      IncomeExpenseData(month: 'Jan', income: 1800000, expense: 900000),
-      IncomeExpenseData(month: 'Feb', income: 2000000, expense: 120000),
-      IncomeExpenseData(month: 'Mar', income: 1600000, expense: 200000),
-      IncomeExpenseData(month: 'Apr', income: 2200000, expense: 80000),
-      IncomeExpenseData(month: 'May', income: 2000000, expense: 150000),
-    ],
-    this.totalIncome = 2000000,
-    this.totalExpense = 150000,
+    this.data,
+    this.totalIncome,
+    this.totalExpense,
+    this.chartProgress = 1.0,
   });
 
   @override
-  ConsumerState<IncomeExpenseChartSection> createState() =>
-      _IncomeExpenseChartSectionState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final symbol = ref.watch(currencySymbolProvider);
 
-class _IncomeExpenseChartSectionState
-    extends ConsumerState<IncomeExpenseChartSection> {
-  int _selectedPeriodIndex = 4;
-
-  static const _periods = ['1y', 'Jan', 'Feb', 'Mar', 'Apr', 'May'];
-
-  @override
-  Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -77,140 +65,182 @@ class _IncomeExpenseChartSectionState
             ),
           ),
           const SizedBox(height: AppSpacing.base),
-          if (widget.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Icon(
-                      AppIcons.walletLine,
-                      size: 20,
-                      color: context.textSecondary,
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      'Your income and expense details will be listed here',
-                      textAlign: TextAlign.center,
-                      style: AppTypography.bodySmall.copyWith(
-                        color: context.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+          if (data != null)
+            _ChartContent(
+              points: data!,
+              totalIncome: totalIncome ?? 0,
+              totalExpense: totalExpense ?? 0,
+              symbol: symbol,
+              progress: chartProgress,
             )
-          else ...[
-            // _PeriodFilter(
-            //   periods: _periods,
-            //   selectedIndex: _selectedPeriodIndex,
-            //   onSelect: (i) => setState(() => _selectedPeriodIndex = i),
-            // ),
-            const SizedBox(height: AppSpacing.base),
-            AppBarChart(
-              height: 160,
-              groups: widget.data
-                  .map(
-                    (d) => AppBarChartGroup(
-                      label: d.month,
-                      bars: [
-                        AppBarChartBar(
-                          value: d.income,
-                          color: AppColors.transparent,
-                          striped: true,
-                          stripeColor: AppColors.primary,
-                          stripeOpacity: 1,
+          else
+            ref.watch(homeSummaryProvider).when(
+                  loading: () => const _ChartSkeleton(),
+                  error: (_, _) => _error(context, ref),
+                  data: (s) => s.incomeExpenseTrend.isEmpty
+                      ? _empty(context)
+                      : _ChartContent(
+                          points: s.incomeExpenseTrend
+                              .map((p) => IncomeExpenseData(
+                                    month: p.month,
+                                    income: p.income,
+                                    expense: p.expense,
+                                  ))
+                              .toList(),
+                          totalIncome: s.monthlyIncome,
+                          totalExpense: s.totalExpense,
+                          symbol: symbol,
+                          progress: chartProgress,
                         ),
-                        AppBarChartBar(
-                          value: d.expense,
-                          color: AppColors.transparent,
-                          striped: true,
-                          stripeColor: AppColors.categoryTransport,
-                          stripeOpacity: 1,
-                        ),
-                      ],
-                    ),
-                  )
-                  .toList(),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            Column(
-              children: [
-                _LegendItem(
-                  stripeColor: AppColors.primary,
-                  label: AppStrings.incomeLabel,
-                  amount: formatCurrency(
-                    widget.totalIncome,
-                    ref.watch(currencySymbolProvider),
-                    abbreviate: false,
-                    withCommas: true,
-                  ),
                 ),
-                const SizedBox(height: AppSpacing.base),
-                _LegendItem(
-                  stripeColor: AppColors.categoryTransport,
-                  label: AppStrings.expenseLabel,
-                  amount: formatCurrency(
-                    widget.totalExpense,
-                    ref.watch(currencySymbolProvider),
-                    abbreviate: false,
-                    withCommas: true,
-                  ),
-                ),
-              ],
-            ),
-          ],
         ],
       ),
     );
   }
+
+  Widget _error(BuildContext context, WidgetRef ref) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+        child: Center(
+          child: GestureDetector(
+            onTap: () => ref.invalidate(homeSummaryProvider),
+            behavior: HitTestBehavior.opaque,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(AppIcons.refresh, size: 20, color: context.textSecondary),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  "Couldn't load. Tap to retry",
+                  textAlign: TextAlign.center,
+                  style: AppTypography.bodySmall.copyWith(
+                    color: context.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+  Widget _empty(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(AppIcons.walletLine, size: 20, color: context.textSecondary),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                'Your income and expense details will be listed here',
+                textAlign: TextAlign.center,
+                style: AppTypography.bodySmall.copyWith(
+                  color: context.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
 }
 
-class _PeriodFilter extends StatelessWidget {
-  final List<String> periods;
-  final int selectedIndex;
-  final ValueChanged<int> onSelect;
+class _ChartContent extends StatelessWidget {
+  final List<IncomeExpenseData> points;
+  final double totalIncome;
+  final double totalExpense;
+  final String symbol;
+  final double progress;
 
-  const _PeriodFilter({
-    required this.periods,
-    required this.selectedIndex,
-    required this.onSelect,
+  const _ChartContent({
+    required this.points,
+    required this.totalIncome,
+    required this.totalExpense,
+    required this.symbol,
+    this.progress = 1.0,
   });
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: List.generate(periods.length, (i) {
-          final isSelected = i == selectedIndex;
-          return GestureDetector(
-            onTap: () => onSelect(i),
-            child: Container(
-              margin: const EdgeInsets.only(right: AppSpacing.xs),
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md,
-                vertical: AppSpacing.xs,
-              ),
-              decoration: BoxDecoration(
-                color: isSelected ? AppColors.primary : Colors.transparent,
-                borderRadius: AppRadius.radiusFull,
-                border: Border.all(
-                  color: isSelected ? AppColors.primary : context.borderColor,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: AppSpacing.base),
+        AppBarChart(
+          height: 160,
+          progress: progress,
+          formatY: (v) => formatCurrency(v, symbol, abbreviate: true),
+          groups: points
+              .map(
+                (d) => AppBarChartGroup(
+                  label: d.month,
+                  bars: [
+                    AppBarChartBar(
+                      value: d.income,
+                      color: AppColors.transparent,
+                      striped: true,
+                      stripeColor: AppColors.primary,
+                      stripeOpacity: 1,
+                    ),
+                    AppBarChartBar(
+                      value: d.expense,
+                      color: AppColors.transparent,
+                      striped: true,
+                      stripeColor: AppColors.categoryTransport,
+                      stripeOpacity: 1,
+                    ),
+                  ],
                 ),
-              ),
-              child: Text(
-                periods[i],
-                style: AppTypography.bodySmall.copyWith(
-                  color: isSelected ? AppColors.white : context.textSecondary,
-                  fontVariations: const [FontVariation('wght', 500)],
+              )
+              .toList(),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        _LegendItem(
+          stripeColor: AppColors.primary,
+          label: AppStrings.incomeLabel,
+          amount: formatCurrency(totalIncome, symbol,
+              abbreviate: false, withCommas: true),
+        ),
+        const SizedBox(height: AppSpacing.base),
+        _LegendItem(
+          stripeColor: AppColors.categoryTransport,
+          label: AppStrings.expenseLabel,
+          amount: formatCurrency(totalExpense, symbol,
+              abbreviate: false, withCommas: true),
+        ),
+      ],
+    );
+  }
+}
+
+class _ChartSkeleton extends StatelessWidget {
+  const _ChartSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.base),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            height: 160,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: List.generate(
+                5,
+                (i) => AppSkeleton(
+                  width: 24,
+                  height: 60.0 + (i % 3) * 40,
+                  borderRadius: const BorderRadius.all(Radius.circular(6)),
                 ),
               ),
             ),
-          );
-        }),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          const AppSkeleton.text(width: double.infinity, height: 16),
+          const SizedBox(height: AppSpacing.base),
+          const AppSkeleton.text(width: double.infinity, height: 16),
+        ],
       ),
     );
   }

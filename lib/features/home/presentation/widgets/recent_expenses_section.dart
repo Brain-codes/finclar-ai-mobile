@@ -2,6 +2,7 @@ import 'package:finclar_ai/shared/icons/app_icons.dart';
 import 'package:finclar_ai/shared/widgets/app_avatar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/config/app_config_notifier.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -9,6 +10,10 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
+import '../../../../shared/widgets/app_skeleton.dart';
+import '../../../expenses/data/models/expense_model.dart';
+import '../../../expenses/presentation/widgets/expense_category_utils.dart';
+import '../../../expenses/providers/expense_providers.dart';
 
 enum HomeExpenseIconType { imageUrl, svgAsset, svgNetwork, appIcon }
 
@@ -40,60 +45,35 @@ class HomeExpenseItem {
 
 class RecentExpensesSection extends ConsumerWidget {
   final bool isEmpty;
-  final List<HomeExpenseItem> expenses;
   final VoidCallback? onViewAll;
 
   const RecentExpensesSection({
     super.key,
     this.isEmpty = false,
-    this.expenses = const [
-      HomeExpenseItem(
-        merchant: 'Blackbell',
-        detail: 'Food & Drinks',
-        amount: '5,000.00',
-        date: 'Apr 3, 2026',
-        categoryColor: AppColors.categoryFood,
-        isDebit: true,
-        iconType: HomeExpenseIconType.appIcon,
-        iconData: AppIcons.categoryFood,
-      ),
-      HomeExpenseItem(
-        merchant: 'Gacoan',
-        detail: 'Food & Drinks',
-        amount: '126,600.00',
-        date: 'Apr 3, 2026',
-        categoryColor: AppColors.categoryFood,
-        isDebit: true,
-        iconType: HomeExpenseIconType.appIcon,
-        iconData: AppIcons.categoryFood,
-      ),
-      HomeExpenseItem(
-        merchant: 'Amoke Oge',
-        detail: 'Health',
-        amount: '6,600.00',
-        date: 'Apr 2, 2026',
-        categoryColor: AppColors.categoryHealth,
-        isDebit: true,
-        iconType: HomeExpenseIconType.appIcon,
-        iconData: AppIcons.categoryHealth,
-      ),
-      HomeExpenseItem(
-        merchant: 'Daravit',
-        detail: 'Shopping',
-        amount: '10,600.00',
-        date: 'Apr 1, 2026',
-        categoryColor: AppColors.categoryShopping,
-        isDebit: true,
-        iconType: HomeExpenseIconType.appIcon,
-        iconData: AppIcons.categoryShopping,
-      ),
-    ],
     this.onViewAll,
   });
+
+  static HomeExpenseItem _toItem(ExpenseModel e) => HomeExpenseItem(
+        merchant: e.name,
+        detail: e.category,
+        amount: NumberFormat('#,##0.00').format(e.amount),
+        date: DateFormat('MMM d, yyyy').format(e.date),
+        categoryColor: expenseCategoryColor(e.category),
+        iconType: HomeExpenseIconType.appIcon,
+        iconData: expenseCategoryIcon(e.category),
+      );
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final symbol = ref.watch(currencySymbolProvider);
+    final state = ref.watch(expenseListProvider);
+
+    final items = state.valueOrNull?.items ?? const [];
+    final recent = items.take(4).map(_toItem).toList();
+    final isLoading = state.isLoading;
+    final showEmpty = isEmpty || (!isLoading && recent.isEmpty);
+    final count = state.valueOrNull?.items.length ?? 0;
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -119,7 +99,7 @@ class RecentExpensesSection extends ConsumerWidget {
                     ),
                   ),
                   Text(
-                    '${expenses.length} total',
+                    '$count total',
                     style: AppTypography.labelMedium.copyWith(
                       color: context.textSecondary,
                       fontVariations: const [FontVariation('wght', 400)],
@@ -128,7 +108,7 @@ class RecentExpensesSection extends ConsumerWidget {
                   ),
                 ],
               ),
-              if (!isEmpty)
+              if (!showEmpty && !isLoading)
                 GestureDetector(
                   onTap: onViewAll,
                   child: Text(
@@ -142,7 +122,9 @@ class RecentExpensesSection extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: AppSpacing.base),
-          if (isEmpty)
+          if (isLoading)
+            const _RecentExpensesSkeleton()
+          else if (showEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
               child: Center(
@@ -165,18 +147,50 @@ class RecentExpensesSection extends ConsumerWidget {
             )
           else
             Column(
-              children: expenses
+              children: recent
                   .map(
-                    (e) =>
-                        _ExpenseTile(
-                          item: e,
-                          showDivider: e != expenses.last,
-                          symbol: symbol,
-                        ),
+                    (e) => _ExpenseTile(
+                      item: e,
+                      showDivider: e != recent.last,
+                      symbol: symbol,
+                    ),
                   )
                   .toList(),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _RecentExpensesSkeleton extends StatelessWidget {
+  const _RecentExpensesSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: List.generate(
+        4,
+        (_) => const Padding(
+          padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+          child: Row(
+            children: [
+              AppSkeleton.circle(size: 40),
+              SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    AppSkeleton.text(width: 120),
+                    SizedBox(height: 6),
+                    AppSkeleton.text(width: 70, height: 12),
+                  ],
+                ),
+              ),
+              AppSkeleton.text(width: 60),
+            ],
+          ),
+        ),
       ),
     );
   }

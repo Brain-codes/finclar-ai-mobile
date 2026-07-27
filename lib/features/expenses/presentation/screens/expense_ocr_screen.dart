@@ -1,23 +1,27 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../app/routes/route_names.dart';
+import '../../../../core/config/ai_config.dart';
 import '../../../../core/services/logger_service.dart';
-import '../../../../core/services/ocr_service.dart';
+import '../../../../core/services/receipt_ai_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../data/models/scanned_receipt_model.dart';
+import '../../providers/expense_providers.dart';
 
 enum _OcrStatus { idle, scanning, failed }
 
-class ExpenseOcrScreen extends StatefulWidget {
+class ExpenseOcrScreen extends ConsumerStatefulWidget {
   const ExpenseOcrScreen({super.key});
 
   @override
-  State<ExpenseOcrScreen> createState() => _ExpenseOcrScreenState();
+  ConsumerState<ExpenseOcrScreen> createState() => _ExpenseOcrScreenState();
 }
 
-class _ExpenseOcrScreenState extends State<ExpenseOcrScreen> {
+class _ExpenseOcrScreenState extends ConsumerState<ExpenseOcrScreen> {
   _OcrStatus _status = _OcrStatus.idle;
   File? _imageFile;
   double _progress = 0.0;
@@ -31,9 +35,14 @@ class _ExpenseOcrScreenState extends State<ExpenseOcrScreen> {
   Future<void> _launchCamera() async {
     Log.i('[OCR Screen] Opening camera');
     final picker = ImagePicker();
+    // Downscale + compress so the upload stays well under server limits
+    // (full-res camera photos are several MB → HTTP 413). Also keeps the
+    // OpenAI base64 payload small/cheap. A receipt stays legible at this size.
     final picked = await picker.pickImage(
       source: ImageSource.camera,
-      imageQuality: 85,
+      maxWidth: 1600,
+      maxHeight: 1600,
+      imageQuality: 70,
     );
 
     if (picked == null) {
@@ -67,17 +76,44 @@ class _ExpenseOcrScreenState extends State<ExpenseOcrScreen> {
 
   Future<void> _runOcr() async {
     try {
-      final receipt = await OcrService.scanReceipt(_imageFile!);
-      if (!mounted || _status != _OcrStatus.scanning) return;
-      Log.i('[OCR Screen] OCR succeeded — navigating to scanned expense screen');
-      setState(() => _progress = 1.0);
-      await Future.delayed(const Duration(milliseconds: 300));
-      if (mounted) {
-        context.pushReplacement(RouteNames.scannedExpense, extra: receipt);
+      if (AiConfig.receiptScanSource == ReceiptScanSource.backend) {
+        await _scanViaBackend();
+      } else {
+        await _scanViaOpenAi();
       }
     } catch (e) {
-      Log.e('[OCR Screen] OCR failed — showing failed state', error: e);
+      Log.e('[OCR Screen] Receipt scan failed — showing failed state', error: e);
       if (mounted) setState(() => _status = _OcrStatus.failed);
+    }
+  }
+
+  // On-device OpenAI vision → review/edit items before saving.
+  Future<void> _scanViaOpenAi() async {
+    final receipt = await ReceiptAiService.scanReceipt(_imageFile!);
+    if (!mounted || _status != _OcrStatus.scanning) return;
+    Log.i('[OCR Screen] OpenAI scan succeeded — opening review screen');
+    setState(() => _progress = 1.0);
+    await Future.delayed(const Duration(milliseconds: 300));
+    if (mounted) {
+      context.pushReplacement(RouteNames.scannedExpense, extra: receipt);
+    }
+  }
+
+  // Backend /expenses/receipt → expense created server-side → show review screen.
+  // The expense is already saved; the review screen's Save button just pops.
+  Future<void> _scanViaBackend() async {
+    final expense =
+        await ref.read(expenseListProvider.notifier).scanReceipt(_imageFile!);
+    if (!mounted || _status != _OcrStatus.scanning) return;
+    Log.i('[OCR Screen] Backend scan succeeded — opening review screen');
+    setState(() => _progress = 1.0);
+    await Future.delayed(const Duration(milliseconds: 300));
+    if (mounted) {
+      final receipt = ScannedReceiptModel.fromExpenseModel(
+        expense,
+        imagePath: _imageFile!.path,
+      );
+      context.pushReplacement(RouteNames.scannedExpense, extra: receipt);
     }
   }
 

@@ -26,7 +26,6 @@ class GroupCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final filledSegments = (progress * 4).floor().clamp(0, 4);
     final pct = '${(progress * 100).round()}%';
 
     return GestureDetector(
@@ -65,7 +64,7 @@ class GroupCard extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.sm),
             _SegmentedProgressBar(
-              filledSegments: filledSegments,
+              progress: progress,
               themeColor: themeColor,
             ),
             const SizedBox(height: AppSpacing.sm),
@@ -82,23 +81,35 @@ class GroupCard extends StatelessWidget {
 }
 
 class _SegmentedProgressBar extends StatelessWidget {
-  final int filledSegments;
+  final double progress;
   final Color themeColor;
 
-  const _SegmentedProgressBar({required this.filledSegments, required this.themeColor});
+  const _SegmentedProgressBar({required this.progress, required this.themeColor});
 
   @override
   Widget build(BuildContext context) {
     final emptyColor = context.borderColor;
+    const segments = 4;
     return Row(
-      children: List.generate(4, (i) {
+      children: List.generate(segments, (i) {
+        final fill = (progress * segments - i).clamp(0.0, 1.0);
         return Expanded(
           child: Container(
-            margin: EdgeInsets.only(right: i < 3 ? 4 : 0),
+            margin: EdgeInsets.only(right: i < segments - 1 ? 4 : 0),
             height: 14,
             decoration: BoxDecoration(
-              color: i < filledSegments ? themeColor : emptyColor,
+              color: emptyColor,
               borderRadius: BorderRadius.circular(4),
+            ),
+            child: FractionallySizedBox(
+              alignment: Alignment.centerLeft,
+              widthFactor: fill,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: themeColor,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
             ),
           ),
         );

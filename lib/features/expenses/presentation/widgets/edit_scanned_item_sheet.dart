@@ -35,6 +35,7 @@ class _EditScannedItemContentState extends State<_EditScannedItemContent> {
   late final TextEditingController _amountCtrl;
   late final TextEditingController _quantityCtrl;
   late String _category;
+  String? _categoryId;
 
   @override
   void initState() {
@@ -47,6 +48,7 @@ class _EditScannedItemContentState extends State<_EditScannedItemContent> {
       text: widget.item.quantity.toString(),
     );
     _category = widget.item.category;
+    _categoryId = widget.item.categoryId;
   }
 
   @override
@@ -58,8 +60,16 @@ class _EditScannedItemContentState extends State<_EditScannedItemContent> {
   }
 
   Future<void> _pickCategory() async {
-    final picked = await showExpenseCategorySheet(context, selected: _category);
-    if (picked != null) setState(() => _category = picked);
+    final picked = await showExpenseCategorySheet(
+      context,
+      selectedId: _categoryId,
+    );
+    if (picked != null) {
+      setState(() {
+        _category = picked.name;
+        _categoryId = picked.id;
+      });
+    }
   }
 
   void _onSave() {
@@ -72,6 +82,7 @@ class _EditScannedItemContentState extends State<_EditScannedItemContent> {
     final updated = widget.item.copyWith(
       name: _nameCtrl.text.trim().isEmpty ? widget.item.name : _nameCtrl.text.trim(),
       category: _category,
+      categoryId: _categoryId,
       quantity: qty,
       unitPrice: unitPrice,
       amount: unitPrice * qty,

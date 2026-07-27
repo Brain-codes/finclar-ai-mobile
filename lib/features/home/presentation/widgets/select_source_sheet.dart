@@ -20,9 +20,8 @@ Future<IncomeSourceModel?> showSelectSourceSheet(
   return showAppSheet<IncomeSourceModel>(
     context,
     title: 'Select source',
-    heightFactor: 0.8,
     children: [
-      Expanded(child: _SelectSourceContent(initialSelected: selected)),
+      _SelectSourceContent(initialSelected: selected),
     ],
   );
 }
@@ -55,66 +54,62 @@ class _SelectSourceContentState extends ConsumerState<_SelectSourceContent> {
     final sourcesAsync = ref.watch(incomeSourcesProvider);
 
     return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(
-          child: SingleChildScrollView(
+        sourcesAsync.when(
+          loading: () => const SkeletonCard(),
+          error: (_, _) => const SizedBox.shrink(),
+          data: (sources) => Container(
+            decoration: BoxDecoration(
+              color: context.surfaceColor,
+              borderRadius: AppRadius.radiusSheet,
+              border: Border.all(color: context.borderColor),
+            ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                sourcesAsync.when(
-                  loading: () => const SkeletonCard(),
-                  error: (_, _) => const SizedBox.shrink(),
-                  data: (sources) => Container(
-                    decoration: BoxDecoration(
-                      color: context.surfaceColor,
-                      borderRadius: AppRadius.radiusSheet,
-                      border: Border.all(color: context.borderColor),
-                    ),
-                    child: Column(
-                      children: [
-                        for (int i = 0; i < sources.length; i++) ...[
-                          _SourceRow(
-                            label: sources[i].name,
-                            isSelected: _selected?.id == sources[i].id,
-                            onTap: () =>
-                                setState(() => _selected = sources[i]),
-                          ),
-                          if (i < sources.length - 1)
-                            Divider(
-                              height: 1,
-                              thickness: 1,
-                              color: context.borderColor,
-                              indent: AppSpacing.base,
-                              endIndent: AppSpacing.base,
-                            ),
-                        ],
-                      ],
-                    ),
+                for (int i = 0; i < sources.length; i++) ...[
+                  _SourceRow(
+                    label: sources[i].name,
+                    isSelected: _selected?.id == sources[i].id,
+                    onTap: () => setState(() => _selected = sources[i]),
                   ),
-                ),
-                const SizedBox(height: AppSpacing.base),
-                GestureDetector(
-                  onTap: _addSource,
-                  child: Row(
-                    children: [
-                      Icon(AppIcons.add, size: 15, color: AppColors.primary),
-                      const SizedBox(width: AppSpacing.xs),
-                      Text(
-                        'Add source',
-                        style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.primary,
-                          fontVariations: const [FontVariation('wght', 500)],
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
+                  if (i < sources.length - 1)
+                    Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: context.borderColor,
+                      indent: AppSpacing.base,
+                      endIndent: AppSpacing.base,
+                    ),
+                ],
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.base),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: GestureDetector(
+            onTap: _addSource,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(AppIcons.add, size: 15, color: AppColors.primary),
+                const SizedBox(width: AppSpacing.xs),
+                Text(
+                  'Add source',
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: AppColors.primary,
+                    fontVariations: const [FontVariation('wght', 500)],
+                    fontSize: 14,
                   ),
                 ),
               ],
             ),
           ),
         ),
-        const SizedBox(height: AppSpacing.base),
+        const SizedBox(height: AppSpacing.xxxl),
         AppButton(
           label: 'Continue',
           onTap: _selected != null

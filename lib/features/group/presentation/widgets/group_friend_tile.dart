@@ -6,6 +6,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../shared/icons/app_icons.dart';
 import '../../../../shared/widgets/app_avatar.dart';
+import '../../data/models/group_member_model.dart';
 
 enum FriendStatus { complete, accepted, pending }
 
@@ -22,6 +23,13 @@ class GroupFriendTile extends StatelessWidget {
   /// are derived from [contributedAmount] vs [targetAmount].
   final FriendStatus status;
 
+  /// Currency symbol from the app config — never hardcode one here.
+  final String symbol;
+
+  /// Whether this member has accepted their group invite yet. Non-accepted
+  /// members show an invite badge instead of contribution figures.
+  final GroupInviteStatus inviteStatus;
+
   final bool showEdit;
   final VoidCallback? onTap;
   final VoidCallback? onDeleteTapped;
@@ -31,6 +39,8 @@ class GroupFriendTile extends StatelessWidget {
     required this.name,
     required this.targetAmount,
     required this.contributedAmount,
+    required this.symbol,
+    this.inviteStatus = GroupInviteStatus.accepted,
     this.status = FriendStatus.pending,
     this.showEdit = false,
     this.onTap,
@@ -38,6 +48,9 @@ class GroupFriendTile extends StatelessWidget {
   });
 
   static final _fmt = NumberFormat('#,##0.##');
+
+  double get _amountLeft =>
+      (targetAmount - contributedAmount).clamp(0, double.infinity);
 
   // Complete when they've hit or exceeded their target.
   bool get _isComplete => contributedAmount >= targetAmount;
@@ -53,8 +66,9 @@ class GroupFriendTile extends StatelessWidget {
     return 'Pending';
   }
 
-  String get _formattedTarget => '₦${_fmt.format(targetAmount)}';
-  String get _formattedContributed => '₦${_fmt.format(contributedAmount)}';
+  String get _formattedTarget => '$symbol${_fmt.format(targetAmount)}';
+  String get _formattedContributed => '$symbol${_fmt.format(contributedAmount)}';
+  String get _formattedLeft => '$symbol${_fmt.format(_amountLeft)}';
 
   @override
   Widget build(BuildContext context) {
@@ -92,7 +106,19 @@ class GroupFriendTile extends StatelessWidget {
     );
   }
 
+  bool get _inviteAccepted => inviteStatus == GroupInviteStatus.accepted;
+
   Widget _buildSecondaryInfo(BuildContext context, Color badgeBg, Color badgeText) {
+    // Invite not yet accepted: the contribution figures don't apply yet.
+    if (!_inviteAccepted) {
+      final declined = inviteStatus == GroupInviteStatus.declined;
+      return _StatusBadge(
+        label: declined ? 'Declined' : 'Awaiting confirmation',
+        bg: declined ? AppColors.errorLight : context.surfaceMuted,
+        fg: declined ? AppColors.error : AppColors.warning,
+      );
+    }
+
     // Delete mode: always show a status badge
     if (onDeleteTapped != null) {
       return _StatusBadge(label: _badgeLabel, bg: badgeBg, fg: badgeText);
@@ -115,6 +141,12 @@ class GroupFriendTile extends StatelessWidget {
   }
 
   Widget _buildTrailing(BuildContext context, Color amountColor) {
+    // No contribution figure for a member who hasn't accepted yet — but the
+    // owner can still remove them (delete icon retained below).
+    if (!_inviteAccepted && onDeleteTapped == null) {
+      return const SizedBox.shrink();
+    }
+
     if (onDeleteTapped != null) {
       return Row(
         mainAxisSize: MainAxisSize.min,
@@ -132,7 +164,7 @@ class GroupFriendTile extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          _formattedTarget,
+          _isComplete ? _formattedTarget : _formattedLeft,
           style: AppTypography.labelSmall.copyWith(
             color: amountColor,
             fontVariations: const [FontVariation('wght', 600)],

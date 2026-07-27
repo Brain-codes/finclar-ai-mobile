@@ -7,6 +7,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../data/models/expense_model.dart';
+import '../../data/models/scanned_receipt_model.dart';
 import 'expense_tile.dart';
 
 class ExpenseList extends StatelessWidget {
@@ -57,7 +58,14 @@ class ExpenseList extends StatelessWidget {
                   (e) => ExpenseTile(
                     expense: e,
                     showDivider: e != entry.value.last,
-                    onTap: () => context.push(RouteNames.expenseDetail, extra: e),
+                    onTap: () {
+                      if (e.source == 'receipt' && e.items.isNotEmpty) {
+                        final receipt = ScannedReceiptModel.fromExpenseModel(e);
+                        context.push(RouteNames.scannedExpense, extra: receipt);
+                      } else {
+                        context.push(RouteNames.expenseDetail, extra: e);
+                      }
+                    },
                   ),
                 ),
               ],

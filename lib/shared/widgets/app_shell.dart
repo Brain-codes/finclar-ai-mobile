@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../icons/app_icons.dart';
 import '../../app/routes/route_names.dart';
@@ -7,9 +8,12 @@ import '../../core/theme/app_typography.dart';
 import '../../core/constants/app_strings.dart';
 import '../../core/utils/extensions/context_extensions.dart';
 import '../../features/expenses/presentation/widgets/bank_integration_modal.dart';
+import '../../features/expenses/presentation/widgets/edit_expense_sheet.dart';
+import '../../features/group/providers/group_chat_hub_provider.dart';
 import 'app_sheet.dart';
+import 'clara_fab.dart';
 
-class AppShell extends StatelessWidget {
+class AppShell extends ConsumerWidget {
   final Widget child;
 
   const AppShell({super.key, required this.child});
@@ -57,7 +61,7 @@ class AppShell extends StatelessWidget {
           subtitle: 'Manually type in expense',
           onTap: () {
             Navigator.of(context, rootNavigator: true).pop();
-            context.push(RouteNames.addExpense);
+            showEditExpenseSheet(context);
           },
         ),
         _AddOption(
@@ -75,12 +79,26 @@ class AppShell extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Bootstraps the group-chat notification hub for the whole session — see
+    // group_chat_hub_provider.dart. Reading it once here is enough; it is not
+    // autoDispose, so it persists across navigation until logout resets it.
+    ref.watch(groupChatNotificationsProvider);
+
     final location = GoRouterState.of(context).uri.toString();
     final currentIndex = _locationToIndex(location);
 
     return Scaffold(
-      body: child,
+      body: Stack(
+        children: [
+          Positioned.fill(child: child),
+          const Positioned(
+            right: 16,
+            bottom: 16,
+            child: ClaraFab(),
+          ),
+        ],
+      ),
       bottomNavigationBar: _FinclarBottomNav(
         currentIndex: currentIndex,
         onTap: (i) => i == 2 ? _onAddTap(context) : _onTabTap(context, i),

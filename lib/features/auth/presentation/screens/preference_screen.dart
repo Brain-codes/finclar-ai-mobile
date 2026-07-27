@@ -9,56 +9,25 @@ import '../../../../shared/icons/app_icons.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_screen_header.dart';
 import '../../../../shared/widgets/app_snackbar.dart';
+import '../../data/models/financial_goal_model.dart';
 import '../../providers/preference_provider.dart';
 
-// ─── Preference data model ────────────────────────────────────────────────────
+// ─── Visual metadata, keyed by backend goal `key` ─────────────────────────────
 
-class _Preference {
-  final String id;
-  final String title;
-  final String description;
+class _GoalVisual {
   final IconData icon;
   final Color colorFill;
-
-  const _Preference({
-    required this.id,
-    required this.title,
-    required this.description,
-    required this.icon,
-    required this.colorFill,
-  });
+  const _GoalVisual(this.icon, this.colorFill);
 }
 
-const _preferences = [
-  _Preference(
-    id: 'save',
-    title: AppStrings.prefSaveTitle,
-    description: AppStrings.prefSaveDesc,
-    icon: AppIcons.wallet,
-    colorFill: AppColors.categoryTransport,
-  ),
-  _Preference(
-    id: 'track',
-    title: AppStrings.prefTrackTitle,
-    description: AppStrings.prefTrackDesc,
-    icon: AppIcons.chart,
-    colorFill: AppColors.categoryShopping,
-  ),
-  _Preference(
-    id: 'budget',
-    title: AppStrings.prefBudgetTitle,
-    description: AppStrings.prefBudgetDesc,
-    icon: AppIcons.budget,
-    colorFill: AppColors.primary,
-  ),
-  _Preference(
-    id: 'control',
-    title: AppStrings.prefControlTitle,
-    description: AppStrings.prefControlDesc,
-    icon: AppIcons.briefcase,
-    colorFill: AppColors.success,
-  ),
-];
+const _goalVisuals = <String, _GoalVisual>{
+  'smart_money_saving': _GoalVisual(AppIcons.wallet, AppColors.categoryTransport),
+  'track_my_spending': _GoalVisual(AppIcons.chart, AppColors.categoryShopping),
+  'stick_to_a_budget': _GoalVisual(AppIcons.budget, AppColors.primary),
+  'feel_more_in_control': _GoalVisual(AppIcons.briefcase, AppColors.success),
+};
+
+const _fallbackVisual = _GoalVisual(AppIcons.target, AppColors.primary);
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
@@ -69,21 +38,12 @@ class PreferenceScreen extends ConsumerStatefulWidget {
   ConsumerState<PreferenceScreen> createState() => _PreferenceScreenState();
 }
 
-// Maps the local preference ID to the backend goal string.
-const _goalIds = {
-  'save': 'save_more',
-  'track': 'track_expenses',
-  'budget': 'budget_better',
-  'control': 'financial_control',
-};
-
 class _PreferenceScreenState extends ConsumerState<PreferenceScreen> {
   String? _selectedId;
 
   Future<void> _onContinue() async {
     if (_selectedId == null) return;
-    final goal = _goalIds[_selectedId!]!;
-    await ref.read(preferenceProvider.notifier).saveGoals([goal]);
+    await ref.read(preferenceProvider.notifier).saveGoals([_selectedId!]);
   }
 
   Future<void> _onSkip() async {
@@ -93,6 +53,7 @@ class _PreferenceScreenState extends ConsumerState<PreferenceScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(preferenceProvider);
+    final goalsAsync = ref.watch(goalsProvider);
 
     ref.listen(preferenceProvider, (_, next) {
       if (next.snackbarError != null) {
@@ -131,23 +92,39 @@ class _PreferenceScreenState extends ConsumerState<PreferenceScreen> {
                         const SizedBox(height: AppSpacing.xl),
 
                         // Preference cards
-                        ...List.generate(_preferences.length, (i) {
-                          final pref = _preferences[i];
-                          final selected = _selectedId == pref.id;
-                          return Padding(
-                            padding: EdgeInsets.only(
-                              bottom: i < _preferences.length - 1
-                                  ? AppSpacing.sm
-                                  : 0,
+                        goalsAsync.when(
+                          loading: () => const Padding(
+                            padding: EdgeInsets.only(top: AppSpacing.xxl),
+                            child: Center(child: CircularProgressIndicator()),
+                          ),
+                          error: (_, _) => Padding(
+                            padding: const EdgeInsets.only(top: AppSpacing.xl),
+                            child: AppButton(
+                              label: AppStrings.retry,
+                              variant: AppButtonVariant.outline,
+                              onTap: () => ref.invalidate(goalsProvider),
                             ),
-                            child: _PreferenceCard(
-                              preference: pref,
-                              selected: selected,
-                              onTap: () =>
-                                  setState(() => _selectedId = pref.id),
-                            ),
-                          );
-                        }),
+                          ),
+                          data: (goals) => Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: List.generate(goals.length, (i) {
+                              final goal = goals[i];
+                              final selected = _selectedId == goal.id;
+                              return Padding(
+                                padding: EdgeInsets.only(
+                                  bottom:
+                                      i < goals.length - 1 ? AppSpacing.sm : 0,
+                                ),
+                                child: _PreferenceCard(
+                                  goal: goal,
+                                  selected: selected,
+                                  onTap: () =>
+                                      setState(() => _selectedId = goal.id),
+                                ),
+                              );
+                            }),
+                          ),
+                        ),
 
                         const SizedBox(height: AppSpacing.xxl),
                       ],
@@ -193,12 +170,12 @@ class _PreferenceScreenState extends ConsumerState<PreferenceScreen> {
 // ─── Preference card ──────────────────────────────────────────────────────────
 
 class _PreferenceCard extends StatelessWidget {
-  final _Preference preference;
+  final FinancialGoalModel goal;
   final bool selected;
   final VoidCallback onTap;
 
   const _PreferenceCard({
-    required this.preference,
+    required this.goal,
     required this.selected,
     required this.onTap,
   });
@@ -220,28 +197,28 @@ class _PreferenceCard extends StatelessWidget {
             ),
           ),
           padding: const EdgeInsets.all(1.5),
-          child: _CardContent(preference: preference, selected: true),
+          child: _CardContent(goal: goal, selected: true),
         ),
       );
     }
 
     return GestureDetector(
       onTap: onTap,
-      child: _CardContent(preference: preference, selected: false),
+      child: _CardContent(goal: goal, selected: false),
     );
   }
 }
 
 class _CardContent extends StatelessWidget {
-  final _Preference preference;
+  final FinancialGoalModel goal;
   final bool selected;
 
-  const _CardContent({required this.preference, required this.selected});
+  const _CardContent({required this.goal, required this.selected});
 
   @override
   Widget build(BuildContext context) {
+    final visual = _goalVisuals[goal.key] ?? _fallbackVisual;
     return Container(
-      height: 88,
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.base,
         vertical: AppSpacing.base,
@@ -258,7 +235,7 @@ class _CardContent extends StatelessWidget {
             width: 28,
             height: 28,
             alignment: Alignment.center,
-            child: Icon(preference.icon, size: 20, color: preference.colorFill),
+            child: Icon(visual.icon, size: 20, color: visual.colorFill),
           ),
           const SizedBox(width: AppSpacing.base),
 
@@ -269,7 +246,7 @@ class _CardContent extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  preference.title,
+                  goal.name,
                   style: AppTypography.labelMedium.copyWith(
                     fontFamily: 'BricolageGrotesque',
                     color: context.textPrimary,
@@ -277,7 +254,7 @@ class _CardContent extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  preference.description,
+                  goal.description ?? '',
                   style: AppTypography.labelSmall.copyWith(
                     color: context.textSecondary,
                     fontSize: 12,

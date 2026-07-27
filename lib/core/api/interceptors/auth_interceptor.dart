@@ -8,12 +8,17 @@ import '../api_endpoints.dart';
 
 class AuthInterceptor extends Interceptor {
   final FlutterSecureStorage _storage;
+  final Dio _dio;
 
-  // Guards against concurrent refresh attempts.
-  bool _isRefreshing = false;
-  final List<Completer<String?>> _queue = [];
+  // A single in-flight refresh shared by every request that 401s at the same
+  // time. The refresh token rotates server-side (each refresh returns a new
+  // one), so firing concurrent refreshes would invalidate each other and force
+  // a logout — everyone must await the same call.
+  Future<String?>? _refreshCall;
 
-  AuthInterceptor(this._storage);
+  static const String _retriedKey = '__retried_after_refresh';
+
+  AuthInterceptor(this._storage, this._dio);
 
   @override
   Future<void> onRequest(
@@ -41,34 +46,58 @@ class AuthInterceptor extends Interceptor {
       return;
     }
 
-    final storedRefresh =
-        await _storage.read(key: AppConstants.refreshTokenKey);
-    if (storedRefresh == null) {
+    // Already retried once with a fresh token and still 401 — the new token is
+    // genuinely rejected, so stop looping and log out.
+    if (err.requestOptions.extra[_retriedKey] == true) {
+      Log.e(
+        'Request ${err.requestOptions.path} still 401 after refresh — '
+        'logging out.',
+      );
       await authStateService.logOut();
       handler.next(err);
       return;
     }
 
-    if (_isRefreshing) {
-      // Enqueue — wait for the in-progress refresh to resolve.
-      final completer = Completer<String?>();
-      _queue.add(completer);
-      final newToken = await completer.future;
-      if (newToken != null) {
-        handler.resolve(await _retry(err.requestOptions, newToken));
-      } else {
-        handler.next(err);
-      }
+    // NOTE: no await before this line — the `??=` runs synchronously for every
+    // concurrent 401, so they all share one refresh instead of racing.
+    final newToken = await _refresh();
+    if (newToken == null) {
+      handler.next(err);
       return;
     }
 
-    _isRefreshing = true;
+    try {
+      handler.resolve(await _retry(err.requestOptions, newToken));
+    } catch (_) {
+      handler.next(err);
+    }
+  }
+
+  Future<String?> _refresh() {
+    return _refreshCall ??=
+        _performRefresh().whenComplete(() => _refreshCall = null);
+  }
+
+  Future<String?> _performRefresh() async {
+    final storedRefresh =
+        await _storage.read(key: AppConstants.refreshTokenKey);
+    if (storedRefresh == null) {
+      Log.e('401 but no refresh token is stored — logging out.');
+      await authStateService.logOut();
+      return null;
+    }
+
+    Log.d('Access token rejected (401) — attempting refresh.');
     try {
       final refreshDio = Dio(
         BaseOptions(
           baseUrl: ApiEndpoints.baseUrl,
           connectTimeout: AppConstants.connectTimeout,
           receiveTimeout: AppConstants.receiveTimeout,
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
         ),
       );
       final response = await refreshDio.post(
@@ -84,37 +113,23 @@ class AuthInterceptor extends Interceptor {
         _storage.write(key: AppConstants.refreshTokenKey, value: newRefresh),
       ]);
 
-      _resolveQueue(newAccess);
-      handler.resolve(await _retry(err.requestOptions, newAccess));
+      Log.d('Token refresh succeeded.');
+      return newAccess;
     } catch (e) {
       Log.e('Token refresh failed — logging out', error: e);
-      _resolveQueue(null);
       await authStateService.logOut();
-      handler.next(err);
-    } finally {
-      _isRefreshing = false;
+      return null;
     }
-  }
-
-  void _resolveQueue(String? token) {
-    for (final c in _queue) {
-      c.complete(token);
-    }
-    _queue.clear();
   }
 
   Future<Response<dynamic>> _retry(
     RequestOptions options,
     String accessToken,
   ) async {
-    final retryDio = Dio(
-      BaseOptions(
-        baseUrl: ApiEndpoints.baseUrl,
-        connectTimeout: AppConstants.connectTimeout,
-        receiveTimeout: AppConstants.receiveTimeout,
-      ),
-    );
     options.headers['Authorization'] = 'Bearer $accessToken';
-    return retryDio.fetch(options);
+    options.extra[_retriedKey] = true;
+    // Reuse the main Dio so the retry still logs; the retried request carries
+    // the _retriedKey flag so a second 401 logs out instead of looping.
+    return _dio.fetch(options);
   }
 }

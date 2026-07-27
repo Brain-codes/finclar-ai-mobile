@@ -2,7 +2,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/app_exceptions.dart';
 import '../../../core/services/auth_state_service.dart';
 import '../../../core/services/logger_service.dart';
+import '../data/models/financial_goal_model.dart';
 import 'auth_repository_provider.dart';
+
+final goalsProvider = FutureProvider<List<FinancialGoalModel>>((ref) {
+  return ref.watch(authRepositoryProvider).getGoals();
+});
 
 class PreferenceState {
   final bool isLoading;

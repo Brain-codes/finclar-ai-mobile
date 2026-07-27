@@ -4,28 +4,33 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
+import '../../../../core/utils/number_formatter.dart';
 import '../../../../shared/icons/app_icons.dart';
-
-enum SubscriptionPlan { monthly, yearly }
+import '../../data/models/plan_model.dart';
 
 class SubscriptionPlanCard extends StatelessWidget {
-  final SubscriptionPlan plan;
+  final PlanModel plan;
+  final String symbol;
   final bool isSelected;
   final VoidCallback onTap;
 
   const SubscriptionPlanCard({
     super.key,
     required this.plan,
+    required this.symbol,
     required this.isSelected,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isYearly = plan == SubscriptionPlan.yearly;
-    final label = isYearly ? 'Clara + yearly' : 'Clara + monthly';
-    final price = isYearly ? '₦28,000' : '₦3,000';
-    final period = isYearly ? 'Yearly' : 'Monthly';
+    final price = formatCurrency(
+      plan.majorAmount,
+      symbol,
+      abbreviate: false,
+      withCommas: true,
+    );
+    final period = plan.isYearly ? 'Yearly' : 'Monthly';
 
     return GestureDetector(
       onTap: onTap,
@@ -54,7 +59,7 @@ class SubscriptionPlanCard extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
-              label,
+              plan.name,
               style: AppTypography.bodyMedium.copyWith(
                 color: context.textTertiary,
                 fontVariations: const [FontVariation('wght', 500)],

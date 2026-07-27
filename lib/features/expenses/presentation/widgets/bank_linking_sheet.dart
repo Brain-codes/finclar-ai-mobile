@@ -8,15 +8,19 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../shared/icons/app_icons.dart';
 import '../../../../shared/widgets/app_button.dart';
+import '../../data/models/bank_model.dart';
 
-enum _LinkingState { inProgress, timeout, failed }
+enum _LinkingState { inProgress, failed }
 
-Future<void> showBankLinkingSheet(
+/// Shows the bank linking progress sheet.
+/// [onLink] is called to perform the actual link; it should return the linked [BankModel].
+/// Returns the linked [BankModel] on success, or null if cancelled/failed.
+Future<BankModel?> showBankLinkingSheet(
   BuildContext context, {
   required String bankName,
-  required VoidCallback onSuccess,
+  required Future<BankModel> Function() onLink,
 }) {
-  return showModalBottomSheet(
+  return showModalBottomSheet<BankModel>(
     context: context,
     isScrollControlled: true,
     useRootNavigator: true,
@@ -26,18 +30,18 @@ Future<void> showBankLinkingSheet(
     shape: const RoundedRectangleBorder(borderRadius: AppRadius.radiusSheetTop),
     builder: (_) => _BankLinkingSheet(
       bankName: bankName,
-      onSuccess: onSuccess,
+      onLink: onLink,
     ),
   );
 }
 
 class _BankLinkingSheet extends StatefulWidget {
   final String bankName;
-  final VoidCallback onSuccess;
+  final Future<BankModel> Function() onLink;
 
   const _BankLinkingSheet({
     required this.bankName,
-    required this.onSuccess,
+    required this.onLink,
   });
 
   @override
@@ -46,7 +50,6 @@ class _BankLinkingSheet extends StatefulWidget {
 
 class _BankLinkingSheetState extends State<_BankLinkingSheet> {
   _LinkingState _state = _LinkingState.inProgress;
-  Timer? _timer;
 
   @override
   void initState() {
@@ -54,27 +57,19 @@ class _BankLinkingSheetState extends State<_BankLinkingSheet> {
     _startLinking();
   }
 
-  void _startLinking() {
+  Future<void> _startLinking() async {
     setState(() => _state = _LinkingState.inProgress);
-    _timer = Timer(const Duration(seconds: 3), _onLinkingComplete);
+    try {
+      final bank = await widget.onLink();
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop(bank);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _state = _LinkingState.failed);
+    }
   }
 
-  void _onLinkingComplete() {
-    if (!mounted) return;
-    Navigator.of(context, rootNavigator: true).pop();
-    widget.onSuccess();
-  }
-
-  void _retry() {
-    _timer?.cancel();
-    _startLinking();
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
+  void _retry() => _startLinking();
 
   @override
   Widget build(BuildContext context) {
@@ -90,20 +85,11 @@ class _BankLinkingSheetState extends State<_BankLinkingSheet> {
           mainAxisSize: MainAxisSize.min,
           children: [
             _SheetCloseRow(onClose: () {
-              _timer?.cancel();
-              Navigator.of(context, rootNavigator: true).pop();
+              Navigator.of(context, rootNavigator: true).pop(null);
             }),
             const SizedBox(height: AppSpacing.xl),
             switch (_state) {
-              _LinkingState.inProgress => _InProgressContent(),
-              _LinkingState.timeout => _StatusContent(
-                  icon: AppIcons.clock,
-                  iconBgColor: AppColors.primaryMuted,
-                  iconColor: AppColors.primary,
-                  title: AppStrings.bankLinkingInProgress,
-                  subtitle: AppStrings.bankLinkingTimeoutDesc,
-                  onRetry: _retry,
-                ),
+              _LinkingState.inProgress => const _InProgressContent(),
               _LinkingState.failed => _StatusContent(
                   icon: AppIcons.error,
                   iconBgColor: const Color(0xFFF9EAEA),
@@ -176,7 +162,7 @@ class _InProgressContent extends StatelessWidget {
               Container(
                 width: 72,
                 height: 72,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   color: AppColors.primaryMuted,
                   shape: BoxShape.circle,
                 ),
@@ -211,7 +197,7 @@ class _InProgressContent extends StatelessWidget {
   }
 }
 
-// ─── Timeout / Failed content ─────────────────────────────────────────────────
+// ─── Failed content ───────────────────────────────────────────────────────────
 
 class _StatusContent extends StatelessWidget {
   final IconData icon;

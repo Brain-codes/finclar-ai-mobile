@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -201,6 +202,178 @@ class GroupChatOtherImageBubble extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+// ─── Network image bubbles (real backend attachments) ────────────────────────
+
+class GroupChatUserNetworkImageBubble extends StatelessWidget {
+  final String imageUrl;
+  final String? caption;
+  const GroupChatUserNetworkImageBubble({
+    super.key,
+    required this.imageUrl,
+    this.caption,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          GestureDetector(
+            onTap: () => _showNetworkImageModal(context, imageUrl),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(18),
+              child: CachedNetworkImage(
+                imageUrl: imageUrl,
+                width: 109,
+                height: 128,
+                fit: BoxFit.cover,
+                placeholder: (_, _) => Container(
+                  width: 109,
+                  height: 128,
+                  color: context.surfaceMuted,
+                ),
+                errorWidget: (_, _, _) => Container(
+                  width: 109,
+                  height: 128,
+                  color: context.surfaceMuted,
+                  child: Icon(AppIcons.image, color: context.textTertiary),
+                ),
+              ),
+            ),
+          ),
+          if (caption != null && caption!.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Container(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.65,
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: context.surfaceMuted,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
+                  bottomLeft: Radius.circular(24),
+                  bottomRight: Radius.circular(3),
+                ),
+              ),
+              child: Text(
+                caption!,
+                style: AppTypography.bodySmall.copyWith(
+                  color: context.textPrimary,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class GroupChatOtherNetworkImageBubble extends StatelessWidget {
+  final String name;
+  final String imageUrl;
+  final bool showAvatar;
+  final bool showName;
+
+  const GroupChatOtherNetworkImageBubble({
+    super.key,
+    required this.name,
+    required this.imageUrl,
+    this.showAvatar = true,
+    this.showName = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const avatarWidth = 24.0;
+    const gap = AppSpacing.xs + 2.0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (showName)
+          Padding(
+            padding: const EdgeInsets.only(left: avatarWidth + gap, bottom: 4),
+            child: Text(
+              name,
+              style: AppTypography.labelSmall.copyWith(
+                color: context.textSecondary,
+                fontSize: 12,
+                fontVariations: const [FontVariation('wght', 500)],
+              ),
+            ),
+          ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            if (showAvatar)
+              AppAvatar(initials: name, size: avatarWidth, shape: BoxShape.circle)
+            else
+              const SizedBox(width: avatarWidth),
+            const SizedBox(width: gap),
+            GestureDetector(
+              onTap: () => _showNetworkImageModal(context, imageUrl),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: CachedNetworkImage(
+                  imageUrl: imageUrl,
+                  width: 109,
+                  height: 128,
+                  fit: BoxFit.cover,
+                  placeholder: (_, _) => Container(
+                    width: 109,
+                    height: 128,
+                    color: context.surfaceMuted,
+                  ),
+                  errorWidget: (_, _, _) => Container(
+                    width: 109,
+                    height: 128,
+                    color: context.surfaceMuted,
+                    child: Icon(AppIcons.image, color: context.textTertiary),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+// ─── System message (savings recorded, member joined, etc.) ──────────────────
+
+class GroupChatSystemBubble extends StatelessWidget {
+  final String text;
+  const GroupChatSystemBubble({super.key, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: context.surfaceMuted,
+          borderRadius: BorderRadius.circular(100),
+        ),
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          style: AppTypography.labelSmall.copyWith(
+            color: context.textSecondary,
+            fontSize: 12,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -436,6 +609,51 @@ class _FileImageModal extends StatelessWidget {
       ),
     );
   }
+}
+
+void _showNetworkImageModal(BuildContext context, String imageUrl) {
+  showDialog(
+    context: context,
+    barrierColor: Colors.black.withValues(alpha: 0.92),
+    builder: (ctx) => Material(
+      color: Colors.transparent,
+      child: SafeArea(
+        child: Stack(
+          children: [
+            GestureDetector(
+              onTap: () => Navigator.of(ctx).pop(),
+              behavior: HitTestBehavior.opaque,
+              child: const SizedBox.expand(),
+            ),
+            Center(
+              child: InteractiveViewer(
+                child: CachedNetworkImage(
+                  imageUrl: imageUrl,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+            Positioned(
+              top: 16,
+              right: 16,
+              child: GestureDetector(
+                onTap: () => Navigator.of(ctx).pop(),
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(AppIcons.close, color: Colors.white, size: 18),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 void _showImageModal(BuildContext context, String imagePath) {

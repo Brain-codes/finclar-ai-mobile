@@ -22,7 +22,9 @@ class LoggingInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     Log.e(
-      '[${err.requestOptions.method}] ${err.requestOptions.uri}',
+      '[${err.requestOptions.method}] ${err.requestOptions.uri} '
+      '→ ${err.response?.statusCode ?? 'no response'}\n'
+      'Response: ${err.response?.data}',
       error: err.message,
       stackTrace: err.stackTrace,
     );

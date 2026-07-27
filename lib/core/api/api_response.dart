@@ -29,35 +29,49 @@ class ApiResponse<T> {
 }
 
 class PaginatedResponse<T> {
+  final bool success;
+  final String? message;
   final List<T> items;
-  final int total;
   final int page;
   final int pageSize;
-  final bool hasMore;
+  final int total;
+  final int totalPages;
+  final bool hasNext;
+  final bool hasPrev;
 
   const PaginatedResponse({
+    required this.success,
+    this.message,
     required this.items,
-    required this.total,
     required this.page,
     required this.pageSize,
-    required this.hasMore,
+    required this.total,
+    required this.totalPages,
+    required this.hasNext,
+    required this.hasPrev,
   });
+
+  bool get hasMore => hasNext;
 
   factory PaginatedResponse.fromJson(
     Map<String, dynamic> json,
     T Function(Map<String, dynamic>) fromItem,
   ) {
-    final data = json['data'] as Map<String, dynamic>? ?? {};
-    final items = (data['items'] as List<dynamic>? ?? [])
+    final items = (json['data'] as List<dynamic>? ?? [])
         .map((e) => fromItem(e as Map<String, dynamic>))
         .toList();
+    final pagination = json['pagination'] as Map<String, dynamic>? ?? {};
 
     return PaginatedResponse(
+      success: json['success'] as bool? ?? false,
+      message: json['message'] as String?,
       items: items,
-      total: data['total'] as int? ?? 0,
-      page: data['page'] as int? ?? 1,
-      pageSize: data['pageSize'] as int? ?? 20,
-      hasMore: data['hasMore'] as bool? ?? false,
+      page: pagination['page'] as int? ?? 1,
+      pageSize: pagination['page_size'] as int? ?? 20,
+      total: pagination['total'] as int? ?? 0,
+      totalPages: pagination['total_pages'] as int? ?? 0,
+      hasNext: pagination['has_next'] as bool? ?? false,
+      hasPrev: pagination['has_prev'] as bool? ?? false,
     );
   }
 }

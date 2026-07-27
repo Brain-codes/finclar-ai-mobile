@@ -40,26 +40,28 @@ class _IncomeSetupModal extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
         ),
         padding: const EdgeInsets.all(AppSpacing.base),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _CloseRow(onClose: () => Navigator.of(context).pop()),
-            const SizedBox(height: AppSpacing.base),
-            const _Header(),
-            const SizedBox(height: AppSpacing.xl),
-            const _FeatureList(),
-            const SizedBox(height: AppSpacing.xl),
-            AppButton(
-              label: AppStrings.addIncome,
-              onTap: () {
-                Navigator.of(context).pop();
-                showAddIncomeFlowSheet(context);
-              },
-              fullWidth: false,
-              height: 48,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-          ],
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _CloseRow(onClose: () => Navigator.of(context).pop()),
+              const SizedBox(height: AppSpacing.base),
+              const _Header(),
+              const SizedBox(height: AppSpacing.xl),
+              const _FeatureList(),
+              const SizedBox(height: AppSpacing.xl),
+              AppButton(
+                label: AppStrings.addIncome,
+                onTap: () {
+                  Navigator.of(context).pop();
+                  showAddIncomeFlowSheet(context);
+                },
+                fullWidth: false,
+                height: 48,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+            ],
+          ),
         ),
       ),
     );
@@ -343,11 +345,7 @@ class _FlowOption extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(
-              AppIcons.chevronRight,
-              size: 18,
-              color: context.textSecondary,
-            ),
+            Icon(AppIcons.chevronRight, size: 18, color: context.textSecondary),
           ],
         ),
       ),

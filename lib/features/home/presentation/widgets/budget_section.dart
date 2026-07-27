@@ -3,13 +3,16 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/config/app_config_notifier.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../shared/widgets/app_button.dart';
+import '../../../../shared/widgets/app_skeleton.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
+import '../../../budget/data/models/budget_model.dart';
+import '../../../budget/providers/budget_providers.dart';
+import '../../../expenses/presentation/widgets/expense_category_utils.dart';
 
 class BudgetCategory {
   final String name;
@@ -28,45 +31,15 @@ class BudgetCategory {
 }
 
 class BudgetSection extends ConsumerWidget {
-  final bool isEmpty;
-  final List<BudgetCategory> categories;
   final VoidCallback? onBreakdownTap;
 
-  const BudgetSection({
-    super.key,
-    this.isEmpty = false,
-    this.categories = const [
-      BudgetCategory(
-        name: AppStrings.categoryFood,
-        color: AppColors.categoryFood,
-        spent: 250000,
-        total: 300000,
-      ),
-      BudgetCategory(
-        name: AppStrings.categoryTransportation,
-        color: AppColors.categoryTransport,
-        spent: 150000,
-        total: 250000,
-      ),
-      BudgetCategory(
-        name: AppStrings.categoryHealth,
-        color: AppColors.categoryHealth,
-        spent: 100000,
-        total: 300000,
-      ),
-      BudgetCategory(
-        name: AppStrings.categoryShopping,
-        color: AppColors.categoryShopping,
-        spent: 0,
-        total: 150000,
-      ),
-    ],
-    this.onBreakdownTap,
-  });
+  const BudgetSection({super.key, this.onBreakdownTap});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final symbol = ref.watch(currencySymbolProvider);
+    final budget = ref.watch(budgetProvider);
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -85,64 +58,118 @@ class BudgetSection extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.base),
-          if (isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Icon(
-                      AppIcons.budget,
-                      size: 20,
-                      color: context.textSecondary,
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      'Your budget will be listed here',
-                      textAlign: TextAlign.center,
-                      style: AppTypography.bodySmall.copyWith(
-                        color: context.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            )
-          else ...[
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _BudgetDonutChart(categories: categories, symbol: symbol),
-                const SizedBox(width: AppSpacing.base),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: AppSpacing.base),
-                    for (int i = 0; i < categories.length; i++) ...[
-                      _BudgetItemRow(category: categories[i], symbol: symbol),
-                      if (i < categories.length - 1) ...[
-                        const SizedBox(height: AppSpacing.base),
-                        Divider(height: 1, color: context.borderColor),
-                        const SizedBox(height: AppSpacing.base),
-                      ],
-                    ],
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.base),
-          ],
-          if (!isEmpty)
-            AppButton(
-              label: AppStrings.seeBreakdown,
-              onTap: onBreakdownTap ?? () {},
-              variant: AppButtonVariant.ghost,
-              height: 44,
-            ),
+          budget.when(
+            loading: () => const _BudgetSkeleton(),
+            error: (_, _) => _empty(context),
+            data: (b) => (b == null || b.allocations.isEmpty)
+                ? _empty(context)
+                : _BudgetContent(
+                    categories: _toCategories(b),
+                    symbol: symbol,
+                    onBreakdownTap: onBreakdownTap,
+                  ),
+          ),
         ],
       ),
+    );
+  }
+
+  static List<BudgetCategory> _toCategories(BudgetModel b) => b.allocations
+      .map(
+        (a) => BudgetCategory(
+          name: a.categoryName,
+          color: expenseCategoryColor(a.categoryName),
+          spent: a.spent,
+          total: a.amountAllocated,
+        ),
+      )
+      .toList();
+
+  Widget _empty(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(AppIcons.budget, size: 20, color: context.textSecondary),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                'Your budget will be listed here',
+                textAlign: TextAlign.center,
+                style: AppTypography.bodySmall.copyWith(
+                  color: context.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+}
+
+class _BudgetContent extends StatelessWidget {
+  final List<BudgetCategory> categories;
+  final String symbol;
+  final VoidCallback? onBreakdownTap;
+
+  const _BudgetContent({
+    required this.categories,
+    required this.symbol,
+    this.onBreakdownTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _BudgetDonutChart(categories: categories, symbol: symbol),
+        const SizedBox(height: AppSpacing.base),
+        for (int i = 0; i < categories.length; i++) ...[
+          _BudgetItemRow(category: categories[i], symbol: symbol),
+          if (i < categories.length - 1) ...[
+            const SizedBox(height: AppSpacing.base),
+            Divider(height: 1, color: context.borderColor),
+            const SizedBox(height: AppSpacing.base),
+          ],
+        ],
+        const SizedBox(height: AppSpacing.base),
+        AppButton(
+          label: AppStrings.seeBreakdown,
+          onTap: onBreakdownTap ?? () {},
+          variant: AppButtonVariant.ghost,
+          height: 44,
+        ),
+      ],
+    );
+  }
+}
+
+class _BudgetSkeleton extends StatelessWidget {
+  const _BudgetSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        const AppSkeleton.circle(size: 120),
+        const SizedBox(height: AppSpacing.lg),
+        ...List.generate(
+          3,
+          (_) => const Padding(
+            padding: EdgeInsets.only(bottom: AppSpacing.md),
+            child: Row(
+              children: [
+                AppSkeleton.circle(size: 10),
+                SizedBox(width: AppSpacing.xs),
+                AppSkeleton.text(width: 90),
+                Spacer(),
+                AppSkeleton.text(width: 80),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

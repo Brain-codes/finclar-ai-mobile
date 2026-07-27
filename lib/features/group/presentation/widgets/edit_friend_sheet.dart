@@ -10,14 +10,17 @@ import '../../../../shared/widgets/app_text_field.dart';
 
 final _numberFormat = NumberFormat('#,##0', 'en');
 
-Future<void> showEditFriendSheet(
+/// Edit a member's target contribution. Returns the new amount when saved,
+/// or null if cancelled/removed. [onRemove] fires when "Remove user" is tapped.
+Future<double?> showEditFriendSheet(
   BuildContext context, {
   required String name,
   required String contributed,
   required String target,
+  required String symbol,
   required VoidCallback onRemove,
 }) {
-  return showModalBottomSheet(
+  return showModalBottomSheet<double>(
     context: context,
     isScrollControlled: true,
     useRootNavigator: true,
@@ -29,6 +32,7 @@ Future<void> showEditFriendSheet(
       name: name,
       contributed: contributed,
       target: target,
+      symbol: symbol,
       onRemove: onRemove,
     ),
   );
@@ -38,12 +42,14 @@ class _EditFriendSheet extends StatefulWidget {
   final String name;
   final String contributed;
   final String target;
+  final String symbol;
   final VoidCallback onRemove;
 
   const _EditFriendSheet({
     required this.name,
     required this.contributed,
     required this.target,
+    required this.symbol,
     required this.onRemove,
   });
 
@@ -150,11 +156,11 @@ class _EditFriendSheetState extends State<_EditFriendSheet> {
           const SizedBox(height: AppSpacing.xl),
           AppTextField(
             label: 'Edit amount',
-            hint: '₦500,000.00',
+            hint: 'Enter amount',
             controller: _controller,
             keyboardType: TextInputType.number,
             onChanged: _onAmountChanged,
-            prefixText: '₦ ',
+            prefixText: '${widget.symbol} ',
             prefixStyle: AppTypography.bodyMedium.copyWith(
               color: context.textSecondary,
             ),
@@ -166,7 +172,10 @@ class _EditFriendSheetState extends State<_EditFriendSheet> {
                 child: AppButton(
                   label: 'Save changes',
                   onTap: _controller.text.isNotEmpty
-                      ? () => Navigator.of(context).pop()
+                      ? () => Navigator.of(context).pop(
+                            double.tryParse(
+                                _controller.text.replaceAll(',', '')),
+                          )
                       : null,
                   height: 48,
                 ),

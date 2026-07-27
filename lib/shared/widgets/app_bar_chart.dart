@@ -10,10 +10,18 @@ class AppBarChartReferenceLine {
   final Color color;
   final String? label;
 
+  /// When both are set, the line spans only from the start group's bar to the
+  /// end group's bar (e.g. previous month → current month) instead of the full
+  /// chart width. Indices refer to positions in [AppBarChart.groups].
+  final int? startGroupIndex;
+  final int? endGroupIndex;
+
   const AppBarChartReferenceLine({
     required this.value,
     required this.color,
     this.label,
+    this.startGroupIndex,
+    this.endGroupIndex,
   });
 }
 
@@ -52,6 +60,13 @@ class AppBarChart extends StatelessWidget {
   final Color? gridColor;
   final String Function(double)? formatY;
   final AppBarChartReferenceLine? referenceLine;
+  final bool showGrid;
+  final bool showYAxis;
+  final BorderRadius? barBorderRadius;
+
+  /// Reveal factor 0..1 for a "bars rise from the baseline" entrance. 1.0
+  /// (default) draws the chart at full height — leave it for static charts.
+  final double progress;
 
   const AppBarChart({
     super.key,
@@ -66,6 +81,10 @@ class AppBarChart extends StatelessWidget {
     this.gridColor,
     this.formatY,
     this.referenceLine,
+    this.showGrid = true,
+    this.showYAxis = true,
+    this.barBorderRadius,
+    this.progress = 1.0,
   });
 
   @override
@@ -79,9 +98,7 @@ class AppBarChart extends StatelessWidget {
           );
           return math.max(m, groupMax);
         });
-    final roundedMax = effectiveMaxY == 0
-        ? 1.0
-        : ((effectiveMaxY / 500000).ceil() * 500000).toDouble();
+    final roundedMax = _niceMaxY(effectiveMaxY, yDivisions);
 
     const yAxisWidth = 36.0;
     const bottomLabelHeight = 20.0;
@@ -112,32 +129,60 @@ class AppBarChart extends StatelessWidget {
                   canvasWidth: constraints.maxWidth,
                   canvasHeight: constraints.maxHeight,
                   referenceLine: referenceLine,
+                  showGrid: showGrid,
+                  barBorderRadius: barBorderRadius,
+                  progress: progress,
                 );
               },
             ),
           ),
-          const SizedBox(width: 4),
-          SizedBox(
-            width: yAxisWidth,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: bottomLabelHeight),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: List.generate(yDivisions + 1, (i) {
-                  final v = roundedMax * (yDivisions - i) / yDivisions;
-                  return Text(
-                    formatY != null ? formatY!(v) : _defaultFormatY(v),
-                    style: effectiveLabelStyle,
-                    textAlign: TextAlign.left,
-                  );
-                }),
+          if (showYAxis) ...[
+            const SizedBox(width: 4),
+            SizedBox(
+              width: yAxisWidth,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: bottomLabelHeight),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: List.generate(yDivisions + 1, (i) {
+                    final v = roundedMax * (yDivisions - i) / yDivisions;
+                    return Text(
+                      formatY != null ? formatY!(v) : _defaultFormatY(v),
+                      style: effectiveLabelStyle,
+                      textAlign: TextAlign.left,
+                    );
+                  }),
+                ),
               ),
             ),
-          ),
+          ],
         ],
       ),
     );
+  }
+
+  /// Computes a "nice" axis ceiling that closely fits [rawMax] and divides
+  /// evenly into [divisions], so bars use the full height regardless of scale.
+  double _niceMaxY(double rawMax, int divisions) {
+    if (rawMax <= 0) return 1.0;
+    final roughStep = rawMax / divisions;
+    final magnitude =
+        math.pow(10, (math.log(roughStep) / math.ln10).floor()).toDouble();
+    final normalized = roughStep / magnitude;
+    final double niceNormalized;
+    if (normalized <= 1) {
+      niceNormalized = 1;
+    } else if (normalized <= 2) {
+      niceNormalized = 2;
+    } else if (normalized <= 2.5) {
+      niceNormalized = 2.5;
+    } else if (normalized <= 5) {
+      niceNormalized = 5;
+    } else {
+      niceNormalized = 10;
+    }
+    return niceNormalized * magnitude * divisions;
   }
 
   String _defaultFormatY(double v) {
@@ -159,6 +204,9 @@ class _AppBarChartCanvas extends StatelessWidget {
   final double canvasWidth;
   final double canvasHeight;
   final AppBarChartReferenceLine? referenceLine;
+  final bool showGrid;
+  final BorderRadius? barBorderRadius;
+  final double progress;
 
   const _AppBarChartCanvas({
     required this.groups,
@@ -172,6 +220,9 @@ class _AppBarChartCanvas extends StatelessWidget {
     required this.canvasWidth,
     required this.canvasHeight,
     this.referenceLine,
+    this.showGrid = true,
+    this.barBorderRadius,
+    this.progress = 1.0,
   });
 
   @override
@@ -196,7 +247,7 @@ class _AppBarChartCanvas extends StatelessWidget {
         final barHeightRatio = maxY > 0
             ? (bar.value / maxY).clamp(0.0, 1.0)
             : 0.0;
-        final barH = chartHeight * barHeightRatio;
+        final barH = chartHeight * barHeightRatio * progress;
         final barTop = chartHeight - barH;
 
         barWidgets.add(
@@ -206,9 +257,10 @@ class _AppBarChartCanvas extends StatelessWidget {
             width: barWidth,
             height: barH == 0 ? 0 : barH,
             child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(AppRadius.xs),
-              ),
+              borderRadius: barBorderRadius ??
+                  const BorderRadius.vertical(
+                    top: Radius.circular(AppRadius.xs),
+                  ),
               child: bar.striped
                   ? CustomPaint(
                       painter: AppStripePainter(
@@ -250,12 +302,33 @@ class _AppBarChartCanvas extends StatelessWidget {
       final ratio = maxY > 0
           ? (referenceLine!.value / maxY).clamp(0.0, 1.0)
           : 0.0;
-      final lineY = chartHeight * (1 - ratio);
+      // Line rises with the bars during a reveal (progress 0→1).
+      final lineY = chartHeight * (1 - ratio * progress);
+
+      // Optional span between two groups (e.g. previous → current month).
+      final start = referenceLine!.startGroupIndex;
+      final end = referenceLine!.endGroupIndex;
+      final hasSpan = start != null &&
+          end != null &&
+          start >= 0 &&
+          end < groups.length &&
+          start <= end;
+
+      double? lineLeft;
+      double? lineWidth;
+      if (hasSpan) {
+        final startLeft = start * (groupWidth + groupSpacing);
+        final endRight = end * (groupWidth + groupSpacing) + groupWidth;
+        lineLeft = startLeft;
+        lineWidth = endRight - startLeft;
+      }
+
       refLineWidgets.add(
         Positioned(
           top: lineY,
-          left: 0,
-          right: 0,
+          left: hasSpan ? lineLeft : 0,
+          right: hasSpan ? null : 0,
+          width: hasSpan ? lineWidth : null,
           child: CustomPaint(
             size: const Size(double.infinity, 1),
             painter: _DashedLinePainter(color: referenceLine!.color),
@@ -266,7 +339,7 @@ class _AppBarChartCanvas extends StatelessWidget {
         refLineWidgets.add(
           Positioned(
             top: lineY - 16,
-            left: 0,
+            left: hasSpan ? (lineLeft! + lineWidth! - 48) : 0,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
               decoration: BoxDecoration(
@@ -288,14 +361,15 @@ class _AppBarChartCanvas extends StatelessWidget {
 
     return Stack(
       children: [
-        Positioned.fill(
-          child: Padding(
-            padding: EdgeInsets.only(bottom: bottomLabelHeight),
-            child: CustomPaint(
-              painter: _GridPainter(yDivisions: yDivisions, color: gridColor),
+        if (showGrid)
+          Positioned.fill(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: bottomLabelHeight),
+              child: CustomPaint(
+                painter: _GridPainter(yDivisions: yDivisions, color: gridColor),
+              ),
             ),
           ),
-        ),
         ...barWidgets,
         ...refLineWidgets,
       ],

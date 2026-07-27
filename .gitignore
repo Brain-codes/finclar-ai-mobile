@@ -3,6 +3,9 @@
 *.log
 *.pyc
 *.swp
+
+# Local secrets — injected via --dart-define-from-file (env.example.json stays committed)
+env.json
 .DS_Store
 .atom/
 .build/
@@ -45,3 +48,25 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/README.md
+fastlane/test_output/
+fastlane/.env
+fastlane/.env.local
+# fastlane/.env.default IS committed (non-secret app IDs)
+
+# Release signing secrets — NEVER commit these
+fastlane/firebase-service-account.json
+android/key.properties
+*.jks
+*.keystore
+
+# Build artifacts
+android/build/
+
+# Stray notes / scratch — not part of the app
+chatgptchat.txt
+fastlane/report.xml

@@ -37,10 +37,8 @@ Future<T?> showScanningFailedDialog<T>(
     context: context,
     barrierDismissible: false,
     barrierColor: _barrierColor,
-    builder: (ctx) => _ScanningFailedDialog(
-      imageFile: imageFile,
-      onRetry: onRetry,
-    ),
+    builder: (ctx) =>
+        _ScanningFailedDialog(imageFile: imageFile, onRetry: onRetry),
   );
 }
 
@@ -68,95 +66,101 @@ class _ScanningProgressDialog extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppRadius.screen),
         ),
         padding: const EdgeInsets.all(AppSpacing.base),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Close button row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                GestureDetector(
-                  onTap: () => Navigator.of(context).pop(),
-                  child: Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: context.surfaceVariant,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: context.borderStrong),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Close button row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: context.surfaceVariant,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: context.borderStrong),
+                      ),
+                      child: Icon(
+                        AppIcons.close,
+                        size: 14,
+                        color: context.textSecondary,
+                      ),
                     ),
-                    child: Icon(AppIcons.close, size: 14, color: context.textSecondary),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.md),
-            // Receipt image
-            _ReceiptThumbnail(imageFile: imageFile),
-            const SizedBox(height: AppSpacing.xl),
-            // Title
-            Text(
-              'Scanning receipt',
-              textAlign: TextAlign.center,
-              style: AppTypography.headingSmall.copyWith(
-                color: context.textPrimary,
-                fontVariations: const [FontVariation('wght', 600)],
-                fontSize: 20,
+                ],
               ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            // Progress row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  '$pct%',
-                  style: AppTypography.bodyLarge.copyWith(
-                    color: context.textTertiary,
-                    fontSize: 16,
-                  ),
+              const SizedBox(height: AppSpacing.md),
+              // Receipt image
+              _ReceiptThumbnail(imageFile: imageFile),
+              const SizedBox(height: AppSpacing.xl),
+              // Title
+              Text(
+                'Scanning receipt',
+                textAlign: TextAlign.center,
+                style: AppTypography.headingSmall.copyWith(
+                  color: context.textPrimary,
+                  fontVariations: const [FontVariation('wght', 600)],
+                  fontSize: 20,
                 ),
-                const SizedBox(width: AppSpacing.sm),
-                Container(
-                  width: 5,
-                  height: 5,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              // Progress row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '$pct%',
+                    style: AppTypography.bodyLarge.copyWith(
+                      color: context.textTertiary,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Container(
+                    width: 5,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: context.textTertiary,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Text(
+                    'Processing',
+                    style: AppTypography.bodyLarge.copyWith(
+                      color: context.textTertiary,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              // Cancel button
+              GestureDetector(
+                onTap: onCancel,
+                child: Container(
+                  width: 125,
+                  height: 48,
                   decoration: BoxDecoration(
-                    color: context.textTertiary,
-                    shape: BoxShape.circle,
+                    color: context.surfaceMuted,
+                    borderRadius: AppRadius.radiusFull,
                   ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Text(
-                  'Processing',
-                  style: AppTypography.bodyLarge.copyWith(
-                    color: context.textTertiary,
-                    fontSize: 16,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            // Cancel button
-            GestureDetector(
-              onTap: onCancel,
-              child: Container(
-                width: 125,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: context.surfaceMuted,
-                  borderRadius: AppRadius.radiusFull,
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  'Cancel',
-                  style: AppTypography.buttonLabel.copyWith(
-                    color: context.textTertiary,
+                  alignment: Alignment.center,
+                  child: Text(
+                    'Cancel',
+                    style: AppTypography.buttonLabel.copyWith(
+                      color: context.textTertiary,
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-          ],
+              const SizedBox(height: AppSpacing.md),
+            ],
+          ),
         ),
       ),
     );
@@ -167,10 +171,7 @@ class _ScanningFailedDialog extends StatelessWidget {
   final File? imageFile;
   final VoidCallback onRetry;
 
-  const _ScanningFailedDialog({
-    required this.imageFile,
-    required this.onRetry,
-  });
+  const _ScanningFailedDialog({required this.imageFile, required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
@@ -183,57 +184,63 @@ class _ScanningFailedDialog extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppRadius.screen),
         ),
         padding: const EdgeInsets.all(AppSpacing.base),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Close button row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                GestureDetector(
-                  onTap: () => Navigator.of(context).pop(),
-                  child: Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: context.surfaceVariant,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: context.borderStrong),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Close button row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: context.surfaceVariant,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: context.borderStrong),
+                      ),
+                      child: Icon(
+                        AppIcons.close,
+                        size: 14,
+                        color: context.textSecondary,
+                      ),
                     ),
-                    child: Icon(AppIcons.close, size: 14, color: context.textSecondary),
                   ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.md),
+              // Receipt image
+              _ReceiptThumbnail(imageFile: imageFile),
+              const SizedBox(height: AppSpacing.xl),
+              // Title
+              Text(
+                'Scanning failed',
+                textAlign: TextAlign.center,
+                style: AppTypography.headingSmall.copyWith(
+                  color: context.textPrimary,
+                  fontVariations: const [FontVariation('wght', 600)],
+                  fontSize: 20,
                 ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.md),
-            // Receipt image
-            _ReceiptThumbnail(imageFile: imageFile),
-            const SizedBox(height: AppSpacing.xl),
-            // Title
-            Text(
-              'Scanning failed',
-              textAlign: TextAlign.center,
-              style: AppTypography.headingSmall.copyWith(
-                color: context.textPrimary,
-                fontVariations: const [FontVariation('wght', 600)],
-                fontSize: 20,
               ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            // Subtitle
-            Text(
-              'We could not complete the scanning. Please try again',
-              textAlign: TextAlign.center,
-              style: AppTypography.bodyLarge.copyWith(
-                color: context.textTertiary,
-                fontSize: 16,
+              const SizedBox(height: AppSpacing.sm),
+              // Subtitle
+              Text(
+                'We could not complete the scanning. Please try again',
+                textAlign: TextAlign.center,
+                style: AppTypography.bodyLarge.copyWith(
+                  color: context.textTertiary,
+                  fontSize: 16,
+                ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            // Retry button
-            AppButton(label: 'Retry', onTap: onRetry),
-            const SizedBox(height: AppSpacing.md),
-          ],
+              const SizedBox(height: AppSpacing.xl),
+              // Retry button
+              AppButton(label: 'Retry', onTap: onRetry),
+              const SizedBox(height: AppSpacing.md),
+            ],
+          ),
         ),
       ),
     );
@@ -250,12 +257,7 @@ class _ReceiptThumbnail extends StatelessWidget {
     if (imageFile != null) {
       return ClipRRect(
         borderRadius: AppRadius.radiusCard,
-        child: Image.file(
-          imageFile!,
-          width: 86,
-          height: 95,
-          fit: BoxFit.cover,
-        ),
+        child: Image.file(imageFile!, width: 86, height: 95, fit: BoxFit.cover),
       );
     }
 

@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../shared/icons/app_icons.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_snackbar.dart';
+import '../../providers/subscription_providers.dart';
+
+final _dateFormat = DateFormat('MMMM d, y');
 
 Future<void> showCancellationSheet(BuildContext context) {
   return showModalBottomSheet(
@@ -15,11 +20,36 @@ Future<void> showCancellationSheet(BuildContext context) {
   );
 }
 
-class _CancellationSheet extends StatelessWidget {
+class _CancellationSheet extends ConsumerStatefulWidget {
   const _CancellationSheet();
 
   @override
+  ConsumerState<_CancellationSheet> createState() => _CancellationSheetState();
+}
+
+class _CancellationSheetState extends ConsumerState<_CancellationSheet> {
+  bool _isLoading = false;
+
+  Future<void> _confirm() async {
+    setState(() => _isLoading = true);
+    try {
+      await ref.read(subscriptionProvider.notifier).cancel();
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      AppSnackbar.success(context, 'Subscription cancelled successfully');
+    } catch (e) {
+      if (mounted) AppSnackbar.error(context, e.toString());
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final endDate =
+        ref.watch(subscriptionProvider).valueOrNull?.currentPeriodEnd;
+    final endLabel = endDate != null ? _dateFormat.format(endDate) : null;
+
     return Container(
       decoration: BoxDecoration(
         color: context.surfaceColor,
@@ -53,7 +83,9 @@ class _CancellationSheet extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.base),
           Text(
-            'Your subscription will end on March 8, 2027',
+            endLabel != null
+                ? 'Your subscription will end on $endLabel'
+                : 'Your subscription will end at the end of the current period',
             style: AppTypography.headingLarge.copyWith(
               color: context.textPrimary,
               height: 1.33,
@@ -61,7 +93,9 @@ class _CancellationSheet extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.base),
           Text(
-            "You'll continue enjoying Clara+ until March 8, 2027. After this date, your account will automatically return to the free plan and you won't be charged again.",
+            endLabel != null
+                ? "You'll continue enjoying Clara+ until $endLabel. After this date, your account will automatically return to the free plan and you won't be charged again."
+                : "You'll continue enjoying Clara+ until the end of your current period. After that, your account will automatically return to the free plan and you won't be charged again.",
             style: AppTypography.bodyMedium.copyWith(
               color: context.textSecondary,
               fontVariations: const [FontVariation('wght', 500)],
@@ -78,10 +112,8 @@ class _CancellationSheet extends StatelessWidget {
           const SizedBox(height: AppSpacing.xl),
           AppButton(
             label: 'Confirm cancellation',
-            onTap: () {
-              Navigator.of(context).pop();
-              AppSnackbar.success(context, 'Subscription cancelled successfully');
-            },
+            onTap: _confirm,
+            isLoading: _isLoading,
             height: 48,
           ),
         ],

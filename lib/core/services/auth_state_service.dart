@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'analytics_service.dart';
 import 'logger_service.dart';
 import 'storage_service.dart';
 
@@ -80,8 +81,12 @@ class AuthStateService extends ChangeNotifier {
 
   Future<void> logOut() async {
     await StorageService.clearTokens();
+    await StorageService.clearCachedUser();
+    await StorageService.clearBiometricPasscode();
+    await StorageService.setBiometricEnabled(false);
     _isLoggedIn = false;
     _needsGoalsPrompt = false;
+    Analytics.clearUser();
     notifyListeners();
   }
 }

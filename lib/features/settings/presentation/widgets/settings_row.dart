@@ -5,7 +5,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../shared/icons/app_icons.dart';
 
-enum SettingsRowTrailing { chevron, toggle, badge }
+enum SettingsRowTrailing { chevron, toggle, badge, value }
 
 class SettingsRow extends StatelessWidget {
   final IconData icon;
@@ -15,6 +15,7 @@ class SettingsRow extends StatelessWidget {
   final bool toggleValue;
   final ValueChanged<bool>? onToggleChanged;
   final String? badgeLabel;
+  final String? valueLabel;
   final VoidCallback? onTap;
 
   const SettingsRow({
@@ -26,6 +27,7 @@ class SettingsRow extends StatelessWidget {
     this.toggleValue = false,
     this.onToggleChanged,
     this.badgeLabel,
+    this.valueLabel,
     this.onTap,
   });
 
@@ -62,6 +64,7 @@ class SettingsRow extends StatelessWidget {
               toggleValue: toggleValue,
               onToggleChanged: onToggleChanged,
               badgeLabel: badgeLabel,
+              valueLabel: valueLabel,
             ),
           ],
         ),
@@ -75,12 +78,14 @@ class _Trailing extends StatelessWidget {
   final bool toggleValue;
   final ValueChanged<bool>? onToggleChanged;
   final String? badgeLabel;
+  final String? valueLabel;
 
   const _Trailing({
     required this.trailing,
     required this.toggleValue,
     this.onToggleChanged,
     this.badgeLabel,
+    this.valueLabel,
   });
 
   @override
@@ -99,6 +104,21 @@ class _Trailing extends StatelessWidget {
             inactiveThumbColor: AppColors.white,
             inactiveTrackColor: context.surfaceMuted,
           ),
+        );
+      case SettingsRowTrailing.value:
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              valueLabel ?? '',
+              style: AppTypography.bodyMedium.copyWith(
+                color: context.textSecondary,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            Icon(AppIcons.chevronRight, size: 16, color: context.textSecondary),
+          ],
         );
       case SettingsRowTrailing.badge:
         return Row(

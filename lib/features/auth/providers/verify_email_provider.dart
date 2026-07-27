@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/app_exceptions.dart';
+import '../../../core/services/analytics_service.dart';
 import '../../../core/services/auth_state_service.dart';
 import '../../../core/services/logger_service.dart';
+import '../../../core/services/session_reset.dart';
 import 'auth_repository_provider.dart';
 import 'user_profile_provider.dart';
 
@@ -89,8 +91,10 @@ class VerifyEmailNotifier extends Notifier<VerifyEmailState> {
             email: email,
             code: code,
           );
+      clearUserScopedDataRef(ref);
       await authStateService.logIn(tokens.accessToken, tokens.refreshToken, isNewUser: true);
       ref.read(userProfileProvider.notifier).fetch();
+      Analytics.signUp(method: 'email');
       state = state.copyWith(isLoading: false, verified: true);
       return true;
     } on AppException catch (e) {

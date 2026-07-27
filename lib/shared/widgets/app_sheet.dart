@@ -84,23 +84,42 @@ class AppSheet extends StatelessWidget {
             children: [
               header,
               const SizedBox(height: AppSpacing.xl),
-              ...children,
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: children,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
       );
     }
 
-    return Padding(
-      padding: basePadding,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          header,
-          const SizedBox(height: AppSpacing.xl),
-          ...children,
-        ],
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: screenHeight * 0.9),
+      child: Padding(
+        padding: basePadding,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            header,
+            const SizedBox(height: AppSpacing.xl),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: children,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

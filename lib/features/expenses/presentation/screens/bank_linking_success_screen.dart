@@ -9,11 +9,12 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../shared/icons/app_icons.dart';
 import '../../../../shared/widgets/app_button.dart';
+import '../../data/models/bank_model.dart';
 
 class BankLinkingSuccessScreen extends StatelessWidget {
-  final String bankName;
+  final BankModel bank;
 
-  const BankLinkingSuccessScreen({super.key, required this.bankName});
+  const BankLinkingSuccessScreen({super.key, required this.bank});
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +28,7 @@ class BankLinkingSuccessScreen extends StatelessWidget {
           child: Column(
             children: [
               const Spacer(),
-              _SuccessIllustration(),
+              const _SuccessIllustration(),
               const SizedBox(height: AppSpacing.xl),
               Text(
                 AppStrings.bankLinkedSuccess,
@@ -48,7 +49,7 @@ class BankLinkingSuccessScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: AppSpacing.xl),
-              _LinkedBankCard(bankName: bankName),
+              _LinkedBankCard(bank: bank),
               const Spacer(),
               AppButton(
                 label: AppStrings.goHome,
@@ -63,8 +64,6 @@ class BankLinkingSuccessScreen extends StatelessWidget {
     );
   }
 }
-
-// ─── Success illustration ─────────────────────────────────────────────────────
 
 class _SuccessIllustration extends StatelessWidget {
   const _SuccessIllustration();
@@ -87,12 +86,10 @@ class _SuccessIllustration extends StatelessWidget {
   }
 }
 
-// ─── Linked bank card ─────────────────────────────────────────────────────────
-
 class _LinkedBankCard extends StatelessWidget {
-  final String bankName;
+  final BankModel bank;
 
-  const _LinkedBankCard({required this.bankName});
+  const _LinkedBankCard({required this.bank});
 
   @override
   Widget build(BuildContext context) {
@@ -115,7 +112,7 @@ class _LinkedBankCard extends StatelessWidget {
               color: context.surfaceVariant,
               shape: BoxShape.circle,
             ),
-            child: Icon(
+            child: const Icon(
               AppIcons.bank,
               size: 20,
               color: AppColors.primary,
@@ -127,14 +124,14 @@ class _LinkedBankCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  bankName,
+                  bank.name,
                   style: AppTypography.labelLarge.copyWith(
                     color: context.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '*******23457',
+                  bank.maskedAccountNumber,
                   style: AppTypography.labelSmall.copyWith(
                     color: context.textSecondary,
                   ),
@@ -142,7 +139,7 @@ class _LinkedBankCard extends StatelessWidget {
               ],
             ),
           ),
-          Icon(
+          const Icon(
             AppIcons.success,
             size: 20,
             color: AppColors.success,

@@ -31,7 +31,7 @@ abstract class AppStrings {
   static const String step3of3 = 'Step 3/3';
   static const String orDivider = 'Or';
   static const String google = 'Google';
-  static const String apple = 'apple';
+  static const String apple = 'Apple';
   static const String termsAgreement =
       'By creating an account, you agree to the Terms of service and Privacy Policy';
 
@@ -159,6 +159,12 @@ abstract class AppStrings {
   static const String settings = 'Settings';
   static const String profile = 'Profile';
   static const String notifications = 'Notifications';
+  static const String markAllRead = 'Mark all read';
+  static const String notificationsEmptyTitle = 'No notifications yet';
+  static const String notificationsEmptySubtitle =
+      "You're all caught up. We'll let you know when there's something new.";
+  static const String notificationsToday = 'Today';
+  static const String notificationsEarlier = 'Earlier';
   static const String security = 'Security';
   static const String appearance = 'Appearance';
   static const String darkMode = 'Dark Mode';

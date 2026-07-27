@@ -29,6 +29,9 @@
 		<!-- Camera — OCR receipt scanning -->
 		<key>NSCameraUsageDescription</key>
 		<string>Finclar AI uses your camera to scan receipts and add expenses automatically.</string>
+		<!-- Microphone — required by the Mono Connect bank-linking webview -->
+		<key>NSMicrophoneUsageDescription</key>
+		<string>Finclar AI may request microphone access during secure bank linking.</string>
 		<!-- Photo Library — image picker -->
 		<key>NSPhotoLibraryUsageDescription</key>
 		<string>Finclar AI accesses your photo library to attach receipts to expenses.</string>
@@ -83,5 +86,22 @@
 		<string>Main</string>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<key>UIBackgroundModes</key>
+		<array>
+			<string>fetch</string>
+			<string>remote-notification</string>
+		</array>
+		<!-- Google Sign-In — reversed client ID from GoogleService-Info.plist -->
+		<key>CFBundleURLTypes</key>
+		<array>
+			<dict>
+				<key>CFBundleTypeRole</key>
+				<string>Editor</string>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>com.googleusercontent.apps.1092747272049-rrqu8oqeh7nqnr8niculda4rcl1bn9ka</string>
+				</array>
+			</dict>
+		</array>
 	</dict>
 </plist>

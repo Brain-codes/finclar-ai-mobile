@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/services/analytics_service.dart';
 import '../../core/services/auth_state_service.dart';
 import '../../features/splash/presentation/screens/splash_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
@@ -11,6 +12,8 @@ import '../../features/auth/presentation/screens/forgot_passcode_screen.dart';
 import '../../features/auth/presentation/screens/reset_passcode_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/home/presentation/screens/income_setup_screen.dart';
+import '../../features/notifications/presentation/screens/notifications_screen.dart';
+import '../../features/expenses/data/models/bank_model.dart';
 import '../../features/expenses/data/models/expense_model.dart';
 import '../../features/expenses/data/models/scanned_receipt_model.dart';
 import '../../features/expenses/presentation/screens/expenses_screen.dart';
@@ -22,7 +25,7 @@ import '../../features/expenses/presentation/screens/bank_selection_screen.dart'
 import '../../features/expenses/presentation/screens/bank_linking_success_screen.dart';
 import '../../features/budget/presentation/screens/budget_screen.dart';
 import '../../features/budget/presentation/screens/create_budget_screen.dart';
-import '../../features/group/data/models/group_item.dart';
+import '../../features/group/data/models/group_model.dart';
 import '../../features/group/presentation/screens/group_screen.dart';
 import '../../features/group/presentation/screens/create_group_screen.dart';
 import '../../features/group/presentation/screens/group_detail_screen.dart';
@@ -41,6 +44,7 @@ import '../../features/auth/presentation/screens/privacy_policy_screen.dart';
 import '../../features/gamification/presentation/screens/badges_screen.dart';
 import '../../features/gamification/presentation/screens/gamification_preview_screen.dart';
 import '../../features/gamification/presentation/screens/wrapped_screen.dart';
+import '../../features/clara/presentation/screens/clara_chat_screen.dart';
 import '../../shared/widgets/app_shell.dart';
 import 'route_names.dart';
 
@@ -110,6 +114,7 @@ final appRouter = GoRouter(
   initialLocation: RouteNames.startup,
   refreshListenable: authStateService,
   redirect: (_, state) => _redirect(state),
+  observers: [Analytics.observer],
   routes: [
     // ── Startup loading screen ───────────────────────────────────────────────
     GoRoute(
@@ -209,8 +214,8 @@ final appRouter = GoRouter(
     GoRoute(
       path: RouteNames.bankLinkingSuccess,
       pageBuilder: (context, state) {
-        final bankName = state.extra as String? ?? '';
-        return _page(state, BankLinkingSuccessScreen(bankName: bankName));
+        final bank = state.extra as BankModel;
+        return _page(state, BankLinkingSuccessScreen(bank: bank));
       },
     ),
 
@@ -222,21 +227,21 @@ final appRouter = GoRouter(
     GoRoute(
       path: RouteNames.groupDetail,
       pageBuilder: (context, state) {
-        final group = state.extra as GroupItem;
+        final group = state.extra as GroupModel;
         return _page(state, GroupDetailScreen(group: group));
       },
     ),
     GoRoute(
       path: RouteNames.groupFriends,
       pageBuilder: (context, state) {
-        final group = state.extra as GroupItem;
+        final group = state.extra as GroupModel;
         return _page(state, GroupFriendsScreen(group: group));
       },
     ),
     GoRoute(
       path: RouteNames.groupChat,
       pageBuilder: (context, state) {
-        final group = state.extra as GroupItem;
+        final group = state.extra as GroupModel;
         return _page(state, GroupChatScreen(group: group));
       },
     ),
@@ -245,8 +250,16 @@ final appRouter = GoRouter(
     GoRoute(
       path: RouteNames.createBudget,
       pageBuilder: (context, state) {
-        final title = state.extra as String? ?? 'Create budget';
-        return _page(state, CreateBudgetScreen(title: title));
+        final extra = state.extra;
+        final String title;
+        double? currentAmount;
+        if (extra is (String, double)) {
+          title = extra.$1;
+          currentAmount = extra.$2;
+        } else {
+          title = extra as String? ?? 'Create budget';
+        }
+        return _page(state, CreateBudgetScreen(title: title, currentAmount: currentAmount));
       },
     ),
 
@@ -258,6 +271,11 @@ final appRouter = GoRouter(
     GoRoute(
       path: RouteNames.spending,
       pageBuilder: (context, state) => _page(state, const SpendingScreen()),
+    ),
+    GoRoute(
+      path: RouteNames.notifications,
+      pageBuilder: (context, state) =>
+          _page(state, const NotificationsScreen()),
     ),
 
     // ── Settings (outside shell) ─────────────────────────────────────────────
@@ -307,6 +325,12 @@ final appRouter = GoRouter(
     GoRoute(
       path: RouteNames.wrapped,
       pageBuilder: (context, state) => _page(state, const WrappedScreen()),
+    ),
+
+    // ── Clara AI chat (outside shell) ────────────────────────────────────────
+    GoRoute(
+      path: RouteNames.clara,
+      pageBuilder: (context, state) => _page(state, const ClaraChatScreen()),
     ),
 
     // ── Legal ─────────────────────────────────────────────────────────────────

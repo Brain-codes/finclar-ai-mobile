@@ -2,17 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import '../../../../app/routes/route_names.dart';
+import '../../../../core/config/app_config_notifier.dart';
+import '../../../../core/errors/app_exceptions.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../shared/icons/app_icons.dart';
+import '../../../../shared/widgets/app_avatar.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_date_sheet.dart';
 import '../../../../shared/widgets/app_snackbar.dart';
 import '../../../../shared/widgets/app_text_field.dart';
+import '../../data/models/friendship_model.dart';
+import '../../providers/group_providers.dart';
 import '../widgets/add_friend_sheet.dart';
-import '../../../../core/config/app_config_notifier.dart';
 
 final _dateFormat = DateFormat('dd/MM/yyyy');
 final _numberFormat = NumberFormat('#,##0', 'en');
@@ -28,13 +33,14 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
   final _nameController = TextEditingController();
   final _amountController = TextEditingController();
   DateTime? _endDate;
-  final List<String> _friends = [];
+  final List<UserSearchResultModel> _friends = [];
+  bool _isSubmitting = false;
 
-  // At least name + amount + 1 friend added (you + 1)
   bool get _canCreate =>
       _nameController.text.trim().isNotEmpty &&
       _amountController.text.trim().isNotEmpty &&
-      _friends.isNotEmpty;
+      _endDate != null &&
+      !_isSubmitting;
 
   @override
   void dispose() {
@@ -70,15 +76,38 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
   }
 
   Future<void> _addFriend() async {
-    final name = await showAddFriendSheet(context);
-    if (name != null && !_friends.contains(name)) {
-      setState(() => _friends.add(name));
+    final selected = await showAddFriendSheet(
+      context,
+      excludeIds: _friends.map((f) => f.id).toSet(),
+    );
+    if (selected != null && !_friends.any((f) => f.id == selected.id)) {
+      setState(() => _friends.add(selected));
     }
   }
 
-  void _onCreate() {
-    AppSnackbar.success(context, 'Group created successfully');
-    context.pop();
+  double get _amountValue =>
+      double.tryParse(_amountController.text.replaceAll(',', '')) ?? 0;
+
+  Future<void> _onCreate() async {
+    setState(() => _isSubmitting = true);
+    try {
+      final group = await ref.read(groupsProvider.notifier).create(
+            name: _nameController.text.trim(),
+            targetAmount: _amountValue,
+            endDate: _endDate!,
+            memberIds: _friends.map((f) => f.id).toList(),
+          );
+      if (!mounted) return;
+      AppSnackbar.success(context, 'Group created successfully');
+      // Replace the create screen with the new group's detail so back
+      // returns to the group list, not the create form.
+      context.pushReplacement(RouteNames.groupDetail, extra: group);
+    } on AppException catch (e) {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+        AppSnackbar.error(context, e.message);
+      }
+    }
   }
 
   @override
@@ -141,7 +170,11 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                 ),
               ),
             ),
-            _BottomBar(canCreate: _canCreate, onTap: _onCreate),
+            _BottomBar(
+              canCreate: _canCreate,
+              isLoading: _isSubmitting,
+              onTap: _onCreate,
+            ),
           ],
         ),
       ),
@@ -224,7 +257,7 @@ class _DateField extends StatelessWidget {
 }
 
 class _AddFriendsSection extends StatelessWidget {
-  final List<String> friends;
+  final List<UserSearchResultModel> friends;
   final VoidCallback onAddTap;
 
   const _AddFriendsSection({required this.friends, required this.onAddTap});
@@ -254,16 +287,10 @@ class _AddFriendsSection extends StatelessWidget {
             child: Row(
               children: [
                 _MemberSlot(label: 'You', isYou: true),
-                ...friends.map((name) {
-                  final initials = name
-                      .trim()
-                      .split(' ')
-                      .map((w) => w[0])
-                      .take(2)
-                      .join();
+                ...friends.map((f) {
                   return Padding(
                     padding: const EdgeInsets.only(left: AppSpacing.sm),
-                    child: _MemberSlot(label: initials),
+                    child: _MemberSlot(label: f.username),
                   );
                 }),
                 const SizedBox(width: AppSpacing.sm),
@@ -287,30 +314,29 @@ class _MemberSlot extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: isYou ? AppColors.primaryMuted : const Color(0xFFB8DFF2),
-            shape: BoxShape.circle,
-          ),
-          child: isYou
-              ? const Icon(AppIcons.user, size: 24, color: AppColors.primary)
-              : Center(
-                  child: Text(
-                    label.toUpperCase(),
-                    style: AppTypography.bodySmall.copyWith(
-                      color: const Color(0xFF1A6B9A),
-                      fontVariations: const [FontVariation('wght', 600)],
-                    ),
-                  ),
+        isYou
+            ? Container(
+                width: 56,
+                height: 56,
+                decoration: const BoxDecoration(
+                  color: AppColors.primaryMuted,
+                  shape: BoxShape.circle,
                 ),
-        ),
+                child:
+                    const Icon(AppIcons.user, size: 24, color: AppColors.primary),
+              )
+            : AppAvatar(initials: label, size: 56),
         const SizedBox(height: 4),
-        Text(
-          isYou ? 'You' : label,
-          style: AppTypography.labelSmall.copyWith(
-            color: context.textSecondary,
+        SizedBox(
+          width: 56,
+          child: Text(
+            isYou ? 'You' : label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: AppTypography.labelSmall.copyWith(
+              color: context.textSecondary,
+            ),
           ),
         ),
       ],
@@ -358,9 +384,14 @@ class _AddSlot extends StatelessWidget {
 
 class _BottomBar extends StatelessWidget {
   final bool canCreate;
+  final bool isLoading;
   final VoidCallback onTap;
 
-  const _BottomBar({required this.canCreate, required this.onTap});
+  const _BottomBar({
+    required this.canCreate,
+    required this.isLoading,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -378,6 +409,7 @@ class _BottomBar extends StatelessWidget {
       child: AppButton(
         label: 'Create group',
         onTap: canCreate ? onTap : null,
+        isLoading: isLoading,
         height: 52,
       ),
     );

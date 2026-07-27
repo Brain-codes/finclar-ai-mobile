@@ -317,6 +317,31 @@ Choose the correct loading pattern based on what's happening:
 | API call triggered by a **text link** (resend code, retry) | `AppLoadingOverlay` — full-screen blur overlay |
 | **Fetching a list or detail** on screen load | `AppSkeleton` / `SkeletonCard` / `SkeletonTransactionList` — shimmer placeholders, never a spinner |
 
+#### MANDATORY: shimmer/skeleton on every data fetch — no exceptions
+
+**Any place in the app that fetches data and then displays it MUST show a shimmer/skeleton
+placeholder in that exact spot while the data is loading.** This is not optional and is not
+a "nice to have". A screen, section, card, list, tile, header, chart, or any widget that
+renders fetched data is considered **incomplete** until its loading state is a skeleton that
+mirrors the shape of the content it will display.
+
+Rules:
+- **Never** leave a fetch-and-display location without a skeleton. No blank space, no spinner,
+  no "loading..." text, no empty container while data loads.
+- The skeleton must **match the layout** of the real content (same approximate sizes, number
+  of rows, shape) so the transition is seamless — use `AppSkeleton`, `AppSkeleton.text`,
+  `AppSkeleton.circle`, or the prebuilt `SkeletonCard` / `SkeletonTransactionList` /
+  `SkeletonBalanceCard`. Build a feature-specific skeleton widget if none fit.
+- This applies to **every granularity**: full screens, individual sections of a screen that
+  load independently, and small widgets (e.g. a balance card, a recent-expenses strip, a
+  home header that shows the username). If only part of a screen is waiting on data, only
+  that part shows a skeleton — but it **must** show one.
+- For Riverpod `AsyncValue`, the `loading:` branch must return a skeleton, never a
+  `CircularProgressIndicator`. For paginated lists, show skeleton rows for the initial load
+  and a small inline loader only for "load more" at the bottom.
+- When reviewing or finishing any task that wires data to UI, explicitly verify every
+  fetch-and-display point has a skeleton before calling it done.
+
 #### `AppLoadingOverlay` placement rules
 
 - `AppLoadingOverlay` (`lib/shared/widgets/app_loading_overlay.dart`) — blur background + `CupertinoActivityIndicator`.
@@ -484,9 +509,12 @@ For simple CRUD features, skip `domain/` entirely and call the repository from p
 | `flutter_svg` | SVG rendering (via `AppSvgImage` + `AppSvg` wrappers only) |
 | `local_auth` | Biometric authentication |
 | `firebase_messaging` | Push notifications |
+| `firebase_analytics` | Product analytics (via `Analytics` wrapper only) |
+| `firebase_crashlytics` | Crash reporting (via `Analytics` wrapper only) |
 | `flutter_form_builder` | Form handling |
 | `fl_chart` | Charts and analytics |
 | `image_picker` | OCR receipt scanning |
+| `web_socket_channel` | Realtime group chat (via `GroupChatSocketService` only) |
 | `intl` | Currency and date formatting |
 
 Do not add new packages without discussing first.
@@ -636,8 +664,8 @@ Before using `AppSvgImage(AppSvg.something)`, verify the SVG file exists in `ass
 
 The full backend API is documented in [`docs/API.md`](docs/API.md).
 
-- **Base URL:** `https://finclar-ai.onrender.com/api/v1`
-- **Swagger UI:** `https://finclar-ai.onrender.com/docs`
+- **Base URL:** `https://api.finclarai.com/api/v1`
+- **Swagger UI:** `https://api.finclarai.com/docs` (OpenAPI JSON at `/openapi.json`)
 - `docs/API.md` is the single source of truth for all endpoint paths, request bodies, and response schemas.
 - `lib/core/api/api_endpoints.dart` must always mirror `docs/API.md`.
 

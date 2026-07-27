@@ -52,23 +52,25 @@ class _BankIntegrationModal extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppRadius.sheet),
         ),
         padding: const EdgeInsets.all(AppSpacing.base),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _CloseRow(onClose: onClose),
-            const SizedBox(height: AppSpacing.base),
-            const _Header(),
-            const SizedBox(height: AppSpacing.xl),
-            const _FeatureList(),
-            const SizedBox(height: AppSpacing.xl),
-            AppButton(
-              label: AppStrings.getStarted,
-              onTap: onGetStarted,
-              fullWidth: false,
-              height: 48,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-          ],
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _CloseRow(onClose: onClose),
+              const SizedBox(height: AppSpacing.base),
+              const _Header(),
+              const SizedBox(height: AppSpacing.xl),
+              const _FeatureList(),
+              const SizedBox(height: AppSpacing.xl),
+              AppButton(
+                label: AppStrings.getStarted,
+                onTap: onGetStarted,
+                fullWidth: false,
+                height: 48,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+            ],
+          ),
         ),
       ),
     );

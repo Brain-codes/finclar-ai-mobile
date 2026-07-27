@@ -13,6 +13,7 @@ class HomeHeader extends StatelessWidget {
   final VoidCallback? onNotificationTap;
   final VoidCallback? onAvatarTap;
   final bool isLoading;
+  final bool hasUnreadNotifications;
 
   const HomeHeader({
     super.key,
@@ -21,6 +22,7 @@ class HomeHeader extends StatelessWidget {
     this.onNotificationTap,
     this.onAvatarTap,
     this.isLoading = false,
+    this.hasUnreadNotifications = false,
   });
 
   @override
@@ -66,15 +68,34 @@ class HomeHeader extends StatelessWidget {
         else
           GestureDetector(
             onTap: onNotificationTap,
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: context.surfaceColor,
-                shape: BoxShape.circle,
-                border: Border.all(color: context.borderColor),
-              ),
-              child: Icon(AppIcons.notification, color: context.textSecondary, size: 20),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: context.surfaceColor,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: context.borderColor),
+                  ),
+                  child: Icon(AppIcons.notification, color: context.textSecondary, size: 20),
+                ),
+                if (hasUnreadNotifications)
+                  Positioned(
+                    top: 2,
+                    right: 2,
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: context.surfaceColor, width: 2),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
       ],

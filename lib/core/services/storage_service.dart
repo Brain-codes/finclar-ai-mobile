@@ -5,7 +5,7 @@ class StorageService {
   StorageService._();
 
   static const _storage = FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    aOptions: AndroidOptions(),
   );
 
   static Future<String?> getAccessToken() =>
@@ -70,4 +70,33 @@ class StorageService {
       _storage.delete(key: AppConstants.goalsCompletedKey),
     ]);
   }
+
+  static Future<bool> isBiometricEnabled() async {
+    final value = await _storage.read(key: AppConstants.biometricEnabledKey);
+    return value == 'true';
+  }
+
+  static Future<void> setBiometricEnabled(bool enabled) =>
+      _storage.write(
+        key: AppConstants.biometricEnabledKey,
+        value: enabled ? 'true' : 'false',
+      );
+
+  static Future<String?> getCachedUser() =>
+      _storage.read(key: AppConstants.userKey);
+
+  static Future<void> saveCachedUser(String json) =>
+      _storage.write(key: AppConstants.userKey, value: json);
+
+  static Future<void> clearCachedUser() =>
+      _storage.delete(key: AppConstants.userKey);
+
+  static Future<String?> getBiometricPasscode() =>
+      _storage.read(key: AppConstants.biometricPasscodeKey);
+
+  static Future<void> saveBiometricPasscode(String passcode) =>
+      _storage.write(key: AppConstants.biometricPasscodeKey, value: passcode);
+
+  static Future<void> clearBiometricPasscode() =>
+      _storage.delete(key: AppConstants.biometricPasscodeKey);
 }

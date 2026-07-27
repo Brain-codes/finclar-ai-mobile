@@ -5,67 +5,159 @@ ExpenseModel expenseModelFromJson(String str) =>
 
 String expenseModelToJson(ExpenseModel data) => json.encode(data.toJson());
 
-class ExpenseModel {
+class ExpenseCategoryRef {
   final String id;
   final String name;
+
+  const ExpenseCategoryRef({required this.id, required this.name});
+
+  factory ExpenseCategoryRef.fromJson(Map<String, dynamic> json) =>
+      ExpenseCategoryRef(
+        id: json['id'] ?? '',
+        name: json['name'] ?? '',
+      );
+
+  Map<String, dynamic> toJson() => {'id': id, 'name': name};
+}
+
+class ExpenseItem {
+  final String? id;
+  final String name;
+  final num quantity;
+  final double unitPrice;
+  final double? totalPrice;
+  final String? categoryId;
+
+  const ExpenseItem({
+    this.id,
+    required this.name,
+    required this.quantity,
+    required this.unitPrice,
+    this.totalPrice,
+    this.categoryId,
+  });
+
+  factory ExpenseItem.fromJson(Map<String, dynamic> json) => ExpenseItem(
+        id: json['id'],
+        name: json['name'] ?? '',
+        quantity: json['quantity'] ?? 1,
+        unitPrice: _toDouble(json['unit_price']),
+        totalPrice:
+            json['total_price'] != null ? _toDouble(json['total_price']) : null,
+        categoryId: json['category_id'],
+      );
+
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'quantity': quantity,
+        'unit_price': unitPrice,
+        'category_id': categoryId,
+      };
+}
+
+/// Payload for a single entry in `PATCH /expenses/{id}` → `items`
+/// (`UpdateExpenseItemDto`). Only `id` is required; omitted fields are left
+/// untouched by the backend.
+class ExpenseItemUpdate {
+  final String id;
+  final String? name;
+  final int? quantity;
+  final double? unitPrice;
+  final String? categoryId;
+
+  const ExpenseItemUpdate({
+    required this.id,
+    this.name,
+    this.quantity,
+    this.unitPrice,
+    this.categoryId,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        if (name != null) 'name': name,
+        if (quantity != null) 'quantity': quantity,
+        if (unitPrice != null) 'unit_price': unitPrice,
+        if (categoryId != null) 'category_id': categoryId,
+      };
+}
+
+class ExpenseModel {
+  final String id;
   final double amount;
-  final String category;
-  final String? merchant;
-  final String? note;
-  final String? recurrence;
+  final String? description;
   final DateTime date;
+  final String? source;
+  final String? status;
+  final String? currency;
+  final List<ExpenseCategoryRef> categories;
+  final List<ExpenseItem> items;
+  final String? receiptUrl;
 
   ExpenseModel({
     required this.id,
-    required this.name,
     required this.amount,
-    required this.category,
-    this.merchant,
-    this.note,
-    this.recurrence,
+    this.description,
     required this.date,
+    this.source,
+    this.status,
+    this.currency,
+    this.categories = const [],
+    this.items = const [],
+    this.receiptUrl,
   });
 
+  // ── Compat getters used by existing UI widgets ──────────────────────────────
+  String get name =>
+      (description != null && description!.trim().isNotEmpty)
+          ? description!
+          : (categories.isNotEmpty ? categories.first.name : 'Expense');
+
+  String get category =>
+      categories.isNotEmpty ? categories.first.name : 'Other';
+
+  String? get categoryId =>
+      categories.isNotEmpty ? categories.first.id : null;
+
+  // Backend has no dedicated merchant/note fields; kept for UI compatibility.
+  String? get merchant => null;
+  String? get note => description;
+
   factory ExpenseModel.fromJson(Map<String, dynamic> json) => ExpenseModel(
-        id: json['id'],
-        name: json['name'],
-        amount: (json['amount'] as num).toDouble(),
-        category: json['category'],
-        merchant: json['merchant'],
-        note: json['note'],
-        recurrence: json['recurrence'],
-        date: DateTime.parse(json['date']),
+        id: json['id'] ?? '',
+        amount: _toDouble(json['amount']),
+        description: json['description'],
+        date: json['expense_date'] != null
+            ? DateTime.parse(json['expense_date']).toLocal()
+            : DateTime.now(),
+        source: json['source'],
+        status: json['status'],
+        currency: json['currency'],
+        categories: (json['categories'] as List<dynamic>? ?? [])
+            .map((e) => ExpenseCategoryRef.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        items: (json['items'] as List<dynamic>? ?? [])
+            .map((e) => ExpenseItem.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        receiptUrl: json['receipt_url'],
       );
 
   Map<String, dynamic> toJson() => {
         'id': id,
-        'name': name,
         'amount': amount,
-        'category': category,
-        'merchant': merchant,
-        'note': note,
-        'recurrence': recurrence,
-        'date': date.toIso8601String(),
+        'description': description,
+        'expense_date': date.toUtc().toIso8601String(),
+        'source': source,
+        'status': status,
+        'currency': currency,
+        'categories': categories.map((e) => e.toJson()).toList(),
+        'items': items.map((e) => e.toJson()).toList(),
+        'receipt_url': receiptUrl,
       };
+}
 
-  ExpenseModel copyWith({
-    String? id,
-    String? name,
-    double? amount,
-    String? category,
-    String? merchant,
-    String? note,
-    String? recurrence,
-    DateTime? date,
-  }) =>
-      ExpenseModel(
-        id: id ?? this.id,
-        name: name ?? this.name,
-        amount: amount ?? this.amount,
-        category: category ?? this.category,
-        merchant: merchant ?? this.merchant,
-        note: note ?? this.note,
-        recurrence: recurrence ?? this.recurrence,
-        date: date ?? this.date,
-      );
+double _toDouble(dynamic value) {
+  if (value == null) return 0;
+  if (value is num) return value.toDouble();
+  return double.tryParse(value.toString()) ?? 0;
 }

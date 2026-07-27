@@ -1,25 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/config/app_config_notifier.dart';
+import '../../../../core/errors/app_exceptions.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
+import '../../../../core/utils/number_formatter.dart';
 import '../../../../shared/icons/app_icons.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_keypad.dart';
+import '../../../../shared/widgets/app_snackbar.dart';
+import '../../providers/budget_providers.dart';
 
 /// Reusable screen for both "Create budget" and "Increase budget" flows.
 /// Pass [title] to differentiate. Uses the same keypad UI as IncomeSetupScreen.
-class CreateBudgetScreen extends StatefulWidget {
+class CreateBudgetScreen extends ConsumerStatefulWidget {
   final String title;
+  final double? currentAmount;
 
-  const CreateBudgetScreen({super.key, this.title = 'Create budget'});
+  const CreateBudgetScreen({super.key, this.title = 'Create budget', this.currentAmount});
 
   @override
-  State<CreateBudgetScreen> createState() => _CreateBudgetScreenState();
+  ConsumerState<CreateBudgetScreen> createState() => _CreateBudgetScreenState();
 }
 
-class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
+class _CreateBudgetScreenState extends ConsumerState<CreateBudgetScreen> {
   final _keypad = AppKeypadController();
+  bool _isSubmitting = false;
+
+  bool get _isIncrease => widget.currentAmount != null;
 
   @override
   void dispose() {
@@ -27,11 +38,24 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
     super.dispose();
   }
 
-  void _onContinue() {
+  Future<void> _onContinue() async {
     final amount = _keypad.value;
-    if (amount == null) return;
-    // TODO: persist budget amount via provider
-    context.pop();
+    if (amount == null || _isSubmitting) return;
+    setState(() => _isSubmitting = true);
+    try {
+      final notifier = ref.read(budgetProvider.notifier);
+      if (_isIncrease) {
+        await notifier.updateAmount(amount);
+      } else {
+        await notifier.create(amountAllocated: amount);
+      }
+      if (mounted) context.pop();
+    } on AppException catch (e) {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+        AppSnackbar.error(context, e.message);
+      }
+    }
   }
 
   @override
@@ -60,19 +84,63 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
                       ),
                     ),
                   ),
+                  if (_isIncrease) ...[
+                    const SizedBox(height: AppSpacing.xl),
+                    _CurrentBudgetCard(currentAmount: widget.currentAmount!),
+                  ],
                   const Spacer(),
                   ListenableBuilder(
                     listenable: _keypad,
-                    builder: (context, _) => Text(
-                      _keypad.displayAmount,
-                      style: AppTypography.amountLarge.copyWith(
-                        fontSize: 32,
-                        fontVariations: const [FontVariation('wght', 600)],
-                        color: _keypad.hasValidAmount
-                            ? context.textQuaternary
-                            : context.textSecondary,
-                      ),
-                    ),
+                    builder: (context, _) {
+                      final symbol = ref.read(currencySymbolProvider);
+                      final typed = _keypad.value;
+                      final newTotal = _isIncrease && typed != null
+                          ? widget.currentAmount! + typed
+                          : null;
+                      return Column(
+                        children: [
+                          Text(
+                            _isIncrease ? 'Add amount' : 'Budget amount',
+                            style: AppTypography.bodySmall.copyWith(
+                              color: context.textSecondary,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.xs),
+                          Text(
+                            _keypad.displayAmount,
+                            style: AppTypography.amountLarge.copyWith(
+                              fontSize: 36,
+                              fontVariations: const [FontVariation('wght', 600)],
+                              color: _keypad.hasValidAmount
+                                  ? context.textQuaternary
+                                  : context.textSecondary,
+                            ),
+                          ),
+                          if (newTotal != null) ...[
+                            const SizedBox(height: AppSpacing.sm),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.base,
+                                vertical: AppSpacing.xs,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryMuted,
+                                borderRadius: BorderRadius.circular(AppSpacing.base),
+                              ),
+                              child: Text(
+                                'New total: ${formatCurrency(newTotal, symbol, abbreviate: false, withCommas: true)}',
+                                style: AppTypography.bodySmall.copyWith(
+                                  color: AppColors.primary,
+                                  fontSize: 13,
+                                  fontVariations: const [FontVariation('wght', 500)],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      );
+                    },
                   ),
                   const Spacer(),
                   AppKeypad(controller: _keypad),
@@ -91,8 +159,55 @@ class _CreateBudgetScreenState extends State<CreateBudgetScreen> {
                 builder: (context, _) => AppButton(
                   label: 'Continue',
                   onTap: _keypad.hasValidAmount ? _onContinue : null,
+                  isLoading: _isSubmitting,
                   height: 52,
                 ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CurrentBudgetCard extends ConsumerWidget {
+  final double currentAmount;
+  const _CurrentBudgetCard({required this.currentAmount});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final symbol = ref.watch(currencySymbolProvider);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.base,
+          vertical: AppSpacing.md,
+        ),
+        decoration: BoxDecoration(
+          color: context.surfaceVariant,
+          borderRadius: BorderRadius.circular(AppSpacing.base),
+          border: Border.all(color: context.borderColor),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Current budget',
+              style: AppTypography.bodySmall.copyWith(
+                color: context.textSecondary,
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              formatCurrency(currentAmount, symbol, abbreviate: false, withCommas: true),
+              style: AppTypography.bodyMedium.copyWith(
+                color: context.textQuaternary,
+                fontSize: 18,
+                fontVariations: const [FontVariation('wght', 600)],
               ),
             ),
           ],

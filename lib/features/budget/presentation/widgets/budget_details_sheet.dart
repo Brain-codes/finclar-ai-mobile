@@ -12,6 +12,7 @@ import 'budget_delete_sheet.dart';
 
 Future<void> showBudgetDetailsSheet(
   BuildContext context, {
+  required double currentAmount,
   required String budgetAmount,
   required String allocated,
   required String unallocated,
@@ -19,7 +20,7 @@ Future<void> showBudgetDetailsSheet(
   required String allocatedRemaining,
   required String startDate,
   required String endDate,
-  VoidCallback? onDeleted,
+  Future<bool> Function()? onDeleted,
 }) {
   return showAppSheet(
     context,
@@ -30,10 +31,10 @@ Future<void> showBudgetDetailsSheet(
           _DetailRow(
             label: 'Budget amount',
             value: budgetAmount,
-            hasChevron: true,
+            hasEdit: true,
             onTap: () {
-              Navigator.of(context).pop();
-              context.push(RouteNames.createBudget, extra: 'Increase budget');
+              Navigator.of(context, rootNavigator: true).pop();
+              context.push(RouteNames.createBudget, extra: ('Increase budget', currentAmount));
             },
           ),
           _Divider(),
@@ -45,7 +46,7 @@ Future<void> showBudgetDetailsSheet(
           _Divider(),
           _DetailRow(label: 'Allocated remaining', value: allocatedRemaining),
           _Divider(),
-          _DetailRow(label: 'Start date', value: startDate, hasChevron: true),
+          _DetailRow(label: 'Start date', value: startDate, hasEdit: true),
           _Divider(),
           _DetailRow(label: 'End date', value: endDate),
         ],
@@ -76,13 +77,13 @@ class _DetailsCard extends StatelessWidget {
 class _DetailRow extends StatelessWidget {
   final String label;
   final String value;
-  final bool hasChevron;
+  final bool hasEdit;
   final VoidCallback? onTap;
 
   const _DetailRow({
     required this.label,
     required this.value,
-    this.hasChevron = false,
+    this.hasEdit = false,
     this.onTap,
   });
 
@@ -91,35 +92,35 @@ class _DetailRow extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.base,
-        vertical: AppSpacing.md,
-      ),
-      child: Row(
-        children: [
-          Text(
-            label,
-            style: AppTypography.bodyMedium.copyWith(
-              color: context.textSecondary,
-              fontSize: 14,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.base,
+          vertical: AppSpacing.md,
+        ),
+        child: Row(
+          children: [
+            Text(
+              label,
+              style: AppTypography.bodyMedium.copyWith(
+                color: context.textSecondary,
+                fontSize: 14,
+              ),
             ),
-          ),
-          const Spacer(),
-          Text(
-            value,
-            style: AppTypography.bodyMedium.copyWith(
-              color: context.textQuaternary,
-              fontSize: 14,
-              fontVariations: const [FontVariation('wght', 500)],
+            const Spacer(),
+            Text(
+              value,
+              style: AppTypography.bodyMedium.copyWith(
+                color: context.textQuaternary,
+                fontSize: 14,
+                fontVariations: const [FontVariation('wght', 500)],
+              ),
             ),
-          ),
-          if (hasChevron) ...[
-            const SizedBox(width: AppSpacing.xs),
-            Icon(AppIcons.chevronRight, size: 14, color: context.textSecondary),
+            if (hasEdit) ...[
+              const SizedBox(width: AppSpacing.xs),
+              Icon(AppIcons.edit, size: 14, color: context.textSecondary),
+            ],
           ],
-        ],
+        ),
       ),
-    ),
     );
   }
 }
@@ -138,17 +139,22 @@ class _Divider extends StatelessWidget {
 }
 
 class _DeleteRow extends StatelessWidget {
-  final VoidCallback? onDeleted;
+  final Future<bool> Function()? onDeleted;
   const _DeleteRow({this.onDeleted});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () async {
-        Navigator.of(context).pop();
-        final confirmed = await showBudgetDeleteSheet(context);
-        if (confirmed == true) onDeleted?.call();
-      },
+      onTap: onDeleted == null
+          ? null
+          : () async {
+              final navigator = Navigator.of(context, rootNavigator: true);
+              navigator.pop();
+              await showBudgetDeleteSheet(
+                navigator.context,
+                onConfirm: onDeleted!,
+              );
+            },
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [

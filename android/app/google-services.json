@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "1092747272049",
+    "project_id": "finclar-ai",
+    "storage_bucket": "finclar-ai.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1092747272049:android:2a349ae686c328143560d0",
+        "android_client_info": {
+          "package_name": "com.finclar.finclarAi"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1092747272049-qbpd6ajhdhn3gubt89pbd7nbksspn2o2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.finclar.finclarAi",
+            "certificate_hash": "308a793db9c7da83a4ca82a49807cf5ce85c37e0"
+          }
+        },
+        {
+          "client_id": "1092747272049-9apmihbl62a5ama8jg52kbfrts4jre1j.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAAcbvLFovU8VVTfktk18gwNMgiudBs9_Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1092747272049-9apmihbl62a5ama8jg52kbfrts4jre1j.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1092747272049-rrqu8oqeh7nqnr8niculda4rcl1bn9ka.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.finclar.finclarAi"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

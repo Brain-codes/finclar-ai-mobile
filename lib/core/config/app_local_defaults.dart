@@ -24,14 +24,14 @@ abstract class AppLocalDefaults {
   ///
   /// Order matters — it determines display order in pickers.
   static const List<CategoryModel> categories = [
-    CategoryModel(id: 'food', name: 'Food', isDefault: true),
-    CategoryModel(id: 'transport', name: 'Transport', isDefault: true),
-    CategoryModel(id: 'health', name: 'Health', isDefault: true),
-    CategoryModel(id: 'shopping', name: 'Shopping', isDefault: true),
-    CategoryModel(id: 'utilities', name: 'Utilities', isDefault: true),
-    CategoryModel(id: 'entertainment', name: 'Entertainment', isDefault: true),
-    CategoryModel(id: 'education', name: 'Education', isDefault: true),
-    CategoryModel(id: 'savings', name: 'Savings', isDefault: true),
-    CategoryModel(id: 'others', name: 'Others', isDefault: true),
+    CategoryModel(id: 'food', name: 'Food'),
+    CategoryModel(id: 'transport', name: 'Transport'),
+    CategoryModel(id: 'health', name: 'Health'),
+    CategoryModel(id: 'shopping', name: 'Shopping'),
+    CategoryModel(id: 'utilities', name: 'Utilities'),
+    CategoryModel(id: 'entertainment', name: 'Entertainment'),
+    CategoryModel(id: 'education', name: 'Education'),
+    CategoryModel(id: 'savings', name: 'Savings'),
+    CategoryModel(id: 'others', name: 'Others'),
   ];
 }

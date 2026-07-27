@@ -1,97 +1,223 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import '../../../../app/routes/route_names.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../shared/icons/app_icons.dart';
-import '../../data/models/expense_model.dart';
+import '../../../../shared/widgets/app_skeleton.dart';
+import '../../providers/expense_providers.dart';
 import '../widgets/expense_empty_state.dart';
 import '../widgets/expense_header.dart';
 import '../widgets/expense_list.dart';
 import '../widgets/expense_summary_card.dart';
 import '../widgets/month_selection_sheet.dart';
 
-// Sample data — replace with provider
-final _sampleExpenses = [
-  ExpenseModel(id: '1', name: 'Blackbell', amount: 5000, category: 'Food', date: DateTime(2026, 4, 3)),
-  ExpenseModel(id: '2', name: 'Amoke Oge', amount: 6600, category: 'Health', date: DateTime(2026, 4, 3)),
-  ExpenseModel(id: '3', name: 'Bolt', amount: 3200, category: 'Transport', date: DateTime(2026, 4, 2)),
-  ExpenseModel(id: '4', name: 'Zara', amount: 18000, category: 'Shopping', date: DateTime(2026, 4, 1)),
-];
-
-class ExpensesScreen extends StatefulWidget {
+class ExpensesScreen extends ConsumerStatefulWidget {
   const ExpensesScreen({super.key});
 
   @override
-  State<ExpensesScreen> createState() => _ExpensesScreenState();
+  ConsumerState<ExpensesScreen> createState() => _ExpensesScreenState();
 }
 
-class _ExpensesScreenState extends State<ExpensesScreen> {
-  final List<ExpenseModel> _expenses = _sampleExpenses;
-  int _selectedMonth = DateTime.now().month;
+class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
+  final _scrollController = ScrollController();
 
-  bool get _isEmpty => _expenses.isEmpty;
-  double get _total => _expenses.fold(0, (sum, e) => sum + e.amount);
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
 
-  Future<void> _pickMonth() async {
-    final result = await showMonthSelectionSheet(context, selected: _selectedMonth);
-    if (result != null) setState(() => _selectedMonth = result);
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 300) {
+      ref.read(expenseListProvider.notifier).loadMore();
+    }
+  }
+
+  Future<void> _pickMonth(int current) async {
+    final result = await showMonthSelectionSheet(context, selected: current);
+    if (result != null) {
+      ref.read(expenseListProvider.notifier).setMonth(result);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(expenseListProvider);
+
     return Scaffold(
       backgroundColor: context.scaffoldColor,
       body: SafeArea(
-        child: Stack(
-          children: [
-            CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(child: ExpenseHeader(onFilter: () {})),
-                SliverToBoxAdapter(
-                  child: _isEmpty
-                      ? const ExpenseEmptyState()
-                      : ExpenseSummaryCard(
-                          total: _total,
-                          expenses: _expenses,
-                          selectedMonth: _selectedMonth,
-                          onMonthTap: _pickMonth,
-                        ),
-                ),
-                if (!_isEmpty)
-                  SliverToBoxAdapter(child: ExpenseList(expenses: _expenses)),
-                const SliverToBoxAdapter(child: SizedBox(height: 100)),
+        child: RefreshIndicator(
+          onRefresh: () => ref.read(expenseListProvider.notifier).refresh(),
+          child: CustomScrollView(
+            controller: _scrollController,
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(child: ExpenseHeader(onFilter: () {})),
+              ...state.when(
+                loading: () => [
+                  const SliverToBoxAdapter(child: _ExpensesSkeleton()),
+                ],
+                error: (_, _) => [
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: _ExpensesError(
+                      onRetry: () =>
+                          ref.read(expenseListProvider.notifier).refresh(),
+                    ),
+                  ),
+                ],
+                data: (data) => _buildContent(data),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildContent(ExpenseListState data) {
+    if (data.isEmpty) {
+      return [
+        const SliverFillRemaining(
+          hasScrollBody: false,
+          child: ExpenseEmptyState(),
+        ),
+      ];
+    }
+    return [
+      SliverToBoxAdapter(
+        child: ExpenseSummaryCard(
+          total: data.total,
+          expenses: data.items,
+          selectedMonth: data.month,
+          onMonthTap: () => _pickMonth(data.month),
+        ),
+      ),
+      SliverToBoxAdapter(child: ExpenseList(expenses: data.items)),
+      if (data.isLoadingMore)
+        const SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: AppSpacing.base),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+        ),
+    ];
+  }
+}
+
+class _ExpensesSkeleton extends StatelessWidget {
+  const _ExpensesSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: context.surfaceColor,
+              borderRadius: AppRadius.radiusSheet,
+            ),
+            padding: const EdgeInsets.all(AppSpacing.base),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AppSkeleton.text(width: 100, height: 12),
+                SizedBox(height: AppSpacing.sm),
+                AppSkeleton.text(width: 160, height: 28),
+                SizedBox(height: AppSpacing.base),
+                AppSkeleton(width: double.infinity, height: 14),
               ],
             ),
-            Positioned(
-              bottom: AppSpacing.xxl,
-              right: AppSpacing.screenPadding,
-              child: _ExpenseFab(onTap: () => context.push(RouteNames.addExpense)),
+          ),
+          const SizedBox(height: AppSpacing.base),
+          Container(
+            decoration: BoxDecoration(
+              color: context.surfaceColor,
+              borderRadius: AppRadius.radiusSheet,
             ),
-          ],
-        ),
+            padding: const EdgeInsets.all(AppSpacing.base),
+            child: Column(
+              children: List.generate(
+                5,
+                (_) => const Padding(
+                  padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                  child: Row(
+                    children: [
+                      AppSkeleton.circle(size: 40),
+                      SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            AppSkeleton.text(width: 120),
+                            SizedBox(height: 6),
+                            AppSkeleton.text(width: 70, height: 12),
+                          ],
+                        ),
+                      ),
+                      AppSkeleton.text(width: 60),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _ExpenseFab extends StatelessWidget {
-  final VoidCallback onTap;
-  const _ExpenseFab({required this.onTap});
+class _ExpensesError extends StatelessWidget {
+  final VoidCallback onRetry;
+  const _ExpensesError({required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 52,
-        height: 52,
-        decoration: const BoxDecoration(
-          color: AppColors.primary,
-          shape: BoxShape.circle,
-        ),
-        child: const Icon(AppIcons.add, size: 24, color: AppColors.white),
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(AppIcons.file, size: 40, color: context.textSecondary),
+          const SizedBox(height: AppSpacing.base),
+          Text(
+            'Could not load expenses',
+            style: TextStyle(color: context.textSecondary),
+          ),
+          const SizedBox(height: AppSpacing.base),
+          GestureDetector(
+            onTap: onRetry,
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.xl,
+                vertical: AppSpacing.md,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: AppRadius.radiusFull,
+              ),
+              child: const Text(
+                'Retry',
+                style: TextStyle(color: AppColors.white),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

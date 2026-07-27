@@ -1,0 +1,8 @@
+for_platform :android do
+  package_name("com.finclar.finclarAi")
+end
+
+for_platform :ios do
+  app_identifier("com.finclar.finclarAi")
+  team_id("R5TMQ2Q9WM")
+end

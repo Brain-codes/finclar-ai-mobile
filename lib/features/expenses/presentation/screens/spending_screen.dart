@@ -1,50 +1,95 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/config/app_config_notifier.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
+import '../../../../core/utils/number_formatter.dart';
+import '../../../../shared/icons/app_icons.dart';
 import '../../../../shared/widgets/app_top_bar.dart';
 import '../../../../shared/widgets/app_bar_chart.dart';
+import '../../../../shared/widgets/app_skeleton.dart';
 import '../../../../shared/widgets/app_stripe_painter.dart';
 import '../../../home/presentation/widgets/clara_card.dart';
 import '../../../home/presentation/widgets/income_expense_chart_section.dart';
-import '../../../home/presentation/widgets/budget_section.dart';
+import '../../../home/providers/home_dashboard_provider.dart';
+import '../widgets/expense_category_utils.dart';
+import '../widgets/month_selection_sheet.dart';
 
-class SpendingScreen extends StatelessWidget {
+class SpendingScreen extends ConsumerWidget {
   const SpendingScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final summary = ref.watch(spendingSummaryProvider);
+    final monthLabel = summary.valueOrNull?.monthLabel;
+    final title = monthLabel != null && monthLabel.isNotEmpty
+        ? '${monthLabel.split(' ').first} expenses'
+        : 'Spending';
+
     return Scaffold(
       backgroundColor: context.scaffoldColor,
       body: SafeArea(
         child: Column(
           children: [
             AppTopBar(
-              title: 'April expense',
+              title: title,
+              
               onBack: () => context.pop(),
+              actions: [
+                GestureDetector(
+                  onTap: () async {
+                    final picked = await showMonthSelectionSheet(
+                      context,
+                      selected: ref.read(spendingMonthProvider),
+                    );
+                    if (picked != null) {
+                      ref.read(spendingMonthProvider.notifier).state = picked;
+                    }
+                  },
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: context.surfaceVariant,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      AppIcons.filter,
+                      size: 18,
+                      color: context.textQuaternary,
+                    ),
+                  ),
+                ),
+              ],
             ),
             Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.screenPadding,
-                ),
-                child: Column(
-                  children: [
-                    const SizedBox(height: AppSpacing.base),
-                    const _CategoryDonutSection(),
-                    const SizedBox(height: AppSpacing.base),
-                    const _SpendingInsightSection(),
-                    const SizedBox(height: AppSpacing.base),
-                    const IncomeExpenseChartSection(),
-                    const SizedBox(height: AppSpacing.base),
-                    const ClaraCard(),
-                    const SizedBox(height: AppSpacing.xxl),
-                  ],
+              child: RefreshIndicator(
+                onRefresh: () async => ref.invalidate(spendingSummaryProvider),
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.screenPadding,
+                  ),
+                  child: Column(
+                    children: const [
+                      SizedBox(height: AppSpacing.base),
+                      _CategoryDonutSection(),
+                      SizedBox(height: AppSpacing.base),
+                      _SpendingInsightSection(),
+                      SizedBox(height: AppSpacing.base),
+                      IncomeExpenseChartSection(),
+                      SizedBox(height: AppSpacing.base),
+                      ClaraCard(),
+                      SizedBox(height: AppSpacing.xxl),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -55,40 +100,28 @@ class SpendingScreen extends StatelessWidget {
   }
 }
 
+class _SpendCategory {
+  final String name;
+  final Color color;
+  final double amount;
+
+  const _SpendCategory({
+    required this.name,
+    required this.color,
+    required this.amount,
+  });
+}
+
 // ─── Category donut section ───────────────────────────────────────────────────
 
-class _CategoryDonutSection extends StatelessWidget {
+class _CategoryDonutSection extends ConsumerWidget {
   const _CategoryDonutSection();
 
-  static const _categories = [
-    BudgetCategory(
-      name: 'Food',
-      color: AppColors.categoryFood,
-      spent: 100000,
-      total: 250000,
-    ),
-    BudgetCategory(
-      name: 'Transportation',
-      color: AppColors.categoryTransport,
-      spent: 80000,
-      total: 250000,
-    ),
-    BudgetCategory(
-      name: 'Health',
-      color: AppColors.categoryHealth,
-      spent: 40000,
-      total: 250000,
-    ),
-    BudgetCategory(
-      name: 'Shopping',
-      color: AppColors.categoryShopping,
-      spent: 30000,
-      total: 250000,
-    ),
-  ];
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final summary = ref.watch(spendingSummaryProvider);
+    final symbol = ref.watch(currencySymbolProvider);
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -113,30 +146,93 @@ class _CategoryDonutSection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.base),
-          _SpendingDonutChart(categories: _categories),
-          const SizedBox(height: AppSpacing.base),
-          for (int i = 0; i < _categories.length; i++) ...[
-            _CategoryRow(category: _categories[i]),
-            if (i < _categories.length - 1) ...[
-              const SizedBox(height: AppSpacing.base),
-              Divider(height: 1, color: context.borderColor),
-              const SizedBox(height: AppSpacing.base),
-            ],
-          ],
+          summary.when(
+            loading: () => const _DonutSkeleton(),
+            error: (_, _) => _empty(context),
+            data: (s) {
+              final cats = s.categories
+                  .where((c) => c.amount > 0)
+                  .map((c) => _SpendCategory(
+                        name: c.name,
+                        color: expenseCategoryColor(c.name),
+                        amount: c.amount,
+                      ))
+                  .toList();
+              if (cats.isEmpty) return _empty(context);
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _SpendingDonutChart(categories: cats, symbol: symbol),
+                  const SizedBox(height: AppSpacing.base),
+                  for (int i = 0; i < cats.length; i++) ...[
+                    _CategoryRow(category: cats[i], symbol: symbol),
+                    if (i < cats.length - 1) ...[
+                      const SizedBox(height: AppSpacing.base),
+                      Divider(height: 1, color: context.borderColor),
+                      const SizedBox(height: AppSpacing.base),
+                    ],
+                  ],
+                ],
+              );
+            },
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _empty(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+        child: Center(
+          child: Text(
+            'No spending this month yet',
+            style: AppTypography.bodySmall.copyWith(
+              color: context.textSecondary,
+            ),
+          ),
+        ),
+      );
+}
+
+class _DonutSkeleton extends StatelessWidget {
+  const _DonutSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        const AppSkeleton.circle(size: 140),
+        const SizedBox(height: AppSpacing.lg),
+        ...List.generate(
+          4,
+          (_) => const Padding(
+            padding: EdgeInsets.only(bottom: AppSpacing.md),
+            child: Row(
+              children: [
+                AppSkeleton.circle(size: 10),
+                SizedBox(width: AppSpacing.xs),
+                AppSkeleton.text(width: 100),
+                Spacer(),
+                AppSkeleton.text(width: 60),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
 
 class _SpendingDonutChart extends StatelessWidget {
-  final List<BudgetCategory> categories;
+  final List<_SpendCategory> categories;
+  final String symbol;
 
-  const _SpendingDonutChart({required this.categories});
+  const _SpendingDonutChart({required this.categories, required this.symbol});
 
   @override
   Widget build(BuildContext context) {
-    final totalSpent = categories.fold<double>(0, (s, c) => s + c.spent);
+    final totalSpent = categories.fold<double>(0, (s, c) => s + c.amount);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -145,11 +241,11 @@ class _SpendingDonutChart extends StatelessWidget {
         final centerRadius = size * 0.28;
 
         final sections = categories
-            .where((c) => c.spent > 0)
+            .where((c) => c.amount > 0)
             .map(
               (c) => PieChartSectionData(
                 color: c.color,
-                value: c.spent,
+                value: c.amount,
                 title: '',
                 radius: ringRadius,
                 showTitle: false,
@@ -190,7 +286,7 @@ class _SpendingDonutChart extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    _fmt(totalSpent),
+                    formatCurrency(totalSpent, symbol, abbreviate: true),
                     style: AppTypography.bodySmall.copyWith(
                       color: context.textPrimary,
                       fontVariations: const [FontVariation('wght', 600)],
@@ -206,18 +302,13 @@ class _SpendingDonutChart extends StatelessWidget {
       },
     );
   }
-
-  String _fmt(double v) {
-    if (v >= 1000000) return '₦${(v / 1000000).toStringAsFixed(1)}m';
-    if (v >= 1000) return '₦${(v / 1000).toStringAsFixed(0)}k';
-    return '₦${v.toStringAsFixed(0)}';
-  }
 }
 
 class _CategoryRow extends StatelessWidget {
-  final BudgetCategory category;
+  final _SpendCategory category;
+  final String symbol;
 
-  const _CategoryRow({required this.category});
+  const _CategoryRow({required this.category, required this.symbol});
 
   @override
   Widget build(BuildContext context) {
@@ -242,7 +333,8 @@ class _CategoryRow extends StatelessWidget {
           ),
         ),
         Text(
-          _fmt(category.spent),
+          formatCurrency(category.amount, symbol,
+              abbreviate: false, withCommas: true),
           style: AppTypography.bodySmall.copyWith(
             color: context.textPrimary,
             fontVariations: const [FontVariation('wght', 500)],
@@ -251,32 +343,18 @@ class _CategoryRow extends StatelessWidget {
       ],
     );
   }
-
-  String _fmt(double v) {
-    if (v >= 1000000) return '₦${(v / 1000000).toStringAsFixed(1)}m';
-    if (v >= 1000) return '₦${(v / 1000).toStringAsFixed(0)},000';
-    return '₦${v.toStringAsFixed(0)}';
-  }
 }
 
 // ─── Spending insight chart ───────────────────────────────────────────────────
 
-class _SpendingInsightSection extends StatelessWidget {
+class _SpendingInsightSection extends ConsumerWidget {
   const _SpendingInsightSection();
 
-  static const _data = [
-    _MonthSpend(month: 'Jan', amount: 180000),
-    _MonthSpend(month: 'Feb', amount: 320000),
-    _MonthSpend(month: 'Mar', amount: 200000),
-    _MonthSpend(month: 'Apr', amount: 280000),
-    _MonthSpend(month: 'May', amount: 150000),
-    _MonthSpend(month: 'Jun', amount: 250000),
-  ];
-
-  static const _avg = 250000.0;
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final summary = ref.watch(spendingSummaryProvider);
+    final symbol = ref.watch(currencySymbolProvider);
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -295,66 +373,148 @@ class _SpendingInsightSection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
-          Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(AppRadius.xs),
-                child: CustomPaint(
-                  size: const Size(8, 16),
-                  painter: AppStripePainter(
-                    stripeColor: AppColors.primary,
-                    spacing: 3.0,
-                    strokeWidth: 1.5,
-                    angleDegrees: 45.0,
+          summary.when(
+            loading: () => const _InsightSkeleton(),
+            error: (_, _) => _empty(context),
+            data: (s) {
+              var trend = s.monthlyTrend;
+              if (trend.isEmpty) return _empty(context);
+              if (trend.length > 5) {
+                trend = trend.sublist(trend.length - 5);
+              }
+
+              // Span the reference line between the previous and current month,
+              // positioned at the current month's spending.
+              const monthAbbr = [
+                'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+              ];
+              final selectedAbbr = monthAbbr[ref.watch(spendingMonthProvider) - 1];
+              var currentIndex = trend.indexWhere((p) => p.month == selectedAbbr);
+              if (currentIndex < 0) currentIndex = trend.length - 1;
+              final startIndex = currentIndex > 0 ? currentIndex - 1 : currentIndex;
+              final currentSpend = trend[currentIndex].total;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _InsightLine(
+                    momChangePct: s.momChangePct,
+                    momDirection: s.momDirection,
                   ),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.xs),
-              Expanded(
-                child: Text(
-                  'Your average expenses is lower by 8% from last month',
-                  style: AppTypography.bodySmall.copyWith(
-                    color: context.textSecondary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.base),
-          AppBarChart(
-            height: 160,
-            barWidth: 14,
-            groups: _data
-                .map(
-                  (d) => AppBarChartGroup(
-                    label: d.month,
-                    bars: [
-                      AppBarChartBar(
-                        value: d.amount,
-                        color: AppColors.transparent,
-                        striped: true,
-                        stripeColor: AppColors.primary,
-                        stripeOpacity: 1,
-                      ),
+                  const SizedBox(height: AppSpacing.base),
+                  AppBarChart(
+                    height: 160,
+                    barWidth: 40,
+                    showGrid: false,
+                    showYAxis: false,
+                    barBorderRadius: BorderRadius.circular(AppRadius.sm),
+                    groups: [
+                      for (int i = 0; i < trend.length; i++)
+                        AppBarChartGroup(
+                          label: trend[i].month,
+                          bars: [
+                            AppBarChartBar(
+                              value: trend[i].total,
+                              color: AppColors.transparent,
+                              striped: true,
+                              stripeColor: i == currentIndex
+                                  ? AppColors.primary
+                                  : AppColors.textSecondary,
+                              stripeOpacity: 1,
+                            ),
+                          ],
+                        ),
                     ],
+                    referenceLine: AppBarChartReferenceLine(
+                      value: currentSpend,
+                      color: AppColors.primary,
+                      label: formatCurrency(currentSpend, symbol,
+                          abbreviate: true),
+                      startGroupIndex: startIndex,
+                      endGroupIndex: currentIndex,
+                    ),
                   ),
-                )
-                .toList(),
-            referenceLine: AppBarChartReferenceLine(
-              value: _avg,
-              color: AppColors.primary,
-              label: '₦250k',
-            ),
+                ],
+              );
+            },
           ),
         ],
       ),
     );
   }
+
+  Widget _empty(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+        child: Center(
+          child: Text(
+            'Not enough data to show a trend yet',
+            style: AppTypography.bodySmall.copyWith(
+              color: context.textSecondary,
+            ),
+          ),
+        ),
+      );
 }
 
-class _MonthSpend {
-  final String month;
-  final double amount;
+class _InsightLine extends StatelessWidget {
+  final double? momChangePct;
+  final String? momDirection;
 
-  const _MonthSpend({required this.month, required this.amount});
+  const _InsightLine({this.momChangePct, this.momDirection});
+
+  @override
+  Widget build(BuildContext context) {
+    final String text;
+    if (momChangePct == null || momDirection == null) {
+      text = 'Tracking your monthly spending';
+    } else {
+      final pct = momChangePct!.abs().toStringAsFixed(0);
+      final dir = momDirection == 'up' ? 'higher' : 'lower';
+      text = 'Your expenses are $dir by $pct% from last month';
+    }
+    return Row(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(AppRadius.xs),
+          child: CustomPaint(
+            size: const Size(8, 16),
+            painter: AppStripePainter(
+              stripeColor: AppColors.primary,
+              spacing: 3.0,
+              strokeWidth: 1.5,
+              angleDegrees: 45.0,
+            ),
+          ),
+        ),
+        const SizedBox(width: AppSpacing.xs),
+        Expanded(
+          child: Text(
+            text,
+            style: AppTypography.bodySmall.copyWith(
+              color: context.textSecondary,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _InsightSkeleton extends StatelessWidget {
+  const _InsightSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppSkeleton.text(width: 240),
+          SizedBox(height: AppSpacing.base),
+          AppSkeleton(width: double.infinity, height: 160),
+        ],
+      ),
+    );
+  }
 }

@@ -1,33 +1,31 @@
 import 'package:finclar_ai/shared/widgets/gradient_icon.dart';
 import 'package:finclar_ai/shared/widgets/gradient_text.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../shared/icons/app_icons.dart';
+import '../../../../core/config/app_config_notifier.dart';
+import '../../../../core/utils/number_formatter.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
+import '../../../../shared/widgets/app_skeleton.dart';
 import '../../../../shared/widgets/app_stripe_painter.dart';
+import '../../../expenses/data/models/expense_summary_model.dart';
+import '../../providers/home_dashboard_provider.dart';
 
-class SpendingCard extends StatelessWidget {
-  final bool isEmpty;
-  final String amount;
-  final double percentage;
-  final String insightText;
+class SpendingCard extends ConsumerWidget {
   final VoidCallback? onTap;
 
-  const SpendingCard({
-    super.key,
-    this.isEmpty = false,
-    this.amount = '₦250,000.00',
-    this.percentage = 0.15,
-    this.insightText = AppStrings.aiInsight,
-    this.onTap,
-  });
+  const SpendingCard({super.key, this.onTap});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final symbol = ref.watch(currencySymbolProvider);
+    final summary = ref.watch(homeSummaryProvider);
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -59,47 +57,92 @@ class SpendingCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: AppSpacing.md),
-            if (isEmpty)
-              Text(
-                'You\'ve not made any expense yet.',
-                style: AppTypography.bodySmall.copyWith(
-                  color: context.textSecondary,
-                ),
-              )
-            else ...[
-              Text(
-                amount,
-                style: AppTypography.amountSmall.copyWith(
-                  color: context.textSecondary,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              _SpendingBar(percentage: percentage),
-              const SizedBox(height: AppSpacing.sm),
-              Row(
-                spacing: 5,
-                children: [
-                  GradientIcon(
-                    icon: AppIcons.aiFill,
-                    size: 16,
-                    gradient: AppColors.claraGradient,
-                  ),
-
-                  Expanded(
-                    child: GradientText(
-                      insightText,
-                      gradient: AppColors.claraGradient,
-                      style: AppTypography.bodySmall.copyWith(
-                        color: context.textSecondary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+            summary.when(
+              loading: () => const _SpendingSkeleton(),
+              error: (_, _) => _empty(context),
+              data: (s) => s.totalExpense <= 0
+                  ? _empty(context)
+                  : _SpendingContent(summary: s, symbol: symbol),
+            ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _empty(BuildContext context) => Text(
+        'You\'ve not made any expense yet.',
+        style: AppTypography.bodySmall.copyWith(
+          color: context.textSecondary,
+        ),
+      );
+}
+
+class _SpendingContent extends StatelessWidget {
+  final ExpenseSummaryModel summary;
+  final String symbol;
+
+  const _SpendingContent({required this.summary, required this.symbol});
+
+  @override
+  Widget build(BuildContext context) {
+    final percentage = summary.monthlyIncome > 0
+        ? (summary.totalExpense / summary.monthlyIncome)
+        : 0.0;
+    final pctLabel = (percentage * 100).clamp(0, 100).toStringAsFixed(0);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          formatCurrency(summary.totalExpense, symbol,
+              abbreviate: false, withCommas: true),
+          style: AppTypography.amountSmall.copyWith(
+            color: context.textSecondary,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        _SpendingBar(percentage: percentage),
+        const SizedBox(height: AppSpacing.sm),
+        Row(
+          spacing: 5,
+          children: [
+            GradientIcon(
+              icon: AppIcons.aiFill,
+              size: 16,
+              gradient: AppColors.claraGradient,
+            ),
+            Expanded(
+              child: GradientText(
+                summary.monthlyIncome > 0
+                    ? "You've spent $pctLabel% of your income this month."
+                    : AppStrings.aiInsight,
+                gradient: AppColors.claraGradient,
+                style: AppTypography.bodySmall.copyWith(
+                  color: context.textSecondary,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _SpendingSkeleton extends StatelessWidget {
+  const _SpendingSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AppSkeleton.text(width: 160, height: 28),
+        SizedBox(height: AppSpacing.md),
+        AppSkeleton(width: double.infinity, height: 14),
+        SizedBox(height: AppSpacing.sm),
+        AppSkeleton.text(width: 200, height: 12),
+      ],
     );
   }
 }

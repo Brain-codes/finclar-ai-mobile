@@ -1,0 +1,190 @@
+# Finclar AI release pipeline.
+#
+# Versioning model (single source of truth: pubspec.yaml `version: X.Y.Z+BUILD`):
+#   - Version NAME  (X.Y.Z) is bumped from Conventional Commit messages since the
+#     last `vX.Y.Z` git tag:
+#         feat!: / BREAKING CHANGE:  -> major   (X)
+#         feat:                      -> minor   (Y)
+#         fix:                       -> patch   (Z)
+#         chore:/docs:/refactor: etc -> no bump
+#   - Build NUMBER (BUILD) is always `git rev-list --count HEAD` — a monotonically
+#     increasing integer, so it never repeats and never has to be edited by hand.
+#
+# Common lanes:
+#   bundle exec fastlane bump                 # compute + write the next version, no build
+#   bundle exec fastlane bump bump:minor      # force a specific bump
+#   bundle exec fastlane bump dry_run:true    # show what would change, write nothing
+#   bundle exec fastlane android beta         # version + build APK + upload to Firebase
+#   bundle exec fastlane ios beta             # version + build IPA + upload to Firebase
+#   bundle exec fastlane beta                 # both platforms, then tag + push the release
+
+fastlane_require "fileutils"
+
+FASTLANE_DIR = File.expand_path(__dir__)
+PROJECT_ROOT = File.expand_path("..", FASTLANE_DIR)
+PUBSPEC      = File.join(PROJECT_ROOT, "pubspec.yaml")
+
+# ---------------------------------------------------------------------------
+# Version helpers (plain Ruby — shared by every lane)
+# ---------------------------------------------------------------------------
+
+def current_pubspec_version
+  line = File.readlines(PUBSPEC).find { |l| l =~ /^version:\s/ }
+  UI.user_error!("No `version:` line found in pubspec.yaml") unless line
+  name = line.sub(/^version:\s*/, "").strip.split("+").first
+  major, minor, patch = name.split(".").map(&:to_i)
+  { name: name, major: major.to_i, minor: minor.to_i, patch: patch.to_i }
+end
+
+def last_release_tag
+  tag = `git -C #{PROJECT_ROOT.shellescape} describe --tags --match "v*" --abbrev=0 2>/dev/null`.strip
+  tag.empty? ? nil : tag
+end
+
+def commits_since(ref)
+  range = ref ? "#{ref}..HEAD" : "HEAD"
+  raw = `git -C #{PROJECT_ROOT.shellescape} log #{range} --no-merges --pretty=format:%B%x00`
+  raw = raw.dup.force_encoding("UTF-8").scrub
+  raw.split("\x00").map(&:strip).reject(&:empty?)
+end
+
+# Highest-precedence bump wins: any breaking change -> major, else any feat -> minor,
+# else any fix -> patch, else none.
+def determine_bump(commits)
+  bump = :none
+  commits.each do |message|
+    header = message.lines.first.to_s.strip
+    breaking = header =~ /^\w+(\([^)]*\))?!:/ || message =~ /^BREAKING CHANGE:/i
+    if breaking
+      return :major
+    elsif header =~ /^feat(\([^)]*\))?:/i
+      bump = :minor unless bump == :major
+    elsif header =~ /^fix(\([^)]*\))?:/i
+      bump = :patch if bump == :none
+    end
+  end
+  bump
+end
+
+def apply_bump(base, bump)
+  major, minor, patch = base[:major], base[:minor], base[:patch]
+  case bump
+  when :major then return "#{major + 1}.0.0"
+  when :minor then return "#{major}.#{minor + 1}.0"
+  when :patch then return "#{major}.#{minor}.#{patch + 1}"
+  else             return base[:name]
+  end
+end
+
+def build_number
+  `git -C #{PROJECT_ROOT.shellescape} rev-list --count HEAD`.strip.to_i
+end
+
+def release_notes(commits)
+  return "Internal build." if commits.empty?
+  commits.map { |m| "- #{m.lines.first.to_s.strip}" }.first(20).join("\n")
+end
+
+def service_account_path
+  path = ENV["FIREBASE_SERVICE_ACCOUNT"].to_s
+  path = File.join(PROJECT_ROOT, path) unless path.start_with?("/")
+  path
+end
+
+# Computes the next version, optionally writes it to pubspec.yaml, and returns a hash
+# describing the decision. Stashed on lane_context so a build lane reuses one bump.
+def resolve_version(options)
+  return $finclar_version if $finclar_version && !options[:refresh]
+
+  base    = current_pubspec_version
+  tag     = last_release_tag
+  commits = commits_since(tag)
+  forced  = options[:bump] ? options[:bump].to_s.to_sym : nil
+  bump    = forced || determine_bump(commits)
+
+  version_name = apply_bump(base, bump)
+  build_num    = build_number
+
+  UI.header("Version decision")
+  UI.message("Base version      : #{base[:name]} (from pubspec.yaml)")
+  UI.message("Last release tag  : #{tag || '(none yet)'}")
+  UI.message("Commits analysed  : #{commits.count}")
+  UI.message("Bump              : #{bump}#{forced ? ' (forced)' : ''}")
+  UI.important("Next version      : #{version_name}+#{build_num}")
+
+  unless options[:dry_run]
+    content = File.read(PUBSPEC).sub(/^version:\s*.*$/, "version: #{version_name}+#{build_num}")
+    File.write(PUBSPEC, content)
+    UI.success("Wrote version #{version_name}+#{build_num} to pubspec.yaml")
+  end
+
+  $finclar_version = {
+    name: version_name,
+    build: build_num,
+    bump: bump,
+    tag: "v#{version_name}",
+    changed: version_name != base[:name],
+    notes: release_notes(commits),
+  }
+end
+
+# ---------------------------------------------------------------------------
+# Lanes
+# ---------------------------------------------------------------------------
+
+desc "Compute and write the next version from commit history (no build). Options: bump:major|minor|patch, dry_run:true"
+lane :bump do |options|
+  resolve_version(options)
+end
+
+platform :android do
+  desc "Build a release APK and distribute it via Firebase App Distribution."
+  lane :beta do |options|
+    v = resolve_version(options)
+    sh("cd #{PROJECT_ROOT.shellescape} && flutter build apk --release")
+    firebase_app_distribution(
+      app: ENV["FIREBASE_ANDROID_APP_ID"],
+      service_credentials_file: service_account_path,
+      android_artifact_type: "APK",
+      android_artifact_path: File.join(PROJECT_ROOT, "build/app/outputs/flutter-apk/app-release.apk"),
+      groups: ENV["FIREBASE_ANDROID_TESTER_GROUPS"],
+      release_notes: v[:notes]
+    )
+    UI.success("Android #{v[:name]}+#{v[:build]} distributed to Firebase.")
+  end
+end
+
+platform :ios do
+  desc "Build a release IPA (ad-hoc) and distribute it via Firebase App Distribution."
+  lane :beta do |options|
+    v = resolve_version(options)
+    sh("cd #{PROJECT_ROOT.shellescape} && flutter build ipa --export-options-plist=ios/ExportOptions.plist")
+    ipa = Dir[File.join(PROJECT_ROOT, "build/ios/ipa/*.ipa")].first
+    UI.user_error!("No IPA produced — check iOS signing (see docs/RELEASE_PIPELINE.md).") unless ipa
+    firebase_app_distribution(
+      app: ENV["FIREBASE_IOS_APP_ID"],
+      service_credentials_file: service_account_path,
+      ipa_path: ipa,
+      groups: ENV["FIREBASE_IOS_TESTER_GROUPS"],
+      release_notes: v[:notes]
+    )
+    UI.success("iOS #{v[:name]}+#{v[:build]} distributed to Firebase.")
+  end
+end
+
+desc "Full release: bump version once, ship both platforms, then commit + tag + push. Options: skip_ios:true, skip_git:true"
+lane :beta do |options|
+  v = resolve_version(options)
+
+  Fastlane::LaneManager.cruise_lane("android", "beta", options)
+  Fastlane::LaneManager.cruise_lane("ios", "beta", options) unless options[:skip_ios]
+
+  unless options[:skip_git]
+    if v[:changed]
+      git_commit(path: [PUBSPEC], message: "chore(release): #{v[:tag]} [skip ci]")
+    end
+    add_git_tag(tag: v[:tag])
+    push_to_git_remote(tags: true)
+    UI.success("Tagged and pushed #{v[:tag]}.")
+  end
+end

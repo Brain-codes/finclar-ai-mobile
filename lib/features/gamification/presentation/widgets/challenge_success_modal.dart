@@ -80,79 +80,83 @@ class _ChallengeSuccessModal extends StatelessWidget {
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.base),
       backgroundColor: Colors.transparent,
-      child: Container(
-        decoration: BoxDecoration(
-          color: context.surfaceColor,
-          borderRadius: AppRadius.radiusSheet,
-        ),
-        clipBehavior: Clip.hardEdge,
-        child: Stack(
-          children: [
-            // Gradient overlay at top
-            Positioned(
-              top: 0,
-              left: -39,
-              right: -39,
-              child: Container(
-                height: 425,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [cfg.gradientColor, const Color(0x00FFFFFF)],
-                    stops: const [0.0, 1.0],
+      child: SingleChildScrollView(
+        child: Container(
+          decoration: BoxDecoration(
+            color: context.surfaceColor,
+            borderRadius: AppRadius.radiusSheet,
+          ),
+          clipBehavior: Clip.hardEdge,
+          child: Stack(
+            children: [
+              // Gradient overlay at top
+              Positioned(
+                top: 0,
+                left: -39,
+                right: -39,
+                child: Container(
+                  height: 425,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [cfg.gradientColor, const Color(0x00FFFFFF)],
+                      stops: const [0.0, 1.0],
+                    ),
                   ),
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.base,
-                AppSpacing.base,
-                AppSpacing.base,
-                AppSpacing.xl,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Close button
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: _CloseButton(onTap: () => Navigator.of(context).pop()),
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-                  // Badge
-                  BadgeWidget(type: cfg.badgeType, size: 180),
-                  const SizedBox(height: AppSpacing.base),
-                  // Title
-                  Text(
-                    cfg.title,
-                    style: AppTypography.labelLarge.copyWith(
-                      color: context.textPrimary,
-                      fontVariations: const [FontVariation('wght', 700)],
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.base,
+                  AppSpacing.base,
+                  AppSpacing.base,
+                  AppSpacing.xl,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Close button
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: _CloseButton(
+                        onTap: () => Navigator.of(context).pop(),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  // Message
-                  Text(
-                    cfg.message,
-                    textAlign: TextAlign.center,
-                    style: AppTypography.bodySmall.copyWith(
-                      color: context.textSecondary,
+                    const SizedBox(height: AppSpacing.xl),
+                    // Badge
+                    BadgeWidget(type: cfg.badgeType, size: 180),
+                    const SizedBox(height: AppSpacing.base),
+                    // Title
+                    Text(
+                      cfg.title,
+                      style: AppTypography.labelLarge.copyWith(
+                        color: context.textPrimary,
+                        fontVariations: const [FontVariation('wght', 700)],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-                  AppButton(
-                    label: 'Done',
-                    onTap: () => Navigator.of(context).pop(),
-                    backgroundColor: cfg.primaryColor,
-                    foregroundColor: cfg.onPrimaryColor,
-                    height: 52,
-                  ),
-                ],
+                    const SizedBox(height: AppSpacing.sm),
+                    // Message
+                    Text(
+                      cfg.message,
+                      textAlign: TextAlign.center,
+                      style: AppTypography.bodySmall.copyWith(
+                        color: context.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
+                    AppButton(
+                      label: 'Done',
+                      onTap: () => Navigator.of(context).pop(),
+                      backgroundColor: cfg.primaryColor,
+                      foregroundColor: cfg.onPrimaryColor,
+                      height: 52,
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -175,7 +179,11 @@ class _CloseButton extends StatelessWidget {
           shape: BoxShape.circle,
           border: Border.all(color: AppColors.borderStrong),
         ),
-        child: const Icon(AppIcons.close, size: 14, color: AppColors.textSecondary),
+        child: const Icon(
+          AppIcons.close,
+          size: 14,
+          color: AppColors.textSecondary,
+        ),
       ),
     );
   }

@@ -4,11 +4,13 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/routes/route_names.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
-import '../../../../core/config/app_config_notifier.dart';
-import '../../../../core/utils/number_formatter.dart';
 import '../../../../core/services/logger_service.dart';
 import '../../providers/income_setup_provider.dart';
+import '../../providers/home_dashboard_provider.dart';
 import '../../../auth/providers/user_profile_provider.dart';
+import '../../../expenses/providers/expense_providers.dart';
+import '../../../budget/providers/budget_providers.dart';
+import '../../../notifications/providers/notifications_provider.dart';
 import '../widgets/home_header.dart';
 import '../widgets/balance_card.dart';
 import '../widgets/spending_card.dart';
@@ -55,10 +57,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
     });
 
-    final income = incomeAsync.valueOrNull;
-    final isEmpty = !incomeAsync.isLoading && income == null;
-    final symbol = ref.watch(currencySymbolProvider);
     final username = ref.watch(userProfileProvider).valueOrNull?.username ?? '';
+    final unreadNotifications = ref.watch(unreadNotificationCountProvider) > 0;
 
     return Scaffold(
       backgroundColor: context.scaffoldColor,
@@ -74,45 +74,57 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 userName: username,
                 greeting: _greeting(),
                 onAvatarTap: () => context.push(RouteNames.settings),
+                onNotificationTap: () =>
+                    context.push(RouteNames.notifications),
+                hasUnreadNotifications: unreadNotifications,
                 isLoading: incomeAsync.isLoading,
               ),
             ),
             Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                child: Column(
-                  children: [
-                    const SizedBox(height: AppSpacing.base),
-                    BalanceCard(
-                      balance: isEmpty
-                          ? '${symbol}0.00'
-                          : formatCurrency(1850000, symbol,
-                              abbreviate: false, withCommas: true),
-                    ),
-                    const SizedBox(height: AppSpacing.base),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.screenPadding,
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  ref.invalidate(homeSummaryProvider);
+                  ref.invalidate(homeInsightProvider);
+                  ref.read(budgetProvider.notifier).refresh();
+                  await ref.read(expenseListProvider.notifier).refresh();
+                },
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: AppSpacing.base),
+                      const BalanceCard(),
+                      const SizedBox(height: AppSpacing.base),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.screenPadding,
+                        ),
+                        child: Column(
+                          children: [
+                            SpendingCard(
+                              onTap: () => context.push(RouteNames.spending),
+                            ),
+                            const SizedBox(height: AppSpacing.base),
+                            BudgetSection(
+                              onBreakdownTap: () =>
+                                  context.push(RouteNames.budget),
+                            ),
+                            const SizedBox(height: AppSpacing.base),
+                            const IncomeExpenseChartSection(),
+                            const SizedBox(height: AppSpacing.base),
+                            RecentExpensesSection(
+                              onViewAll: () => context.push(RouteNames.expenses),
+                            ),
+                            const SizedBox(height: AppSpacing.base),
+                            const ClaraCard(),
+                            const SizedBox(height: AppSpacing.xxl),
+                          ],
+                        ),
                       ),
-                      child: Column(
-                        children: [
-                          SpendingCard(
-                            isEmpty: isEmpty,
-                            onTap: () => context.push(RouteNames.spending),
-                          ),
-                          const SizedBox(height: AppSpacing.base),
-                          BudgetSection(isEmpty: isEmpty),
-                          const SizedBox(height: AppSpacing.base),
-                          IncomeExpenseChartSection(isEmpty: isEmpty),
-                          const SizedBox(height: AppSpacing.base),
-                          RecentExpensesSection(isEmpty: isEmpty),
-                          const SizedBox(height: AppSpacing.base),
-                          ClaraCard(isEmpty: isEmpty),
-                          const SizedBox(height: AppSpacing.xxl),
-                        ],
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

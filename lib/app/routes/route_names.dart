@@ -23,6 +23,7 @@ abstract class RouteNames {
   static const String incomeSetup = '/app/home/income-setup';
   static const String aiSetup = '/app/home/ai-setup';
   static const String spending = '/app/home/spending';
+  static const String notifications = '/app/home/notifications';
 
   // Expenses
   static const String expenses = '/app/expenses';
@@ -44,6 +45,9 @@ abstract class RouteNames {
   static const String groupFriends = '/group/friends';
   static const String groupChat = '/group/chat';
   static const String addFriend = '/app/group/add-friend';
+
+  // Clara AI chat
+  static const String clara = '/clara';
 
   // Settings
   static const String settings                = '/settings';

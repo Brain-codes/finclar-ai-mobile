@@ -12,13 +12,10 @@ class IncomeRepository {
 
   Future<List<IncomeSourceModel>> getSources() async {
     Log.api('GET', ApiEndpoints.incomeSources);
-    final response = await _api.get<List<IncomeSourceModel>>(
+    return _api.getAllPaginated<IncomeSourceModel>(
       ApiEndpoints.incomeSources,
-      fromData: (data) => (data as List)
-          .map((e) => IncomeSourceModel.fromJson(e as Map<String, dynamic>))
-          .toList(),
+      fromItem: IncomeSourceModel.fromJson,
     );
-    return response.data ?? [];
   }
 
   Future<IncomeSourceModel> createCustomSource(String name) async {

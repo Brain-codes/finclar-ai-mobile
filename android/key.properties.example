@@ -1,0 +1,12 @@
+# Copy this to `android/key.properties` (gitignored) and fill in real values after
+# generating a keystore:
+#
+#   keytool -genkey -v -keystore ~/finclar-upload.jks \
+#     -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+#
+# storeFile is an absolute path to the .jks you generated.
+
+storePassword=your-store-password
+keyPassword=your-key-password
+keyAlias=upload
+storeFile=/absolute/path/to/finclar-upload.jks

@@ -1,7 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/app_exceptions.dart';
+import '../../../core/services/analytics_service.dart';
 import '../../../core/services/auth_state_service.dart';
+import '../../../core/services/biometric_service.dart';
 import '../../../core/services/logger_service.dart';
+import '../../../core/services/session_reset.dart';
 import '../../../core/services/storage_service.dart';
 import 'auth_repository_provider.dart';
 import 'user_profile_provider.dart';
@@ -17,6 +20,7 @@ class LoginState {
   final String? emailError;
   final String? snackbarError;
   final bool emailNotVerified;
+  final bool canUseBiometrics;
 
   const LoginState({
     this.initialized = false,
@@ -27,6 +31,7 @@ class LoginState {
     this.emailError,
     this.snackbarError,
     this.emailNotVerified = false,
+    this.canUseBiometrics = false,
   });
 
   bool get isReturningUser => initialized && savedEmail != null;
@@ -40,6 +45,7 @@ class LoginState {
     String? emailError,
     String? snackbarError,
     bool? emailNotVerified,
+    bool? canUseBiometrics,
     bool clearEmailError = false,
     bool clearSnackbarError = false,
     bool clearSavedEmail = false,
@@ -53,6 +59,7 @@ class LoginState {
       emailError: clearEmailError ? null : (emailError ?? this.emailError),
       snackbarError: clearSnackbarError ? null : (snackbarError ?? this.snackbarError),
       emailNotVerified: emailNotVerified ?? this.emailNotVerified,
+      canUseBiometrics: canUseBiometrics ?? this.canUseBiometrics,
     );
   }
 }
@@ -66,12 +73,21 @@ class LoginNotifier extends Notifier<LoginState> {
 
   Future<void> _loadSavedEmail() async {
     final saved = await StorageService.getLastEmail();
+    final canUseBiometrics = saved != null && await _biometricsReady();
     state = state.copyWith(
       initialized: true,
       savedEmail: saved,
       email: saved ?? '',
       phase: saved != null ? LoginPhase.passcode : LoginPhase.email,
+      canUseBiometrics: canUseBiometrics,
     );
+  }
+
+  Future<bool> _biometricsReady() async {
+    if (!await BiometricService.isEnabled()) return false;
+    final passcode = await StorageService.getBiometricPasscode();
+    if (passcode == null) return false;
+    return BiometricService.isAvailable();
   }
 
   void clearEmailError() => state = state.copyWith(clearEmailError: true);
@@ -102,8 +118,16 @@ class LoginNotifier extends Notifier<LoginState> {
             passcode: passcode,
           );
       await StorageService.saveLastEmail(state.email);
+      if (await BiometricService.isEnabled()) {
+        await StorageService.saveBiometricPasscode(passcode);
+      }
+      // Clear the previous user's cached data BEFORE logging in — logIn()
+      // notifies the router synchronously, so the new home screen must not be
+      // able to read stale providers.
+      clearUserScopedDataRef(ref);
       await authStateService.logIn(tokens.accessToken, tokens.refreshToken, isNewUser: false);
       ref.read(userProfileProvider.notifier).fetch();
+      Analytics.login(method: 'passcode');
       state = state.copyWith(isLoading: false);
     } on ForbiddenException catch (e) {
       final isNotVerified = e.message.toLowerCase().contains('not verified');
@@ -118,13 +142,35 @@ class LoginNotifier extends Notifier<LoginState> {
     }
   }
 
+  /// Biometric login — verifies identity, then replays the stored passcode.
+  Future<void> loginWithBiometrics() async {
+    if (!state.canUseBiometrics || state.isLoading) return;
+    final result = await BiometricService.authenticate(
+      reason: 'Log in to Finclar AI',
+    );
+    if (result == BiometricResult.cancelled) return;
+    if (result != BiometricResult.success) {
+      state = state.copyWith(snackbarError: 'Could not verify biometrics');
+      return;
+    }
+    final passcode = await StorageService.getBiometricPasscode();
+    if (passcode == null) {
+      state = state.copyWith(canUseBiometrics: false);
+      return;
+    }
+    await submitPasscode(passcode);
+  }
+
   /// "Not my account" — clears saved email and returns to email phase.
   Future<void> clearSavedEmail() async {
     await StorageService.clearLastEmail();
+    await StorageService.clearBiometricPasscode();
+    await StorageService.setBiometricEnabled(false);
     state = state.copyWith(
       clearSavedEmail: true,
       phase: LoginPhase.email,
       email: '',
+      canUseBiometrics: false,
     );
   }
 

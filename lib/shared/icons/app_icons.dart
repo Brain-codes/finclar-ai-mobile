@@ -15,6 +15,7 @@ abstract class AppIcons {
   static const IconData group = Remix.group_line;
   static const IconData groupActive = Remix.group_fill;
   static const IconData add = Remix.add_large_line;
+  static const IconData addUser = Remix.user_add_line;
 
   // Auth
   static const IconData email = Remix.mail_line;
@@ -81,6 +82,7 @@ abstract class AppIcons {
   // Misc
   static const IconData calendar = Remix.calendar_line;
   static const IconData clock = Remix.time_line;
+  static const IconData refresh = Remix.refresh_line;
   static const IconData location = Remix.map_pin_line;
   static const IconData link = Remix.link;
   static const IconData logout = Remix.logout_box_r_line;
@@ -99,6 +101,10 @@ abstract class AppIcons {
   static const IconData target = Remix.focus_line;
 
   // Settings
+  static const IconData theme = Remix.contrast_2_line;
+  static const IconData themeLight = Remix.sun_line;
+  static const IconData themeDark = Remix.moon_line;
+  static const IconData themeSystem = Remix.smartphone_line;
   static const IconData crown = Remix.vip_crown_line;
   static const IconData shield = Remix.shield_check_line;
   static const IconData star = Remix.star_line;

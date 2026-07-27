@@ -30,6 +30,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passcodeController = TextEditingController();
   final _emailFocus = FocusNode();
+  bool _biometricAutoPrompted = false;
 
   @override
   void dispose() {
@@ -91,6 +92,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (next.emailNotVerified && !(prev?.emailNotVerified ?? false)) {
         _showEmailNotVerifiedSheet(next.email);
       }
+      if (next.initialized &&
+          next.canUseBiometrics &&
+          next.phase == LoginPhase.passcode &&
+          !_biometricAutoPrompted) {
+        _biometricAutoPrompted = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ref.read(loginProvider.notifier).loginWithBiometrics();
+        });
+      }
     });
 
     if (!state.initialized) {
@@ -151,6 +161,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 controller: _passcodeController,
                                 email: state.email,
                                 onCompleted: _onPasscodeCompleted,
+                                showBiometric: state.canUseBiometrics,
+                                onBiometricTap: () => ref
+                                    .read(loginProvider.notifier)
+                                    .loginWithBiometrics(),
                               ),
                       ),
                     ),
@@ -312,11 +326,15 @@ class _PasscodePhase extends StatelessWidget {
   final TextEditingController controller;
   final String email;
   final Future<void> Function(String) onCompleted;
+  final bool showBiometric;
+  final VoidCallback onBiometricTap;
 
   const _PasscodePhase({
     required this.controller,
     required this.email,
     required this.onCompleted,
+    required this.showBiometric,
+    required this.onBiometricTap,
   });
 
   @override
@@ -351,6 +369,38 @@ class _PasscodePhase extends StatelessWidget {
               ),
             ),
           ),
+          if (showBiometric) ...[
+            const SizedBox(height: AppSpacing.xxl),
+            Center(
+              child: GestureDetector(
+                onTap: onBiometricTap,
+                behavior: HitTestBehavior.opaque,
+                child: Column(
+                  children: [
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: context.surfaceVariant,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        AppIcons.fingerprint,
+                        size: 28,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      'Use biometrics',
+                      style: AppTypography.bodyMedium
+                          .copyWith(color: context.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: AppSpacing.xxl),
         ],
       ),

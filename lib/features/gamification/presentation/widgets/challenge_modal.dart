@@ -92,113 +92,116 @@ class _ChallengeModal extends StatelessWidget {
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.base),
       backgroundColor: Colors.transparent,
-      child: Container(
-        decoration: BoxDecoration(
-          color: context.surfaceColor,
-          borderRadius: AppRadius.radiusSheet,
-        ),
-        clipBehavior: Clip.hardEdge,
-        child: Stack(
-          children: [
-            // Top gradient overlay
-            Positioned(
-              top: 0,
-              left: -39,
-              right: -39,
-              child: Container(
-                height: 192,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [cfg.gradientColor, const Color(0x00FFFFFF)],
+      child: SingleChildScrollView(
+        child: Container(
+          decoration: BoxDecoration(
+            color: context.surfaceColor,
+            borderRadius: AppRadius.radiusSheet,
+          ),
+          clipBehavior: Clip.hardEdge,
+          child: Stack(
+            children: [
+              // Top gradient overlay
+              Positioned(
+                top: 0,
+                left: -39,
+                right: -39,
+                child: Container(
+                  height: 192,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [cfg.gradientColor, const Color(0x00FFFFFF)],
+                    ),
                   ),
                 ),
               ),
-            ),
-            // Close button — top right
-            Positioned(
-              top: AppSpacing.base,
-              right: AppSpacing.base,
-              child: _CloseButton(onTap: () => Navigator.of(context).pop()),
-            ),
-            // Mascot — top right
-            Positioned(
-              top: 20,
-              right: AppSpacing.xl,
-              child: Image.asset(
-                cfg.assetPath,
-                width: 110,
-                height: 110,
-                fit: BoxFit.contain,
-                errorBuilder: (_, _, _) => const SizedBox(width: 110, height: 110),
+              // Close button — top right
+              Positioned(
+                top: AppSpacing.base,
+                right: AppSpacing.base,
+                child: _CloseButton(onTap: () => Navigator.of(context).pop()),
               ),
-            ),
-            // Content
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.xl,
-                140,
-                AppSpacing.xl,
-                AppSpacing.xl,
+              // Mascot — top right
+              Positioned(
+                top: 20,
+                right: AppSpacing.xl,
+                child: Image.asset(
+                  cfg.assetPath,
+                  width: 110,
+                  height: 110,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, _, _) =>
+                      const SizedBox(width: 110, height: 110),
+                ),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    cfg.title,
-                    style: AppTypography.headingSmall.copyWith(
-                      color: context.textPrimary,
-                      fontVariations: const [FontVariation('wght', 600)],
+              // Content
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.xl,
+                  140,
+                  AppSpacing.xl,
+                  AppSpacing.xl,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      cfg.title,
+                      style: AppTypography.headingSmall.copyWith(
+                        color: context.textPrimary,
+                        fontVariations: const [FontVariation('wght', 600)],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    cfg.description,
-                    style: AppTypography.bodySmall.copyWith(
-                      color: context.textSecondary,
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      cfg.description,
+                      style: AppTypography.bodySmall.copyWith(
+                        color: context.textSecondary,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-                  if (cfg.hasAmountButton)
-                    Row(
-                      children: [
-                        Expanded(
-                          child: AppButton(
-                            label: cfg.ctaLabel,
-                            height: 44,
-                            onTap: () => Navigator.of(context).pop(),
-                            backgroundColor: cfg.primaryColor,
-                            foregroundColor: cfg.onPrimaryColor,
+                    const SizedBox(height: AppSpacing.xl),
+                    if (cfg.hasAmountButton)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: AppButton(
+                              label: cfg.ctaLabel,
+                              height: 44,
+                              onTap: () => Navigator.of(context).pop(),
+                              backgroundColor: cfg.primaryColor,
+                              foregroundColor: cfg.onPrimaryColor,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
-                        Expanded(
-                          child: AppButton(
-                            label: 'Enter amount',
-                            height: 44,
-                            variant: AppButtonVariant.outline,
-                            onTap: () async {
-                              Navigator.of(context).pop();
-                              await showChallengeAmountSheet(context);
-                            },
+                          const SizedBox(width: AppSpacing.sm),
+                          Expanded(
+                            child: AppButton(
+                              label: 'Enter amount',
+                              height: 44,
+                              variant: AppButtonVariant.outline,
+                              onTap: () async {
+                                Navigator.of(context).pop();
+                                await showChallengeAmountSheet(context);
+                              },
+                            ),
                           ),
-                        ),
-                      ],
-                    )
-                  else
-                    AppButton(
-                      label: cfg.ctaLabel,
-                      height: 44,
-                      onTap: () => Navigator.of(context).pop(),
-                      backgroundColor: cfg.primaryColor,
-                      foregroundColor: cfg.onPrimaryColor,
-                    ),
-                ],
+                        ],
+                      )
+                    else
+                      AppButton(
+                        label: cfg.ctaLabel,
+                        height: 44,
+                        onTap: () => Navigator.of(context).pop(),
+                        backgroundColor: cfg.primaryColor,
+                        foregroundColor: cfg.onPrimaryColor,
+                      ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -221,7 +224,11 @@ class _CloseButton extends StatelessWidget {
           shape: BoxShape.circle,
           border: Border.all(color: AppColors.borderStrong),
         ),
-        child: const Icon(AppIcons.close, size: 14, color: AppColors.textSecondary),
+        child: const Icon(
+          AppIcons.close,
+          size: 14,
+          color: AppColors.textSecondary,
+        ),
       ),
     );
   }

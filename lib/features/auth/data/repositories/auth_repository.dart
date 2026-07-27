@@ -1,6 +1,7 @@
 import '../../../../core/api/api_client.dart';
 import '../../../../core/api/api_endpoints.dart';
 import '../../../../core/services/logger_service.dart';
+import '../models/financial_goal_model.dart';
 import '../models/token_pair_model.dart';
 import '../models/user_model.dart';
 
@@ -13,7 +14,7 @@ class AuthRepository {
     required String email,
     required String username,
     required String passcode,
-    String defaultCurrency = 'USD',
+    String defaultCurrency = 'NGN',
   }) async {
     Log.api('POST', ApiEndpoints.register, body: {'email': email, 'username': username});
     await _api.post<void>(
@@ -53,6 +54,22 @@ class AuthRepository {
     return response.data!;
   }
 
+  Future<TokenPairModel> socialAuth({
+    required String firebaseToken,
+    String defaultCurrency = 'NGN',
+  }) async {
+    Log.api('POST', ApiEndpoints.socialAuth);
+    final response = await _api.post<TokenPairModel>(
+      ApiEndpoints.socialAuth,
+      body: {
+        'firebase_token': firebaseToken,
+        'default_currency': defaultCurrency,
+      },
+      fromData: (data) => TokenPairModel.fromJson(data as Map<String, dynamic>),
+    );
+    return response.data!;
+  }
+
   Future<void> resendOtp({required String email}) async {
     Log.api('POST', ApiEndpoints.resendOtp, body: {'email': email});
     await _api.post<void>(
@@ -68,6 +85,14 @@ class AuthRepository {
       fromData: (data) => UserModel.fromJson(data as Map<String, dynamic>),
     );
     return response.data!;
+  }
+
+  Future<List<FinancialGoalModel>> getGoals() async {
+    Log.api('GET', ApiEndpoints.goals);
+    return _api.getAllPaginated<FinancialGoalModel>(
+      ApiEndpoints.goals,
+      fromItem: FinancialGoalModel.fromJson,
+    );
   }
 
   Future<void> setGoals(List<String> goals) async {

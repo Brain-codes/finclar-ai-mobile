@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_radius.dart';
@@ -6,10 +7,12 @@ import '../../../../core/constants/app_strings.dart';
 import '../../../../shared/icons/app_icons.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/widgets/app_skeleton.dart';
 import '../../../../shared/widgets/gradient_text.dart';
 import '../../../../shared/widgets/gradient_icon.dart';
+import '../../providers/home_dashboard_provider.dart';
 
-class ClaraCard extends StatelessWidget {
+class ClaraCard extends ConsumerWidget {
   final bool isEmpty;
   final String? insightText;
   final VoidCallback? onTap;
@@ -21,17 +24,51 @@ class ClaraCard extends StatelessWidget {
     this.onTap,
   });
 
-  static const _defaultInsight =
-      "You've spent ₦150,000 so far this month which is 25% of your income and the biggest jump came from food. Apparently your wallet has developed a taste for \"just one small treat\" that somehow keeps happening. We should have a discussion about that.";
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     if (isEmpty) {
       return _EmptyClaraCard(onTap: onTap);
     }
-    return _FilledClaraCard(
-      insightText: insightText ?? _defaultInsight,
-      onTap: onTap,
+    if (insightText != null) {
+      return _FilledClaraCard(insightText: insightText!, onTap: onTap);
+    }
+    return ref.watch(homeInsightProvider).when(
+          loading: () => const _ClaraSkeleton(),
+          error: (_, _) => _EmptyClaraCard(onTap: onTap),
+          data: (insight) => insight.trim().isEmpty
+              ? _EmptyClaraCard(onTap: onTap)
+              : _FilledClaraCard(insightText: insight, onTap: onTap),
+        );
+  }
+}
+
+class _ClaraSkeleton extends StatelessWidget {
+  const _ClaraSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return _GradientBorderCard(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.base),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: const [
+            Row(
+              children: [
+                AppSkeleton.circle(size: 16),
+                SizedBox(width: AppSpacing.xs),
+                AppSkeleton.text(width: 60),
+              ],
+            ),
+            SizedBox(height: AppSpacing.md),
+            AppSkeleton.text(width: double.infinity, height: 12),
+            SizedBox(height: 8),
+            AppSkeleton.text(width: double.infinity, height: 12),
+            SizedBox(height: 8),
+            AppSkeleton.text(width: 160, height: 12),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -78,8 +78,8 @@ class AppTopBar extends StatelessWidget {
         horizontal: AppSpacing.screenPadding,
         vertical: AppSpacing.sm,
       ),
-      child: hasTitle && centerTitle && !hasActions
-          // Variant 2: centered title (Stack keeps it truly centered)
+      child: hasTitle && centerTitle && !hasStepLabel
+          // Variant 2: centered title (Stack keeps it truly centered, even with actions)
           ? SizedBox(
               height: 40,
               child: Stack(
@@ -91,7 +91,12 @@ class AppTopBar extends StatelessWidget {
                     style: AppTypography.headingSmall.copyWith(color: context.textPrimary),
                   ),
                   Align(alignment: Alignment.centerLeft, child: _backButton(context)),
-                  const Align(alignment: Alignment.centerRight, child: SizedBox(width: 36)),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: hasActions
+                        ? Row(mainAxisSize: MainAxisSize.min, children: actions)
+                        : const SizedBox(width: 36),
+                  ),
                 ],
               ),
             )
