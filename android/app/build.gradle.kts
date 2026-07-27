@@ -68,3 +68,16 @@ android {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // Firebase App Distribution in-app tester feedback (screenshot + notes).
+    // The API-only library is safe in every variant and makes the calls compile;
+    // they no-op unless the full SDK is present. The full SDK contains self-update
+    // functionality that violates Google Play policy, so it is kept out of debug
+    // builds here and, crucially, MUST be excluded from any Google Play build.
+    //
+    // ⚠️ BEFORE SHIPPING TO GOOGLE PLAY: move the full SDK to a testing-only
+    // product flavor so the Play artifact ships api-only. See docs/RELEASE_PIPELINE.md.
+    implementation("com.google.firebase:firebase-appdistribution-api:16.0.0-beta20")
+    "releaseImplementation"("com.google.firebase:firebase-appdistribution:16.0.0-beta20")
+}

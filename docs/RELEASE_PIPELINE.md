@@ -123,3 +123,33 @@ release `vX.Y.Z` so the next run knows where to start counting commits from.
   The first `beta` run with no tags yet analyses your whole history.
 - CI: set `FIREBASE_SERVICE_ACCOUNT` and the Android keystore as CI secrets and run the
   same lanes; nothing else changes.
+
+---
+
+## 5. In-app tester feedback (App Distribution SDK)
+
+Testers can submit feedback + a screenshot from inside the app via a persistent
+notification (wired in `MainActivity.onCreate` → `showFeedbackNotification`). Two
+Gradle deps in `android/app/build.gradle.kts`:
+
+- `firebase-appdistribution-api` — in **all** variants; calls no-op without the full SDK.
+- `firebase-appdistribution` (full) — **`releaseImplementation` only** (the Firebase
+  beta build). Feedback appears in the Firebase console under each release's
+  **Tester feedback** tab, and Owners/Editors get email alerts.
+
+Requires the **Firebase App Testers API** enabled (Google Cloud console → APIs).
+
+### ⚠️ MANDATORY before shipping to Google Play
+
+The full SDK contains self-update functionality that **violates Google Play policy** —
+submitting it can get the app removed. Right now the `release` build type serves both
+Firebase beta and (future) Play, so before the first Play submission you MUST split them:
+
+1. Add a product flavor (e.g. `beta` vs `prod`) or a dedicated build type.
+2. Scope the full SDK to the testing-only variant
+   (`betaImplementation("...firebase-appdistribution:...")`), leaving `prod` api-only.
+3. Point `fastlane android beta` at the testing variant
+   (`flutter build apk --release --flavor beta`) and update the artifact path in
+   `fastlane/Fastfile` (becomes `build/app/outputs/flutter-apk/app-beta-release.apk`).
+
+Until then, distribute **only via Firebase**, never Play.
