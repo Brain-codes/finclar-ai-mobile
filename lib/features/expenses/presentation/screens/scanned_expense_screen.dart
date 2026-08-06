@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,7 +11,10 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../shared/icons/app_icons.dart';
 import '../../../../shared/widgets/app_button.dart';
+import '../../../../shared/widgets/app_image_preview.dart';
+import '../../../../shared/widgets/app_skeleton.dart';
 import '../../../../shared/widgets/app_snackbar.dart';
+import '../../../gamification/presentation/widgets/streak_card_modal.dart';
 import '../../data/models/expense_model.dart';
 import '../../data/models/scanned_receipt_model.dart';
 import '../../providers/expense_providers.dart';
@@ -168,10 +172,13 @@ class _ScannedExpenseScreenState extends ConsumerState<ScannedExpenseScreen> {
       setState(() => _isSaving = false);
     }
 
-    if (mounted) {
-      AppSnackbar.success(context, 'Expenses saved successfully');
-      context.pop();
-    }
+    if (!mounted) return;
+    // Celebrate before popping — once dismissed the snackbar lands on the
+    // screen underneath.
+    await maybeShowStreakModal(context, ref);
+    if (!mounted) return;
+    AppSnackbar.success(context, 'Expenses saved successfully');
+    context.pop();
   }
 
   /// Items carry a `category_id`, not a name — resolve display names from the
@@ -482,7 +489,11 @@ class _ItemsCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Receipt header tile
-          _ReceiptHeaderTile(imageFile: imageFile, itemCount: items.length),
+          _ReceiptHeaderTile(
+            imageFile: imageFile,
+            receiptUrl: receipt.receiptUrl,
+            itemCount: items.length,
+          ),
           const SizedBox(height: AppSpacing.sm),
           // Item list
           ...List.generate(items.length * 2 - 1, (index) {
@@ -498,12 +509,19 @@ class _ItemsCard extends StatelessWidget {
 
 class _ReceiptHeaderTile extends StatelessWidget {
   final File? imageFile;
+  final String? receiptUrl;
   final int itemCount;
 
-  const _ReceiptHeaderTile({required this.imageFile, required this.itemCount});
+  const _ReceiptHeaderTile({
+    required this.imageFile,
+    required this.receiptUrl,
+    required this.itemCount,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final hasImage = imageFile != null || (receiptUrl?.isNotEmpty ?? false);
+
     return Container(
       padding: const EdgeInsets.all(AppSpacing.sm),
       decoration: BoxDecoration(
@@ -513,17 +531,40 @@ class _ReceiptHeaderTile extends StatelessWidget {
       child: Row(
         children: [
           // Image thumbnail
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: context.surfaceColor,
-              borderRadius: BorderRadius.circular(AppRadius.sm),
+          GestureDetector(
+            onTap: hasImage
+                ? () => showImagePreview(
+                    context,
+                    file: imageFile,
+                    url: receiptUrl,
+                  )
+                : null,
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: context.surfaceColor,
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: imageFile != null
+                  ? Image.file(imageFile!, fit: BoxFit.cover)
+                  : (receiptUrl?.isNotEmpty ?? false)
+                  ? CachedNetworkImage(
+                      imageUrl: receiptUrl!,
+                      fit: BoxFit.cover,
+                      placeholder: (_, _) => const AppSkeleton(
+                        width: 44,
+                        height: 44,
+                      ),
+                      errorWidget: (_, _, _) => Icon(
+                        AppIcons.file,
+                        size: 20,
+                        color: context.textTertiary,
+                      ),
+                    )
+                  : Icon(AppIcons.file, size: 20, color: context.textTertiary),
             ),
-            clipBehavior: Clip.antiAlias,
-            child: imageFile != null
-                ? Image.file(imageFile!, fit: BoxFit.cover)
-                : Icon(AppIcons.file, size: 20, color: context.textTertiary),
           ),
           const SizedBox(width: AppSpacing.md),
           Column(

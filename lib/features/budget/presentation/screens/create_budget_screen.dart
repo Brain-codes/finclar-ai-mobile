@@ -60,6 +60,8 @@ class _CreateBudgetScreenState extends ConsumerState<CreateBudgetScreen> {
 
   @override
   Widget build(BuildContext context) {
+    _keypad.setSymbol(ref.watch(currencySymbolProvider));
+
     return Scaffold(
       backgroundColor: context.scaffoldColor,
       body: SafeArea(

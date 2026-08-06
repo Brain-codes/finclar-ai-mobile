@@ -41,7 +41,12 @@ class _MessageScreenState extends State<MessageScreen> {
 
   Future<void> _pickImage() async {
     if (_images.length >= 4) return;
-    final file = await _picker.pickImage(source: ImageSource.gallery);
+    final file = await _picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1600,
+      maxHeight: 1600,
+      imageQuality: 70,
+    );
     if (file != null && mounted) {
       setState(() => _images.add(file));
     }

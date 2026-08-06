@@ -20,6 +20,9 @@ abstract class AppSvg {
   static const String google       = '$_base/google.svg';
   static const String apple        = '$_base/apple.svg';
 
+  // ─── Wrapped ──────────────────────────────────────────────────────────────
+  static const String wrappedPassportMark = 'assets/images/wrapped/iopassport.svg';
+
   // ─── Illustrations ────────────────────────────────────────────────────────
   // static const String emptyState    = '$_base/empty_state.svg';
   // static const String errorState    = '$_base/error_state.svg';

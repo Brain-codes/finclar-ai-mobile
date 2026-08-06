@@ -82,6 +82,21 @@ class ExpenseItemUpdate {
       };
 }
 
+/// How trustworthy an expense's figures are. `verified` means a receipt scan or
+/// bank sync backs it; `self_reported` means the user typed it in.
+enum ExpenseVerificationLevel {
+  verified,
+  selfReported;
+
+  static ExpenseVerificationLevel fromString(String? value) =>
+      value == 'verified'
+          ? ExpenseVerificationLevel.verified
+          : ExpenseVerificationLevel.selfReported;
+
+  String get value =>
+      this == ExpenseVerificationLevel.verified ? 'verified' : 'self_reported';
+}
+
 class ExpenseModel {
   final String id;
   final double amount;
@@ -93,6 +108,13 @@ class ExpenseModel {
   final List<ExpenseCategoryRef> categories;
   final List<ExpenseItem> items;
   final String? receiptUrl;
+  final String? claraInsight;
+  final ExpenseVerificationLevel verificationLevel;
+
+  /// Backend-computed nudge: true for large self-reported expenses. Actionable
+  /// since 2026-08-03 — `PATCH /expenses/{id}` accepts a receipt, so this can
+  /// drive an "attach proof" prompt (see docs/API.md).
+  final bool evidenceSuggested;
 
   ExpenseModel({
     required this.id,
@@ -105,6 +127,9 @@ class ExpenseModel {
     this.categories = const [],
     this.items = const [],
     this.receiptUrl,
+    this.claraInsight,
+    this.verificationLevel = ExpenseVerificationLevel.selfReported,
+    this.evidenceSuggested = false,
   });
 
   // ── Compat getters used by existing UI widgets ──────────────────────────────
@@ -140,7 +165,13 @@ class ExpenseModel {
             .map((e) => ExpenseItem.fromJson(e as Map<String, dynamic>))
             .toList(),
         receiptUrl: json['receipt_url'],
+        claraInsight: json['clara_insight'],
+        verificationLevel:
+            ExpenseVerificationLevel.fromString(json['verification_level']),
+        evidenceSuggested: json['evidence_suggested'] as bool? ?? false,
       );
+
+  bool get isVerified => verificationLevel == ExpenseVerificationLevel.verified;
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -153,6 +184,9 @@ class ExpenseModel {
         'categories': categories.map((e) => e.toJson()).toList(),
         'items': items.map((e) => e.toJson()).toList(),
         'receipt_url': receiptUrl,
+        'clara_insight': claraInsight,
+        'verification_level': verificationLevel.value,
+        'evidence_suggested': evidenceSuggested,
       };
 }
 

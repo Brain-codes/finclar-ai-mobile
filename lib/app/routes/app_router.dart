@@ -29,11 +29,12 @@ import '../../features/group/data/models/group_model.dart';
 import '../../features/group/presentation/screens/group_screen.dart';
 import '../../features/group/presentation/screens/create_group_screen.dart';
 import '../../features/group/presentation/screens/group_detail_screen.dart';
+import '../../features/group/presentation/screens/friends_screen.dart';
 import '../../features/group/presentation/screens/group_friends_screen.dart';
 import '../../features/group/presentation/screens/group_chat_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
-import '../../features/settings/presentation/screens/change_passcode_screen.dart';
 import '../../features/settings/presentation/screens/avatar_picker_screen.dart';
+import '../../features/settings/presentation/screens/change_passcode_screen.dart';
 import '../../features/settings/presentation/screens/contact_us_screen.dart';
 import '../../features/settings/presentation/screens/faq_screen.dart';
 import '../../features/settings/presentation/screens/message_screen.dart';
@@ -42,7 +43,10 @@ import '../../features/settings/presentation/screens/my_accounts_screen.dart';
 import '../../features/subscription/presentation/screens/subscription_screen.dart';
 import '../../features/auth/presentation/screens/terms_of_service_screen.dart';
 import '../../features/auth/presentation/screens/privacy_policy_screen.dart';
+import '../../features/gamification/data/models/challenge_model.dart';
 import '../../features/gamification/presentation/screens/badges_screen.dart';
+import '../../features/gamification/presentation/screens/challenge_detail_screen.dart';
+import '../../features/gamification/presentation/screens/challenges_screen.dart';
 import '../../features/gamification/presentation/screens/gamification_preview_screen.dart';
 import '../../features/gamification/presentation/screens/wrapped_screen.dart';
 import '../../features/clara/presentation/screens/clara_chat_screen.dart';
@@ -233,6 +237,10 @@ final appRouter = GoRouter(
       },
     ),
     GoRoute(
+      path: RouteNames.friends,
+      pageBuilder: (context, state) => _page(state, const FriendsScreen()),
+    ),
+    GoRoute(
       path: RouteNames.groupFriends,
       pageBuilder: (context, state) {
         final group = state.extra as GroupModel;
@@ -293,16 +301,16 @@ final appRouter = GoRouter(
       pageBuilder: (context, state) => _page(state, const ChangePasscodeScreen()),
     ),
     GoRoute(
+      path: RouteNames.settingsAvatar,
+      pageBuilder: (context, state) => _page(state, const AvatarPickerScreen()),
+    ),
+    GoRoute(
       path: RouteNames.settingsContactUs,
       pageBuilder: (context, state) => _page(state, const ContactUsScreen()),
     ),
     GoRoute(
       path: RouteNames.settingsFaq,
       pageBuilder: (context, state) => _page(state, const FaqScreen()),
-    ),
-    GoRoute(
-      path: RouteNames.settingsAvatar,
-      pageBuilder: (context, state) => _page(state, const AvatarPickerScreen()),
     ),
     GoRoute(
       path: RouteNames.settingsMessage,
@@ -330,6 +338,17 @@ final appRouter = GoRouter(
     GoRoute(
       path: RouteNames.wrapped,
       pageBuilder: (context, state) => _page(state, const WrappedScreen()),
+    ),
+    GoRoute(
+      path: RouteNames.challenges,
+      pageBuilder: (context, state) => _page(state, const ChallengesScreen()),
+    ),
+    GoRoute(
+      path: RouteNames.challengeDetail,
+      pageBuilder: (context, state) => _page(
+        state,
+        ChallengeDetailScreen(initial: state.extra as ChallengeModel),
+      ),
     ),
 
     // ── Clara AI chat (outside shell) ────────────────────────────────────────

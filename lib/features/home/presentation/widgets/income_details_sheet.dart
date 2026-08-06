@@ -11,20 +11,26 @@ import '../../../../shared/widgets/app_sheet.dart';
 import '../../../../shared/widgets/app_snackbar.dart';
 import '../../../../app/routes/route_names.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
+import '../../data/models/income_model.dart';
 import '../../data/models/income_source_model.dart';
+import '../../providers/home_dashboard_provider.dart';
 import '../../providers/income_setup_provider.dart';
 import 'select_source_sheet.dart';
 import 'add_note_sheet.dart';
 import 'recurrence_sheet.dart';
 
+/// [existing] switches the sheet into edit mode: the rows open pre-filled and
+/// Done PATCHes instead of POSTing. The backend keeps one income record per
+/// user, so creating twice would 409 rather than add a second entry.
 Future<void> showIncomeDetailsSheet(
   BuildContext context, {
   required double amount,
+  IncomeModel? existing,
 }) {
   return showAppSheet(
     context,
-    title: 'Add details',
-    children: [_IncomeDetailsContent(amount: amount)],
+    title: existing == null ? 'Add details' : 'Edit details',
+    children: [_IncomeDetailsContent(amount: amount, existing: existing)],
   );
 }
 
@@ -39,9 +45,21 @@ String _toApiReoccurrence(String label) {
   };
 }
 
+// Inverse of [_toApiReoccurrence], for pre-filling the edit flow.
+String? _toDisplayReoccurrence(String? value) {
+  return switch (value) {
+    'monthly' => 'Monthly',
+    'weekly' => 'Weekly',
+    'daily' => 'Daily',
+    'one_time' => 'One time',
+    _ => null,
+  };
+}
+
 class _IncomeDetailsContent extends ConsumerStatefulWidget {
   final double amount;
-  const _IncomeDetailsContent({required this.amount});
+  final IncomeModel? existing;
+  const _IncomeDetailsContent({required this.amount, this.existing});
 
   @override
   ConsumerState<_IncomeDetailsContent> createState() =>
@@ -58,7 +76,21 @@ class _IncomeDetailsContentState extends ConsumerState<_IncomeDetailsContent> {
   @override
   void initState() {
     super.initState();
-    _date = DateTime.now();
+    final existing = widget.existing;
+    _date = existing != null
+        ? (DateTime.tryParse(existing.startDate) ?? DateTime.now())
+        : DateTime.now();
+    _recurrence = _toDisplayReoccurrence(existing?.reoccurrence);
+    _note = existing?.note;
+    if (existing != null) {
+      // Only id/name are known here; the picker matches on id, and isDefault
+      // is never read for the selected value.
+      _source = IncomeSourceModel(
+        id: existing.sourceId,
+        name: existing.sourceName,
+        isDefault: false,
+      );
+    }
   }
 
   Future<void> _pickSource() async {
@@ -80,13 +112,40 @@ class _IncomeDetailsContentState extends ConsumerState<_IncomeDetailsContent> {
   Future<void> _submit() async {
     setState(() => _isLoading = true);
     try {
-      await ref.read(incomeProvider.notifier).create(
-            amount: widget.amount,
-            sourceId: _source!.id,
-            reoccurrence: _toApiReoccurrence(_recurrence!),
-            startDate: DateFormat('yyyy-MM-dd').format(_date),
-            note: _note,
-          );
+      final notifier = ref.read(incomeProvider.notifier);
+      final args = (
+        amount: widget.amount,
+        sourceId: _source!.id,
+        reoccurrence: _toApiReoccurrence(_recurrence!),
+        startDate: DateFormat('yyyy-MM-dd').format(_date),
+        note: _note,
+      );
+      if (widget.existing == null) {
+        await notifier.create(
+          amount: args.amount,
+          sourceId: args.sourceId,
+          reoccurrence: args.reoccurrence,
+          startDate: args.startDate,
+          note: args.note,
+        );
+      } else {
+        await notifier.save(
+          amount: args.amount,
+          sourceId: args.sourceId,
+          reoccurrence: args.reoccurrence,
+          startDate: args.startDate,
+          note: args.note,
+        );
+      }
+      // AsyncValue.guard swallows the failure into state — surface it rather
+      // than navigating home as if the save worked.
+      final result = ref.read(incomeProvider);
+      if (result.hasError) throw result.error!;
+
+      // The balance card and the income/expense chart both read backend-computed
+      // figures that income feeds into.
+      ref.invalidate(homeInsightProvider);
+      ref.invalidate(homeSummaryProvider);
       if (mounted) context.go(RouteNames.home);
     } catch (e) {
       if (mounted) {

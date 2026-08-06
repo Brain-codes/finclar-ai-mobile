@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../../core/services/invite_service.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
@@ -38,6 +39,17 @@ class _ShareGroupSheet extends StatelessWidget {
     required this.shareLink,
     required this.memberNames,
   });
+
+  String get _message =>
+      'Join my "$groupName" group on finclar — $shareLink';
+
+  Future<void> _shareSheet() => InviteService.shareText(_message);
+
+  Future<void> _channel(Future<bool> Function(String) action) async {
+    final launched = await action(_message);
+    // The app isn't installed — fall back rather than doing nothing.
+    if (!launched) await _shareSheet();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -233,31 +245,43 @@ class _ShareGroupSheet extends StatelessWidget {
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
+              children: [
                 _ShareAppIcon(
                   label: 'Whatsapp',
                   icon: AppIcons.whatsapp,
-                  color: Color(0xFF25D366),
+                  color: const Color(0xFF25D366),
+                  onTap: () => _channel(InviteService.textToWhatsApp),
                 ),
                 _ShareAppIcon(
                   label: 'Telegram',
                   icon: AppIcons.send,
-                  color: Color(0xFF2CA5E0),
+                  color: const Color(0xFF2CA5E0),
+                  onTap: _shareSheet,
                 ),
                 _ShareAppIcon(
                   label: 'Gmail',
                   icon: AppIcons.email,
-                  color: Color(0xFFEA4335),
+                  color: const Color(0xFFEA4335),
+                  onTap: () => _channel(
+                    (t) => InviteService.textToEmail(
+                      t,
+                      subject: 'Join my finclar group',
+                    ),
+                  ),
                 ),
                 _ShareAppIcon(
                   label: 'Message',
                   icon: AppIcons.chat,
-                  color: Color(0xFF34C759),
+                  color: const Color(0xFF34C759),
+                  onTap: () => _channel(InviteService.textToSms),
                 ),
+                // Instagram has no text-share intent — the OS sheet is the
+                // only honest route to it.
                 _ShareAppIcon(
                   label: 'Instagram',
                   icon: AppIcons.instagram,
-                  color: Color(0xFFD00B41),
+                  color: const Color(0xFFD00B41),
+                  onTap: _shareSheet,
                 ),
               ],
             ),
@@ -272,29 +296,36 @@ class _ShareAppIcon extends StatelessWidget {
   final String label;
   final IconData icon;
   final Color color;
+  final VoidCallback onTap;
 
   const _ShareAppIcon({
     required this.label,
     required this.icon,
     required this.color,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          child: Icon(icon, size: 22, color: Colors.white),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: AppTypography.labelSmall.copyWith(color: context.textTertiary),
-        ),
-      ],
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            child: Icon(icon, size: 22, color: Colors.white),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style:
+                AppTypography.labelSmall.copyWith(color: context.textTertiary),
+          ),
+        ],
+      ),
     );
   }
 }

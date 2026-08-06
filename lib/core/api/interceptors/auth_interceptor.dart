@@ -68,6 +68,11 @@ class AuthInterceptor extends Interceptor {
 
     try {
       handler.resolve(await _retry(err.requestOptions, newToken));
+    } on DioException catch (retryErr) {
+      // The retry reached the server and got a real answer (422, 404, 500…).
+      // That response is the truth about this request — forwarding the stale
+      // 401 instead would hide the server's message and trip a false logout.
+      handler.next(retryErr);
     } catch (_) {
       handler.next(err);
     }
@@ -128,6 +133,12 @@ class AuthInterceptor extends Interceptor {
   ) async {
     options.headers['Authorization'] = 'Bearer $accessToken';
     options.extra[_retriedKey] = true;
+    // A FormData's byte stream is consumed by the request that failed, so the
+    // retry has to send a fresh copy — resending the spent one produces an
+    // empty body, a second 401, and a spurious logout.
+    if (options.data is FormData) {
+      options.data = (options.data as FormData).clone();
+    }
     // Reuse the main Dio so the retry still logs; the retried request carries
     // the _retriedKey flag so a second 401 logs out instead of looping.
     return _dio.fetch(options);

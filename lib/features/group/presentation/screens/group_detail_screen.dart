@@ -19,7 +19,7 @@ import '../../../../shared/widgets/app_top_bar.dart';
 import '../../data/models/group_member_model.dart';
 import '../../data/models/group_model.dart';
 import '../../providers/group_providers.dart';
-import '../widgets/delete_friend_sheet.dart';
+import '../widgets/remove_member_sheet.dart';
 import '../widgets/delete_group_sheet.dart';
 import '../widgets/edit_friend_sheet.dart';
 import '../widgets/group_add_friends_action.dart';
@@ -383,12 +383,17 @@ class _FriendsCard extends ConsumerWidget {
     WidgetRef ref,
     GroupMemberModel member,
   ) async {
-    final confirmed = await showDeleteFriendSheet(context);
-    if (confirmed != true || !context.mounted) return;
+    final redistribution = await showRemoveMemberSheet(
+      context,
+      name: member.username,
+      amountLeft: member.amountLeft,
+      symbol: symbol,
+    );
+    if (redistribution == null || !context.mounted) return;
     try {
       await ref
           .read(groupDetailProvider(group.id).notifier)
-          .removeMember(member.id);
+          .removeMember(member.id, redistribution: redistribution);
       if (context.mounted) AppSnackbar.success(context, 'Member removed');
     } on AppException catch (e) {
       if (context.mounted) AppSnackbar.error(context, e.message);

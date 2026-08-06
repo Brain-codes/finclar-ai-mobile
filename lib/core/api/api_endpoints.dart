@@ -35,6 +35,8 @@ abstract class ApiEndpoints {
 
   // ─── User ─────────────────────────────────────────────────────────────────
   static const String checkUsername = '/user/check-username';
+
+  /// `GET` for the profile, `PATCH` to update it (`UpdateUserDto`).
   static const String me            = '/user/me';
 
   // ─── Income ───────────────────────────────────────────────────────────────
@@ -52,9 +54,16 @@ abstract class ApiEndpoints {
   static String expense(String id)   => '/expenses/$id';
   static const String expenseReceipt = '/expenses/receipt';
   static const String expenseSummary = '/expenses/summary';
+  static const String expenseStreak  = '/expenses/streak';
+  // Backend QA helper — only called from the dev-flagged tools sheet.
+  static String expenseStreakSimulate(int days) =>
+      '/expenses/streak/dev/simulate?days=$days';
 
   // ─── Insights ─────────────────────────────────────────────────────────────
   static const String homeInsight = '/insights/home';
+
+  // ─── Wrapped (year in review) ─────────────────────────────────────────────
+  static const String wrapped = '/wrapped';
 
   // ─── Clara AI chat ────────────────────────────────────────────────────────
   static const String claraChat     = '/clara/chat';
@@ -94,6 +103,7 @@ abstract class ApiEndpoints {
   static String groupLeave(String id)    => '/groups/$id/leave';
   static String groupInvite(String id)   => '/groups/$id/invite';
   static String groupShare(String id)    => '/groups/$id/share';
+
   static String groupMembers(String id) => '/groups/$id/members';
   static String groupMember(String groupId, String memberId) =>
       '/groups/$groupId/members/$memberId';
@@ -109,7 +119,20 @@ abstract class ApiEndpoints {
   static const String subscriptionCancel  = '/subscriptions/cancel';
   static const String subscriptionResume  = '/subscriptions/resume';
 
-  // ─── Planned — not yet live on backend (see docs/API.md) ──────────────────
-  static const String transactions     = '/transactions';
-  static String transaction(String id) => '/transactions/$id';
+  // ─── Savings Challenges ───────────────────────────────────────────────────
+  static const String challenges           = '/challenges';
+  static String challenge(String id)       => '/challenges/$id';
+  static String challengeEntries(String id) => '/challenges/$id/entries';
+  static const String challengeBadgeCatalog = '/challenges/badges/catalog';
+  static const String challengeBadgesMine   = '/challenges/badges/mine';
+  // Backend QA helpers — only called from the dev-flagged tools sheet.
+  static String challengeSimulateStreak(String id, int weeks) =>
+      '/challenges/$id/dev/simulate-streak?weeks=$weeks';
+  static String challengeTestReminder(String id) =>
+      '/challenges/$id/dev/send-test-reminder';
+
+  // ─── Push Notifications (device tokens) ──────────────────────────────────
+  static const String deviceTokens = '/notifications/device-tokens';
+  static String deviceToken(String id) => '/notifications/device-tokens/$id';
+  static const String testPush = '/notifications/test-push';
 }

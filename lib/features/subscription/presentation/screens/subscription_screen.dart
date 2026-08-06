@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/config/app_config_notifier.dart';
+import '../../../../core/errors/app_exceptions.dart';
+import '../../../../core/services/logger_service.dart';
 import '../../../../core/services/paystack_checkout_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -51,8 +53,9 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
     }
 
     setState(() => _isProcessing = true);
+    String? reference;
     try {
-      final reference = await PaystackCheckoutService.start(
+      reference = await PaystackCheckoutService.start(
         context,
         publicKey: plans.paystackPublicKey,
         email: email,
@@ -68,14 +71,38 @@ class _SubscriptionScreenState extends ConsumerState<SubscriptionScreen> {
           .read(subscriptionProvider.notifier)
           .verifyCheckout(reference: reference, planCode: _selected);
 
-      if (!mounted) return;
-      AppSnackbar.success(context, 'You are now on Clara +');
-      if (context.canPop()) context.pop();
-    } catch (e) {
-      if (mounted) AppSnackbar.error(context, e.toString());
+      Log.d('Subscription verified for reference $reference');
+      _showSnack(success: true, message: 'You are now on Clara +');
+      if (mounted && context.canPop()) context.pop();
+    } catch (e, st) {
+      // The charge may already have gone through — the reference is the only
+      // way to reconcile it, so log it loudly on every verify failure.
+      Log.e(
+        'Checkout failed (reference: ${reference ?? "none"})',
+        error: e,
+        stackTrace: st,
+      );
+      _showSnack(
+        success: false,
+        message: e is AppException
+            ? e.message
+            : 'Something went wrong. Please try again.',
+      );
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
+  }
+
+  // toastification called in the same frame as the checkout route's pop gets
+  // swallowed, so defer to the next frame once the overlay has settled.
+  void _showSnack({required bool success, required String message}) {
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      success
+          ? AppSnackbar.success(context, message)
+          : AppSnackbar.error(context, message);
+    });
   }
 
   @override

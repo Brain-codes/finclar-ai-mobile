@@ -8,6 +8,67 @@
 >
 > ✅ **2026-07-06:** Diffed against the live OpenAPI spec — **Friends** (search/invite/accept/decline/remove) and full **Groups** (CRUD, membership, savings entries, chat messages + attachments) are now live, plus public `POST /marketing/newsletter/subscribe` and `POST /marketing/waitlist`. None of these are wired into the app yet — see `MEMORY.md` open threads.
 >
+> ✅ **2026-08-02:** Diffed against the live spec again. Changes since 2026-07-20:
+> - **Expense verification levels** are live — `verification_level` (`verified` | `self_reported`)
+>   and `evidence_suggested` on every `ExpenseResponseDto`. ⚠️ **There is no endpoint to attach
+>   proof to an existing expense**, so `evidence_suggested` currently has no action behind it.
+> - ⚠️ **BREAKING — `GET /insights/home` now returns an object** (`HomeInsightDto`), not a bare
+>   string, and accepts optional `start_date`/`end_date`.
+> - ⚠️ **BREAKING — `DELETE /groups/{id}/members/{member_id}` now requires `?redistribution=`.**
+> - **New:** `GET /wrapped` (year-in-review), `PATCH /user/me`.
+> - `UserResponseDto` gained `preferred_name`, `profile_icon`, `display_name`.
+> - `clara_insight` added to `ExpenseResponseDto` and `BudgetResponseDto`.
+> - `POST /groups/{group_id}/members` is **still not live** (client still 404s on it).
+>
+> ✅ **2026-08-03:** Diffed against the live spec again. Changes since 2026-08-02:
+> - **New:** Savings Challenges (`/challenges/*`) — weekly savings-streak challenges with
+>   entries, badges, and a badge catalog. Not wired into the app yet.
+> - **New:** Push notification device-token registration is finally live
+>   (`/notifications/device-tokens`, `/notifications/test-push`) — this fills the gap that
+>   was blocking `NotificationService._registerToken` (previously a stub, see
+>   `MEMORY.md` open threads).
+> - ⚠️ **BREAKING — `POST /expenses` (manual expense) is now `multipart/form-data`, not a
+>   plain JSON body.** It carries a JSON-encoded `dto` form field plus an optional `receipt`
+>   image — attaching one AI-verifies the entered amount and marks the expense `verified`.
+>   This is the first bit of "attach evidence" support for **new** expenses (see [Expense
+>   verification levels](#expense-verification-levels) — attaching proof to an *existing*
+>   expense is still not possible). Fixed client-side same day: `ExpenseRepository.createExpense`
+>   now sends multipart and takes an optional `receipt` file.
+> - `POST /groups/{group_id}/members` is **still not live** — confirmed absent from the spec
+>   again today.
+> - No other breaking changes: `UserResponseDto`, `ExpenseResponseDto` (aside from the create
+>   request shape above), `WrappedDto`, and all previously-documented schemas are unchanged.
+>
+> ✅ **2026-08-03 (second sync, later same day):** Re-diffed. **No path changes** — every
+> change is in schemas/params, which is exactly the kind that breaks silently:
+> - ⚠️ **BREAKING — `PATCH /expenses/{id}` is now `multipart/form-data`** (same `dto` +
+>   optional `receipt` shape as `POST /expenses`). The client was sending a plain JSON body →
+>   422. **This also closes the long-standing "attach proof to an existing expense" gap** —
+>   `evidence_suggested` finally has an action behind it. Fixed client-side.
+> - ⚠️ **BREAKING — Wrapped is now MONTHLY, not a year-in-review.** `GET /wrapped` takes
+>   `year` **and `month`**; `WrappedDto`, `WrappedCoverDto`, and `SharePassportDto` all gained
+>   a required `month`, and `MonthlySavingsDto` gained `year`. Fixed client-side.
+> - ⚠️ **BREAKING — `GET /groups/{id}/messages` now pages with `page_size`, not `limit`.**
+>   Fixed client-side.
+> - **New:** `POST /auth/logout` accepts an optional body `{ "device_token": "..." }` so the
+>   push token is unregistered on logout. ✅ Wired — `AuthRepository.logout` sends it.
+> - `CategoryDto` gained `user_id`, `icon`, `is_default` (system vs. user-created).
+> - Now nullable: `SavingsEntryResponseDto.cumulative_at_time`, and
+>   `MessageResponseDto.sender_id` / `sender_username` / `content`. Client models already
+>   handled these defensively — no change needed.
+>
+> ✅ **2026-08-04:** Re-diffed (75 paths). No new paths. One silent schema gap:
+> - **`ChallengeType` has always had three values** — `friday_savings`, `no_spend`,
+>   `budget_category` — and `ChallengeStatus` four, including `failed`. The client had
+>   collapsed both, so non-Friday challenges parsed as Friday and a `failed` challenge read
+>   as `active`. Fixed client-side; see [Savings Challenges](#savings-challenges).
+> - `/transactions` does not exist and never has — dead constants removed from `ApiEndpoints`.
+>
+> ✅ **2026-08-05:** Re-diffed (77 paths). Two new, both the **daily expense-logging streak**:
+> - **New:** `GET /expenses/streak` → `ExpenseStreakResponseDto`. Wired client-side.
+> - **New:** `POST /expenses/streak/dev/simulate?days=` — QA helper.
+> - No schema changes elsewhere; `ChallengeType`/`ChallengeStatus` unchanged from 2026-08-04.
+>
 > This file is the single source of truth for all backend endpoints.
 > Update it every time a new endpoint is added or an existing one changes.
 > `ApiEndpoints` in `lib/core/api/api_endpoints.dart` must always mirror this file.
@@ -47,9 +108,9 @@ Every response from the API is wrapped in this envelope:
 
 ### Paginated list endpoints
 
-The following `GET` list endpoints return the **paginated envelope** — `data` is the array plus a sibling `pagination` object (`PaginationMeta`), just like `/expenses`. They accept `page` / `page_size` query params (chat messages use `page` / `limit`):
+The following `GET` list endpoints return the **paginated envelope** — `data` is the array plus a sibling `pagination` object (`PaginationMeta`), just like `/expenses`. They **all** accept `page` / `page_size` query params (as of 2026-08-03 chat messages use `page_size` too, not `limit`):
 
-`/expenses`, `/categories`, `/banks`, `/banks/available`, `/income/sources`, `/goals`, `/budgets`, `/friends`, `/friends/search`, `/friends/invites`, `/groups`, `/groups/{group_id}/savings`, `/groups/{group_id}/messages`.
+`/expenses`, `/categories`, `/banks`, `/banks/available`, `/income/sources`, `/goals`, `/budgets`, `/friends`, `/friends/search`, `/friends/invites`, `/groups`, `/groups/{group_id}/savings`, `/groups/{group_id}/messages`, `/clara/messages`, `/challenges`, `/challenges/{challenge_id}/entries`.
 
 The client reads `data` (the array) either way, but to avoid page-1 truncation, list repositories walk all pages via `ApiClient.getAllPaginated<T>()`. Chat/expense lists that page in the UI use `getPaginated<T>()` directly.
 
@@ -137,6 +198,14 @@ Exchange an unexpired `refresh_token` for a fresh token pair.
 #### `POST /auth/logout` 🔒
 Invalidate the current session's refresh token.
 
+**Request body** (`LogoutDto`) — optional, may be omitted entirely
+```json
+{ "device_token": "<fcm_token>" }
+```
+Added 2026-08-03. Pass the device's FCM token to unregister it for push in the same call, so
+a logged-out device stops receiving notifications. See
+[Push Notifications](#push-notifications-device-tokens).
+
 **Response** `ApiResponse<dict>`
 
 ---
@@ -223,6 +292,28 @@ Check whether a username is available before registration. No auth required.
 
 #### `GET /user/me` 🔒
 Fetch the authenticated user's profile.
+
+**Response** `ApiResponse<UserResponseDto>`
+
+---
+
+#### `PATCH /user/me` 🔒
+Update the authenticated user's profile. All fields optional — send only what changed.
+
+**Request body** (`UpdateUserDto`)
+```json
+{
+  "username": "chinasa",
+  "preferred_name": "Chi",
+  "is_active": true,
+  "default_currency": "NGN",
+  "profile_icon": "avatar_3"
+}
+```
+
+`preferred_name` is what the user wants to be called (Clara should address them by it
+rather than by `username`). `display_name` on the response is computed by the backend —
+`preferred_name` when set, otherwise `username`. Prefer `display_name` in the UI.
 
 **Response** `ApiResponse<UserResponseDto>`
 
@@ -395,7 +486,16 @@ Paginated, filterable expense list. Returns the `PaginatedResponse` envelope (se
 #### `POST /expenses` 🔒
 Create a manual expense.
 
-**Request body**
+> ⚠️ **Changed (2026-08-03):** this is now `multipart/form-data`, not a plain JSON body —
+> so a receipt image can optionally ride along in the same request.
+
+**Form fields**
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `dto` | string | ✅ | JSON-encoded `CreateManualExpenseDto` (see below) sent as a form field |
+| `receipt` | file (binary) | — | Optional receipt image. If provided, the entered amount is AI-verified against it and the expense comes back `verification_level: "verified"`. |
+
+`dto` JSON shape (`CreateManualExpenseDto`):
 ```json
 {
   "amount": 2500,
@@ -423,7 +523,17 @@ Fetch a single expense.
 #### `PATCH /expenses/{expense_id}` 🔒
 Update an expense. All fields optional — send only what changed.
 
-**Request body** (`UpdateExpenseDto`)
+> ⚠️ **Changed (2026-08-03):** now `multipart/form-data`, not a plain JSON body — same shape
+> as `POST /expenses`. **This is the attach-proof-to-an-existing-expense endpoint** that was
+> previously missing.
+
+**Form fields**
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `dto` | string | ✅ | JSON-encoded `UpdateExpenseDto` (below) sent as a form field |
+| `receipt` | file (binary) | — | Optional receipt image. AI-verified against `dto.amount` — or the expense's **current** amount when `amount` isn't being changed — and flips the expense to `verification_level: "verified"`. |
+
+`dto` JSON shape (`UpdateExpenseDto`):
 ```json
 {
   "amount": 3000,
@@ -467,7 +577,10 @@ OCR receipt scan. Upload a receipt image; backend extracts the expense.
 
 **Request:** `multipart/form-data` with a single required `image` file field.
 
-**Response** `ApiResponse<ExpenseResponseDto>` — `source` will be `"receipt"`, `file`/`receipt_url` populated.
+**Response** `ApiResponse<ExpenseResponseDto>` — `source` will be `"receipt"`, `file`/`receipt_url` populated, and `verification_level` will be `"verified"`.
+
+> ⚠️ This endpoint **creates a new expense** from the image. It cannot attach a receipt to
+> an expense that already exists — see [Expense verification levels](#expense-verification-levels).
 
 ---
 
@@ -502,19 +615,107 @@ Aggregated spending summary for a given month — powers the spending screen / c
 
 ---
 
+#### `GET /expenses/streak` 🔒
+
+> ✅ **New — live as of 2026-08-05.** The daily expense-logging streak.
+
+Counts **consecutive days on which the user logged at least one expense**. Entirely
+separate from `ChallengeResponseDto.current_streak`, which counts *weeks* of a Friday
+Savings challenge — this one exists whether or not any challenge is running.
+
+No parameters.
+
+**Response** `ApiResponse<ExpenseStreakResponseDto>`
+```json
+{
+  "current_streak": 5,
+  "longest_streak": 12,
+  "last_logged_date": "2026-08-05",   // date, nullable — null before the first log
+  "logged_today": true,
+  "days": [
+    { "date": "2026-08-01", "day_label": "Sa", "logged": true,  "is_today": false },
+    { "date": "2026-08-05", "day_label": "We", "logged": true,  "is_today": true  },
+    { "date": "2026-08-06", "day_label": "Th", "logged": false, "is_today": false }
+  ]
+}
+```
+
+`day_label` is supplied by the backend and rendered verbatim — the client must not derive
+day names itself, or the two will disagree about where the week starts.
+
+#### `POST /expenses/streak/dev/simulate` 🔒 — QA only
+
+Jumps the streak to `days` and fires the same badge/push logic a real log would.
+
+**Query parameters**
+| Param | Type | Required | Notes |
+|---|---|---|---|
+| `days` | int | ✅ | 1–100 |
+
+Returns the same `ExpenseStreakResponseDto`. Only called from the dev-flagged tools sheet.
+
+---
+
+### Expense verification levels
+
+> **New — live as of 2026-08-02.** Every expense is labelled by how trustworthy its figures
+> are, so Clara's analysis can be transparent about what it's based on.
+
+Two read-only fields on every `ExpenseResponseDto`:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `verification_level` | `verified` \| `self_reported` | `verified` = backed by a receipt scan or bank sync. `self_reported` = the user typed it in. |
+| `evidence_suggested` | bool | Backend-computed. *"True for large self-reported expenses — a nudge to attach proof, not a requirement."* The amount threshold lives on the backend; the client must not reimplement it. |
+
+Aggregate percentages for a period come from `GET /insights/home`
+(`verified_pct` / `self_reported_pct`).
+
+> ✅ **Gap closed (2026-08-03, second sync) — `evidence_suggested` now has an action behind
+> it.** Both write paths take an optional `receipt` image:
+> - `POST /expenses` — create a new expense already verified.
+> - `PATCH /expenses/{id}` — **attach proof to an existing expense**, which is what
+>   `evidence_suggested` was always pointing at. The backend AI-verifies the image against the
+>   expense's amount and flips `verification_level` to `verified`.
+>
+> So an "attach a receipt?" prompt on a flagged expense is now buildable end-to-end. The
+> repository layer supports both (`ExpenseRepository.createExpense` / `.updateExpense` take an
+> optional `File? receipt`); **the UI for it does not exist yet** — see `MEMORY.md`.
+
+---
+
 ### Insights
 
 #### `GET /insights/home` 🔒
-AI-generated natural-language money insight for the home screen (the Clara card). Returns a single sentence/paragraph string.
+Money summary + AI insight for the home screen (the Clara card).
 
-**Response** `ApiResponse<string>`
+> ⚠️ **Changed (2026-08-02):** this used to return a bare string. It now returns a
+> `HomeInsightDto` object — the sentence moved to the `insight` field, with the figures it
+> was derived from alongside it.
+
+**Query parameters** (both optional; defaults to the current period)
+| Param | Type | Notes |
+|---|---|---|
+| `start_date` | date | ISO `YYYY-MM-DD` |
+| `end_date` | date | ISO `YYYY-MM-DD` |
+
+**Response** `ApiResponse<HomeInsightDto>`
 ```json
 {
-  "success": true,
-  "message": null,
-  "data": "Hey admin2002! This June, you've spent a total of ₦65,500, which is a neat 13% of your estimated income..."
+  "insight": "Hey admin2002! This June, you've spent a total of ₦65,500...",
+  "start_date": "2026-06-01",
+  "end_date": "2026-06-30",
+  "total_income": 500000.0,
+  "total_expenses": 65500.0,
+  "available_balance": 434500.0,
+  "verified_pct": 82.0,
+  "self_reported_pct": 18.0
 }
 ```
+
+`verified_pct` / `self_reported_pct` are the share of the period's expenses backed by
+evidence vs manually entered — surface these so the user knows what the analysis is based
+on. All values are **numbers**. The two percentages are 0–100, not 0–1.
 
 ---
 
@@ -875,7 +1076,15 @@ Update a member's target contribution amount.
 #### `DELETE /groups/{group_id}/members/{member_id}` 🔒
 Remove a member from the group.
 
-**Response** `ApiResponse<dict>`
+> ⚠️ **Changed (2026-08-02):** `redistribution` is now a **required** query param. Calls
+> without it fail validation (422).
+
+**Query parameter**
+| Param | Type | Required | Notes |
+|---|---|---|---|
+| `redistribution` | `self` \| `split` | ✅ | What happens to the removed member's unmet target: `self` assigns it to you (the owner), `split` divides it equally among the remaining members. |
+
+**Response** `ApiResponse<null>`
 
 ---
 
@@ -900,8 +1109,11 @@ List savings entries for the group.
 
 ---
 
-#### `GET /groups/{group_id}/messages?page=&limit=` 🔒
-Paginated group chat messages. `page` default 1; `limit` default 50, max 100.
+#### `GET /groups/{group_id}/messages?page=&page_size=` 🔒
+Paginated group chat messages. `page` default 1; `page_size` default 20.
+
+> ⚠️ **Changed (2026-08-03):** the size param is now `page_size`, not `limit` — it matches
+> every other paginated list endpoint. Passing `limit` silently gets ignored.
 
 **Response** `ApiResponse<MessageResponseDto[]>`
 
@@ -1046,6 +1258,148 @@ Undo a pending cancellation.
 
 ---
 
+### Wrapped (Monthly Recap)
+
+> **New — live as of 2026-08-02.** A Spotify-Wrapped-style recap that powers the
+> gamification / insight-slide screens. Every section carries its own backend-written
+> `headline` string — **do not compose this copy on the client.**
+>
+> ⚠️ **Changed (2026-08-03):** this is a **monthly** recap, not a year-in-review. `month` is
+> now a required field on `WrappedDto`, `WrappedCoverDto`, and `SharePassportDto`, and the
+> endpoint takes a `month` query param. Any client copy saying "this year" is wrong.
+
+#### `GET /wrapped?year=&month=` 🔒
+Full recap payload for one month.
+
+**Query parameters** (both optional; default to the current period)
+| Param | Type | Notes |
+|---|---|---|
+| `year` | int | Calendar year. Defaults to the current year. |
+| `month` | int | 1–12. Defaults to the current month. |
+
+**Response** `ApiResponse<WrappedDto>`
+
+---
+
+### Savings Challenges
+
+> **New — live as of 2026-08-03.** Weekly savings-streak challenges — record a contribution each
+> week, build a streak, earn badges. Separate from the expense/verification model by design — see
+> `EntryVerificationLevel` below.
+>
+> Three types are live: `friday_savings` (save a `weekly_target` each Friday), `no_spend` (spend
+> nothing over the period), and `budget_category` (stay under a cap in one category — pass
+> `target_category_id`). The spend-based types report progress via `current_period_spent` rather
+> than `total_saved`.
+
+#### `POST /challenges` 🔒
+Create a challenge.
+
+**Request body** (`CreateChallengeDto`) — all fields optional
+```json
+{
+  "type": "friday_savings",
+  "name": "Friday Savings Challenge",
+  "weekly_target": 5000,
+  "overall_target": 260000,
+  "target_category_id": "uuid",
+  "end_date": "2026-12-31"
+}
+```
+`weekly_target`/`overall_target` may be a number or numeric string. `type` defaults to
+`friday_savings`. `name` defaults to `"Friday Savings Challenge"` server-side if omitted.
+`target_category_id` applies to `budget_category` only — it names the category being capped.
+
+**Response** `ApiResponse<ChallengeResponseDto>`
+
+---
+
+#### `GET /challenges` 🔒
+Paginated list of the user's challenges.
+
+**Query parameters**
+| Param | Type | Default | Notes |
+|---|---|---|---|
+| `page` | int | 1 | |
+| `page_size` | int | 20 | |
+| `status` | enum | — | `active` \| `completed` \| `cancelled` |
+
+**Response** `PaginatedResponse<ChallengeResponseDto[]>`
+
+---
+
+#### `GET /challenges/{challenge_id}` 🔒
+Fetch a single challenge.
+
+**Response** `ApiResponse<ChallengeResponseDto>`
+
+---
+
+#### `PUT /challenges/{challenge_id}` 🔒
+Update a challenge. All fields optional (`UpdateChallengeDto`): `name`, `weekly_target`,
+`overall_target`, `end_date`.
+
+⚠️ **No `type` and no `target_category_id`** — unlike `CreateChallengeDto`. A challenge's type
+and capped category are fixed at creation, so the edit sheet renders the category read-only.
+
+**Response** `ApiResponse<ChallengeResponseDto>`
+
+---
+
+#### `DELETE /challenges/{challenge_id}` 🔒
+Cancel a challenge.
+
+**Response** `ApiResponse<null>`
+
+---
+
+#### `POST /challenges/{challenge_id}/entries` 🔒
+Record a weekly entry. `multipart/form-data`.
+
+**Form fields**
+| Field | Type | Required |
+|---|---|---|
+| `amount` | number or string | — |
+| `note` | string | — |
+| `receipt` | file (binary) | — |
+
+`verification_level` on the response entry is `evidence_backed` when a receipt was attached,
+else `self_reported` — mirrors the expense verification concept but is a **separate enum**
+(`EntryVerificationLevel`), kept isolated from `ExpenseVerificationLevel` by the backend.
+
+**Response** `ApiResponse<ChallengeEntryResponseDto>`
+
+---
+
+#### `GET /challenges/{challenge_id}/entries` 🔒
+Paginated list of entries for a challenge.
+
+**Response** `PaginatedResponse<ChallengeEntryResponseDto[]>`
+
+---
+
+#### `GET /challenges/badges/catalog`
+List all badges that exist (no auth required).
+
+**Response** `ApiResponse<BadgeResponseDto[]>`
+
+---
+
+#### `GET /challenges/badges/mine` 🔒
+List badges the current user has earned.
+
+**Response** `ApiResponse<UserBadgeResponseDto[]>`
+
+---
+
+> ⚠️ **Dev/debug-only, do not wire into the app:** `POST
+> /challenges/{challenge_id}/dev/send-test-reminder` and `POST
+> /challenges/{challenge_id}/dev/simulate-streak?weeks=` exist purely for the backend team to
+> trigger push/badge logic without waiting a real week. `simulate-streak` mutates real streak
+> state. Neither belongs behind any user-facing action.
+
+---
+
 ### Marketing
 
 > Public (no auth) — used by the marketing site, not the mobile app, but documented for completeness.
@@ -1063,6 +1417,46 @@ Undo a pending cancellation.
 { "email": "user@example.com", "name": "Chinasa" }
 ```
 **Response** `ApiResponse<dict>`
+
+---
+
+### Push Notifications (Device Tokens)
+
+> **New — live as of 2026-08-03.** This is what `NotificationService._registerToken` (marked
+> as a stub in earlier sessions) should now call.
+
+#### `GET /notifications/device-tokens` 🔒
+List the current user's registered device tokens.
+
+**Response** `ApiResponse<DeviceTokenResponseDto[]>`
+
+---
+
+#### `POST /notifications/device-tokens` 🔒
+Register (or re-register) an FCM device token.
+
+**Request body** (`RegisterDeviceTokenDto`)
+```json
+{ "token": "<fcm_token>", "platform": "ios" }
+```
+`platform` (`DevicePlatform` enum): `ios` | `android` | `web`.
+
+**Response** `ApiResponse<DeviceTokenResponseDto>`
+
+---
+
+#### `DELETE /notifications/device-tokens/{token_id}` 🔒
+Unregister a device token (e.g. on logout).
+
+**Response** `ApiResponse<null>`
+
+---
+
+#### `POST /notifications/test-push` 🔒
+Debug only — sends a plain push to the caller's own registered devices, to confirm
+registration + FCM are wired up. Not a user-facing action.
+
+**Response** `ApiResponse<null>`
 
 ---
 
@@ -1092,12 +1486,33 @@ Health check. No auth required.
   "id": "uuid",
   "email": "user@example.com",
   "username": "chinasa",
+  "preferred_name": "Chi",
   "is_active": true,
   "is_email_verified": true,
   "default_currency": "NGN",
-  "created_at": "2026-01-01T00:00:00Z"
+  "profile_icon": "avatar_3",
+  "created_at": "2026-01-01T00:00:00Z",
+  "display_name": "Chi"
 }
 ```
+`preferred_name` and `profile_icon` are nullable. `display_name` is **read-only** and
+backend-computed (`preferred_name` if set, else `username`) — use it anywhere the app shows
+the user's name.
+
+### `HomeInsightDto`
+```json
+{
+  "insight": "Hey admin2002! This June, you've spent...",
+  "start_date": "2026-06-01",
+  "end_date": "2026-06-30",
+  "total_income": 500000.0,
+  "total_expenses": 65500.0,
+  "available_balance": 434500.0,
+  "verified_pct": 82.0,
+  "self_reported_pct": 18.0
+}
+```
+All fields required. Money and percentages are **numbers**; percentages are 0–100.
 
 ### `IncomeSourceDto`
 ```json
@@ -1147,10 +1562,17 @@ daily | weekly | monthly | one_time
 ```json
 {
   "id": "uuid",
+  "user_id": null,
   "name": "Food",
-  "description": "Groceries, restaurants, and food delivery."
+  "description": "Groceries, restaurants, and food delivery.",
+  "icon": "food",
+  "is_default": true
 }
 ```
+`user_id`, `description`, and `icon` are nullable. `is_default` is `true` for the 10 system
+categories and `false` for user-created ones — `user_id` is set only on the latter (added
+2026-08-03). `CategoryModel` on the client does not yet map `user_id`/`is_default`; add them
+if a "delete my custom category" flow is ever built.
 
 ### `ExpenseResponseDto`
 ```json
@@ -1176,10 +1598,23 @@ daily | weekly | monthly | one_time
       "category_id": null
     }
   ],
-  "receipt_url": null
+  "receipt_url": null,
+  "clara_insight": "Lunch spending is up 20% on last month.",
+  "verification_level": "self_reported",
+  "evidence_suggested": false
 }
 ```
 `type`, `direction`, `status`, `currency`, `description`, `source` are all nullable. `source` is `manual | receipt | bank_sync`.
+
+- `clara_insight` — nullable AI one-liner about this specific expense, included inline (no
+  extra request needed).
+- `verification_level` / `evidence_suggested` — see
+  [Expense verification levels](#expense-verification-levels). Both read-only.
+
+### `ExpenseVerificationLevel` (enum)
+```
+verified | self_reported
+```
 
 ### `ExpenseStatus` (enum)
 ```
@@ -1225,11 +1660,14 @@ All monetary values here are **numbers**, not strings (unlike `ExpenseResponseDt
   "pct_used": 13.1,
   "start_date": "2026-06-01",
   "end_date": "2026-06-30",
-  "allocations": [ "AllocationResponseDto" ]
+  "allocations": [ "AllocationResponseDto" ],
+  "clara_insight": "You're pacing well — 13% used with most of the month left."
 }
 ```
 - There is **no `name`** field on a budget (removed 2026-06-22). `start_date`/`end_date`
   are always present (backend-assigned, current month).
+- `clara_insight` (added 2026-08-02) is an AI one-liner delivered inline, defaulting to `""`.
+  It makes a separate `GET /budgets/{id}/insight` call unnecessary for the common case.
 - `AllocationResponseDto`: `{ id, category_id, category_name, category_icon, amount_allocated, spent, remaining, pct_used }` — `category_icon` is a nullable string.
 - Budget money fields are **numbers** in responses; on create/update requests
   `amount_allocated` may be sent as a number or a numeric string.
@@ -1372,6 +1810,122 @@ Same fields as `GroupResponseDto` plus `members: GroupMemberResponseDto[]`.
 ```
 `MessageRole` enum: `user | assistant`. `MessageType` enum: `text | image | system`.
 
+### `WrappedDto`
+```json
+{
+  "year": 2026,
+  "month": 8,
+  "start_date": "2026-08-01",
+  "end_date": "2026-08-31",
+  "symbol": "₦",
+  "cover": { "year": 2026, "month": 8, "username": "chinasa", "headline": "Your August in money" },
+  "income_vs_expense": {
+    "total_income": 6000000.0, "total_expenses": 4200000.0,
+    "net_balance": 1800000.0, "headline": "You kept ₦1.8M of what you earned"
+  },
+  "spending_breakdown": {
+    "total_expenses": 4200000.0,
+    "categories": [ "CategoryShareDto" ],
+    "headline": "Food led the way"
+  },
+  "top_category": {
+    "name": "Food", "icon": "food", "amount": 1400000.0,
+    "percentage": 33.3, "headline": "A third of your spending was Food"
+  },
+  "savings": {
+    "savings_rate": 30.0, "total_saved": 1800000.0,
+    "headline": "You saved 30% of your income",
+    "monthly_trend": [ "MonthlySavingsDto" ]
+  },
+  "personality": { "key": "planner", "name": "The Planner", "description": "..." },
+  "tip": { "title": "Try the 50/30/20 rule", "body": "..." },
+  "badge": {
+    "key": "on_track", "name": "On Track", "headline": "...",
+    "description": "...", "months_on_track": 9, "months_tracked": 12
+  },
+  "share_passport": {
+    "username": "chinasa", "year": 2026, "month": 8,
+    "total_income": 6000000.0, "total_expenses": 4200000.0, "total_saved": 1800000.0,
+    "top_category": "Food", "personality_name": "The Planner", "badge_name": "On Track"
+  }
+}
+```
+- `year` + `month` identify the period — **this is a monthly recap** (changed 2026-08-03).
+- `top_category` is **nullable** (a month with no expenses has none). Every other section is
+  always present.
+- `CategoryShareDto`: `{ name, icon (nullable), amount, percentage }`
+- `MonthlySavingsDto`: `{ year (int), month (1–12, int), income, expenses, net_saved }` —
+  gained `year` on 2026-08-03.
+- `symbol` is the user's currency symbol — use it rather than re-deriving from
+  `default_currency`.
+- All money values are **numbers**; percentages are 0–100.
+- Every `headline` is written by the backend. Render it as-is.
+- `share_passport` is the flattened subset intended for the shareable image/card.
+
+### `ChallengeResponseDto`
+```json
+{
+  "id": "uuid",
+  "user_id": "uuid",
+  "type": "friday_savings",
+  "name": "Friday Savings Challenge",
+  "weekly_target": "5000.00",
+  "overall_target": "260000.00",
+  "total_saved": "45000.00",
+  "current_streak": 9,
+  "longest_streak": 9,
+  "last_entry_week": "2026-08-01",
+  "target_category_id": null,
+  "current_period_spent": null,
+  "start_date": "2026-06-01",
+  "end_date": "2026-12-31",
+  "status": "active",
+  "created_at": "2026-06-01T00:00:00Z",
+  "progress_percent": 17.3
+}
+```
+`ChallengeType` enum: `friday_savings | no_spend | budget_category`. `ChallengeStatus` enum:
+`active | completed | cancelled | failed` — `failed` lands when a spend-based challenge is broken.
+`weekly_target`/`overall_target`/`last_entry_week`/`target_category_id`/`current_period_spent` are
+nullable. `current_period_spent` is only populated for `no_spend` and `budget_category`.
+`progress_percent` is nullable and read-only (backend-computed).
+
+### `ChallengeEntryResponseDto`
+```json
+{
+  "id": "uuid",
+  "amount": "5000.00",
+  "verification_level": "evidence_backed",
+  "note": "Payday savings",
+  "file_url": null,
+  "recorded_at": "2026-08-01T10:00:00Z"
+}
+```
+`EntryVerificationLevel` enum: `self_reported | evidence_backed` — **separate from**
+`ExpenseVerificationLevel`, do not reuse that model/enum for challenge entries.
+
+### `BadgeResponseDto`
+```json
+{ "key": "on_fire", "name": "On Fire", "description": "9-week streak", "icon_name": "flame", "category": "streak" }
+```
+`icon_name` and `category` are nullable.
+
+### `UserBadgeResponseDto`
+```json
+{
+  "badge": { "...BadgeResponseDto" },
+  "earned_period": "2026-W31",
+  "earned_at": "2026-08-01T10:00:00Z"
+}
+```
+`earned_period` is nullable.
+
+### `DeviceTokenResponseDto`
+```json
+{ "id": "uuid", "platform": "ios", "is_active": true, "created_at": "2026-08-03T00:00:00Z" }
+```
+`DevicePlatform` enum: `ios | android | web`.
+
 ---
 
 ## Internal / Service-Only (not for the mobile client)
@@ -1393,6 +1947,31 @@ These endpoints are referenced in `ApiEndpoints` but have **not been added to th
 | Endpoint | Feature |
 |---|---|
 | `GET /transactions` | Transaction history |
+| `POST /groups/{group_id}/members` | Add a member to an existing group. **Still not live as of 2026-08-02** — `GroupRepository.addMember` 404s. |
+
+**Asked for, not yet built** (raised 2026-08-06 while working the Trello batch — each one
+caps what the client can ship today):
+
+| # | Ask | Why it's needed |
+|---|---|---|
+| 1 | **Income ledger** — `GET /income` returning a *paginated list*, `POST /income` creating a *new entry* each time, `DELETE /income/{id}` | Income is currently **one record per user** (`GET/POST/PATCH /income` all operate on a single `IncomeResponseDto`). So "Add income" can only ever mean *set or edit your income* — a user cannot log a second paycheck, a bonus, or side-hustle earnings as separate entries, and there is no income history to show. |
+| 2 | **Invite by email or phone** — `POST /friends/invite` accepting `{email}` or `{phone}` instead of only `recipient_id`, creating a pending invite that resolves when that person registers | `SendInviteDto` takes **only `recipient_id` (a UUID)**, so you can only befriend someone who *already has an account*. There is no way to invite a non-user, which is exactly what the invite flow is for. |
+| 3 | **Referral on register** — a `referral_code` / `invite_token` field on `RegisterDto`, plus resolution of that token into a pending friendship | Without it, "automatically complete the friend request after registration" is **impossible on any client**. The link survives to the store, but nothing carries the inviter's identity through install → register. |
+| 4 | **`profile_icon` on every payload that names another user** — `friend_profile_icon` on `GET /friends` and `GET /friends/invites`, `profile_icon` on `GET /friends/search` results and on group member objects (`GET /groups/{id}`, `/groups/{id}/members`), and on chat message senders | `profile_icon` is returned **only by `/user/me`**, so the app can render *your own* avatar but nobody else's. Friends, group members and chat senders currently fall back to an avatar generated from their username — a stable, distinct face, but **not the one that person actually chose**. The client already parses these fields (`FriendshipModel.friendProfileIcon`, `GroupMemberModel.profileIcon`) and will use them the moment they appear; no client release is needed. |
+
+Item 3 also needs post-install attribution on the client (Branch/AppsFlyer) — Firebase
+Dynamic Links is shut down and has no free replacement. Until 1–3 land, the app ships:
+set/edit income, invites that only work for existing users, and invite links that only
+auto-open for recipients who **already have the app installed**.
+
+Both previously-blocking requests shipped on 2026-08-03 — see below.
+
+> ✅ **Attach proof to an existing expense is now live** (2026-08-03) — `PATCH /expenses/{id}`
+> takes an optional `receipt` in its multipart body. `evidence_suggested` is no longer
+> display-only.
+
+> ✅ **Device-token registration is now live** (2026-08-03) — `/notifications/device-tokens`.
+> `NotificationService._registerToken` can be wired up; no longer a blocker.
 
 > ✅ **Subscriptions are live** (2026-07-20) — under `/subscriptions/*`, not the
 > previously guessed `/subscription/*`. See the Subscriptions section above.
@@ -1415,5 +1994,11 @@ These endpoints are referenced in `ApiEndpoints` but have **not been added to th
 - OCR is `POST /expenses/receipt` (multipart `image` field) — the old planned path `/expenses/ocr` never shipped.
 - **Base URL changed** to `https://api.finclarai.com/api/v1` (was `finclar-ai.onrender.com`).
 - **`GET /expenses/summary` and `/budgets` use numbers, not strings** for money fields — opposite of `ExpenseResponseDto`/`IncomeResponseDto` which send strings. Watch the parsing per-endpoint.
-- **Home insight** (`GET /insights/home`) returns `ApiResponse<string>` — the `data` is a plain AI-generated sentence, wire it directly to the Clara card.
+- **Home insight** (`GET /insights/home`) returns `ApiResponse<HomeInsightDto>` — an **object**, not a string (changed 2026-08-02). The sentence is `data.insight`; the figures behind it (`available_balance`, `verified_pct`, …) come along in the same call, so don't re-derive them.
 - **Social auth** (`POST /auth/social`) takes a `firebase_token`; requires Firebase Auth set up on the client.
+- **Show `display_name`, not `username`** — `UserResponseDto.display_name` already resolves `preferred_name` for you.
+- **Both `POST /expenses` and `PATCH /expenses/{id}` are multipart, not JSON** (changed 2026-08-03) — the DTO goes in a `dto` form field as a JSON string, alongside an optional `receipt` file. `ExpenseRepository.createExpense`/`.updateExpense` already send this shape via `ApiClient.uploadFile(method: ...)`.
+- **Verification levels are fully actionable** as of 2026-08-03 — attaching a receipt on `PATCH` flips an existing expense to `verified`. An "attach a receipt?" prompt on an `evidence_suggested` expense is now buildable (UI not built yet).
+- **`DELETE /groups/{id}/members/{id}` requires `?redistribution=self|split`** — omitting it is a 422.
+- **Wrapped is a MONTHLY recap** (changed 2026-08-03), not a year-in-review — pass `year` + `month`, and never write "this year" in client copy. Headlines are backend copy; render `headline` strings verbatim, don't compose your own.
+- **Group chat pages with `page_size`, not `limit`** (changed 2026-08-03) — `limit` is silently ignored, which looks like "only 20 messages load".

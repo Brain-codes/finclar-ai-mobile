@@ -1,11 +1,28 @@
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show HapticFeedback;
+import 'package:intl/intl.dart';
 import '../../../../../core/theme/app_typography.dart';
+import '../../../../../core/utils/number_formatter.dart';
+import '../../../../../shared/svg/app_svg.dart';
+import '../../../../../shared/widgets/app_svg_image.dart';
+import '../../../data/models/wrapped_model.dart';
 import 'wrapped_shared.dart';
 
 class WrappedSlide9Passport extends StatelessWidget {
-  const WrappedSlide9Passport({super.key});
+  final WrappedSharePassport data;
+  final String symbol;
+
+  /// Preferred name from the user's profile — the passport payload carries only
+  /// a username.
+  final String displayName;
+
+  const WrappedSlide9Passport({
+    super.key,
+    required this.data,
+    required this.symbol,
+    required this.displayName,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -37,13 +54,21 @@ class WrappedSlide9Passport extends StatelessWidget {
               const SizedBox(height: 22),
               // Passport card — photo bleeds 16px above card top
               Expanded(
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Positioned.fill(child: _PassportCard()),
-                    // Passport photo — top-right, bleeds 16px above card
-                    Positioned(top: -16, right: 24, child: _PassportPhoto()),
-                  ],
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: _PassportCard(
+                          data: data,
+                          symbol: symbol,
+                          displayName: displayName,
+                        ),
+                      ),
+                      // Passport photo — top-right, clipped to the card bounds
+                      Positioned(top: -7, right: 24, child: _PassportPhoto()),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 22),
@@ -61,6 +86,16 @@ class WrappedSlide9Passport extends StatelessWidget {
 // ─── Passport card ───────────────────────────────────────────────────────────
 
 class _PassportCard extends StatelessWidget {
+  final WrappedSharePassport data;
+  final String symbol;
+  final String displayName;
+
+  const _PassportCard({
+    required this.data,
+    required this.symbol,
+    required this.displayName,
+  });
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -81,19 +116,19 @@ class _PassportCard extends StatelessWidget {
             // Header with bottom divider
             _PassportHeader(),
             // User row
-            const Padding(
-              padding: EdgeInsets.fromLTRB(14, 16, 14, 0),
-              child: _UserRow(),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 16, 14, 0),
+              child: _UserRow(data: data, displayName: displayName),
             ),
             // Stats inner card
-            const Padding(
-              padding: EdgeInsets.fromLTRB(14, 16, 14, 0),
-              child: _StatsCard(),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 16, 14, 0),
+              child: _StatsCard(data: data, symbol: symbol),
             ),
             // MRZ line
-            const Padding(
-              padding: EdgeInsets.fromLTRB(14, 0, 14, 16),
-              child: _MrzLine(),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 16),
+              child: _MrzLine(name: displayName),
             ),
           ],
         ),
@@ -123,13 +158,10 @@ class _PassportHeader extends StatelessWidget {
           // Logo row — icon placeholder + "Finclar"
           Row(
             children: [
-              Container(
+              const AppSvgImage(
+                AppSvg.wrappedPassportMark,
                 width: 20,
                 height: 20,
-                decoration: BoxDecoration(
-                  color: WrappedColors.passportGreen.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(4),
-                ),
               ),
               const SizedBox(width: 6),
               Text(
@@ -158,7 +190,7 @@ class _PassportHeader extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'April 2024',
+            DateFormat('MMMM yyyy').format(DateTime.now()),
             style: AppTypography.bodySmall.copyWith(
               color: WrappedColors.passportGreen.withValues(alpha: 0.73),
               fontFamily: 'Geist',
@@ -176,7 +208,10 @@ class _PassportHeader extends StatelessWidget {
 // ─── User row (avatar + name + handle) ──────────────────────────────────────
 
 class _UserRow extends StatelessWidget {
-  const _UserRow();
+  final WrappedSharePassport data;
+  final String displayName;
+
+  const _UserRow({required this.data, required this.displayName});
 
   @override
   Widget build(BuildContext context) {
@@ -199,30 +234,35 @@ class _UserRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 10),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Chinasa Esther',
-              style: AppTypography.bodySmall.copyWith(
-                color: WrappedColors.passportMint,
-                fontFamily: 'BricolageGrotesque',
-                fontVariations: const [FontVariation('wght', 500)],
-                fontSize: 14,
-                height: 20 / 14,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              WrappedAutoText(
+                displayName.isNotEmpty ? displayName : data.username,
+                maxLines: 1,
+                maxFontSize: 14,
+                minFontSize: 10,
+                style: AppTypography.bodySmall.copyWith(
+                  color: WrappedColors.passportMint,
+                  fontFamily: 'BricolageGrotesque',
+                  fontVariations: const [FontVariation('wght', 500)],
+                  fontSize: 14,
+                  height: 20 / 14,
+                ),
               ),
-            ),
-            Text(
-              'estizzy',
-              style: AppTypography.bodySmall.copyWith(
-                color: WrappedColors.passportGreen.withValues(alpha: 0.73),
-                fontFamily: 'Geist',
-                fontVariations: const [FontVariation('wght', 500)],
-                fontSize: 12,
-                height: 16 / 12,
+              Text(
+                data.username,
+                style: AppTypography.bodySmall.copyWith(
+                  color: WrappedColors.passportGreen.withValues(alpha: 0.73),
+                  fontFamily: 'Geist',
+                  fontVariations: const [FontVariation('wght', 500)],
+                  fontSize: 12,
+                  height: 16 / 12,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );
@@ -232,7 +272,18 @@ class _UserRow extends StatelessWidget {
 // ─── Stats inner card ────────────────────────────────────────────────────────
 
 class _StatsCard extends StatelessWidget {
-  const _StatsCard();
+  final WrappedSharePassport data;
+  final String symbol;
+
+  const _StatsCard({required this.data, required this.symbol});
+
+  String _money(double v) =>
+      formatCurrency(v, symbol, abbreviate: false, withCommas: true);
+
+  /// Share of income kept. Guarded — a year with no income can't have a rate.
+  int get _savingsRate => data.totalIncome > 0
+      ? ((data.totalSaved / data.totalIncome) * 100).round()
+      : 0;
 
   @override
   Widget build(BuildContext context) {
@@ -249,12 +300,18 @@ class _StatsCard extends StatelessWidget {
         children: [
           // Row 1: Income / Expense
           Row(
-            children: const [
+            children: [
               Expanded(
-                child: _StatCell(label: 'Income', value: '₦2,450,000'),
+                child: _StatCell(
+                  label: 'Income',
+                  value: _money(data.totalIncome),
+                ),
               ),
               Expanded(
-                child: _StatCell(label: 'Expense', value: '₦450,000'),
+                child: _StatCell(
+                  label: 'Expense',
+                  value: _money(data.totalExpenses),
+                ),
               ),
             ],
           ),
@@ -267,12 +324,18 @@ class _StatsCard extends StatelessWidget {
           const SizedBox(height: 16),
           // Row 2: Amount saved / Savings rate
           Row(
-            children: const [
+            children: [
               Expanded(
-                child: _StatCell(label: 'Amount saved', value: '₦1,050,000'),
+                child: _StatCell(
+                  label: 'Amount saved',
+                  value: _money(data.totalSaved),
+                ),
               ),
               Expanded(
-                child: _StatCell(label: 'Savings rate', value: '35%'),
+                child: _StatCell(
+                  label: 'Savings rate',
+                  value: '$_savingsRate%',
+                ),
               ),
             ],
           ),
@@ -287,45 +350,45 @@ class _StatsCard extends StatelessWidget {
             child: Row(
               children: [
                 // Logo icon placeholder
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: WrappedColors.passportGreen.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  clipBehavior: Clip.hardEdge,
+                SizedBox(
+                  width: 30,
+                  height: 30,
                   child: Image.asset(
-                    WrappedAssets.passportMemoji,
+                    WrappedAssets.passportCoin,
                     fit: BoxFit.contain,
                     errorBuilder: (_, _, _) => const SizedBox.shrink(),
                   ),
                 ),
                 const SizedBox(width: 10),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'The pragmatic planner',
-                      style: AppTypography.bodySmall.copyWith(
-                        color: WrappedColors.passportMint,
-                        fontFamily: 'Geist',
-                        fontVariations: const [FontVariation('wght', 500)],
-                        fontSize: 14,
-                        height: 20 / 14,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      WrappedAutoText(
+                        data.personalityName,
+                        maxLines: 1,
+                        maxFontSize: 14,
+                        minFontSize: 10,
+                        style: AppTypography.bodySmall.copyWith(
+                          color: WrappedColors.passportMint,
+                          fontFamily: 'Geist',
+                          fontVariations: const [FontVariation('wght', 500)],
+                          fontSize: 14,
+                          height: 20 / 14,
+                        ),
                       ),
-                    ),
-                    Text(
-                      'See my money story on Finclar',
-                      style: AppTypography.bodySmall.copyWith(
-                        color: WrappedColors.passportGreen,
-                        fontFamily: 'Geist',
-                        fontVariations: const [FontVariation('wght', 400)],
-                        fontSize: 12,
-                        height: 16 / 12,
+                      Text(
+                        'See my money story on Finclar',
+                        style: AppTypography.bodySmall.copyWith(
+                          color: WrappedColors.passportGreen,
+                          fontFamily: 'Geist',
+                          fontVariations: const [FontVariation('wght', 400)],
+                          fontSize: 12,
+                          height: 16 / 12,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -375,14 +438,30 @@ class _StatCell extends StatelessWidget {
 // ─── MRZ line ────────────────────────────────────────────────────────────────
 
 class _MrzLine extends StatelessWidget {
-  const _MrzLine();
+  final String name;
+
+  const _MrzLine({required this.name});
+
+  /// MRZ-style encoding: uppercase name tokens joined by "<<", suffixed with
+  /// the app tag — mirrors the passport aesthetic instead of a fixed mock name.
+  String get _mrz {
+    final tokens = name
+        .trim()
+        .toUpperCase()
+        .split(RegExp(r'\s+'))
+        .where((t) => t.isNotEmpty);
+    final base = tokens.isEmpty ? 'FINCLAR' : tokens.join('<<');
+    return '$base<<FINCLAR<<345';
+  }
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(top: 16),
       child: Text(
-        'CHINASA<<ESTHER<<FINCLAR<<345',
+        _mrz,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
         style: AppTypography.bodySmall.copyWith(
           color: WrappedColors.passportGreen.withValues(alpha: 0.92),
           fontFamily: 'Inter',
@@ -407,8 +486,9 @@ class _PassportPhoto extends StatelessWidget {
         width: 63,
         height: 116,
         child: Image.asset(
-          WrappedAssets.passportPhoto,
-          fit: BoxFit.cover,
+          WrappedAssets.passportMedal,
+          fit: BoxFit.contain,
+          filterQuality: FilterQuality.medium,
           errorBuilder: (_, _, _) => Container(
             color: WrappedColors.passportGreen.withValues(alpha: 0.2),
           ),
@@ -469,4 +549,3 @@ class _LiquidGlassButton extends StatelessWidget {
     );
   }
 }
-

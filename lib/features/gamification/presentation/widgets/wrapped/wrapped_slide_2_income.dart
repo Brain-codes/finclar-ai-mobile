@@ -1,9 +1,27 @@
 import 'package:flutter/material.dart';
 import '../../../../../core/theme/app_typography.dart';
+import '../../../../../core/utils/number_formatter.dart';
+import '../../../data/models/wrapped_model.dart';
 import 'wrapped_shared.dart';
 
 class WrappedSlide2Income extends StatelessWidget {
-  const WrappedSlide2Income({super.key});
+  final WrappedIncomeExpense data;
+  final String symbol;
+
+  const WrappedSlide2Income({
+    super.key,
+    required this.data,
+    required this.symbol,
+  });
+
+  String _money(double v) =>
+      formatCurrency(v, symbol, abbreviate: false, withCommas: true);
+
+  /// Share of income that was spent. Guarded — a year with no income would
+  /// divide by zero.
+  int get _spentPctOfIncome => data.totalIncome > 0
+      ? ((data.totalExpenses / data.totalIncome) * 100).round()
+      : 0;
 
   @override
   Widget build(BuildContext context) {
@@ -72,8 +90,11 @@ class WrappedSlide2Income extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   // Subtitle — 20px Geist Medium, 40% white opacity
-                  Text(
-                    'Your spent only a fraction of your income in April. Welldone!!',
+                  WrappedAutoText(
+                    data.headline,
+                    maxLines: 3,
+                    maxFontSize: 20,
+                    minFontSize: 14,
                     style: AppTypography.bodyLarge.copyWith(
                       color: WrappedColors.whiteMuted,
                       fontSize: 20,
@@ -83,7 +104,7 @@ class WrappedSlide2Income extends StatelessWidget {
                   const SizedBox(height: 48),
                   // ── Income ───────────────────────────────────────────────
                   _AmountBlock(
-                    amount: '₦2,450,000',
+                    amount: _money(data.totalIncome),
                     label: 'Total income',
                     amountColor: WrappedColors.income,
                   ),
@@ -102,7 +123,7 @@ class WrappedSlide2Income extends StatelessWidget {
                     children: [
                       Expanded(
                         child: _AmountBlock(
-                          amount: '₦550,000',
+                          amount: _money(data.totalExpenses),
                           label: 'Total spent',
                           amountColor: WrappedColors.expense,
                         ),
@@ -118,7 +139,7 @@ class WrappedSlide2Income extends StatelessWidget {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          '24% of income',
+                          '$_spentPctOfIncome% of income',
                           style: AppTypography.labelXSmall.copyWith(
                             color: WrappedColors.white,
                             fontVariations: const [FontVariation('wght', 600)],
@@ -155,7 +176,7 @@ class WrappedSlide2Income extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '₦1,950,000',
+                          _money(data.netBalance),
                           style: AppTypography.amountLarge.copyWith(
                             color: WrappedColors.white,
                             fontFamily: 'BricolageGrotesque',

@@ -10,14 +10,17 @@ import 'badge_widget.dart';
 
 enum ChallengeSuccessType { fridaySavings, categoryBudget, weekendChallenge }
 
+/// [message] overrides the gallery's placeholder copy with the real amount,
+/// badge and month once this is driven by a live entry.
 Future<void> showChallengeSuccessModal(
   BuildContext context,
-  ChallengeSuccessType type,
-) {
+  ChallengeSuccessType type, {
+  String? message,
+}) {
   return showDialog(
     context: context,
     barrierColor: Colors.black54,
-    builder: (_) => _ChallengeSuccessModal(type: type),
+    builder: (_) => _ChallengeSuccessModal(type: type, message: message),
   );
 }
 
@@ -71,7 +74,8 @@ _SuccessConfig _configFor(ChallengeSuccessType type) => switch (type) {
 
 class _ChallengeSuccessModal extends StatelessWidget {
   final ChallengeSuccessType type;
-  const _ChallengeSuccessModal({required this.type});
+  final String? message;
+  const _ChallengeSuccessModal({required this.type, this.message});
 
   @override
   Widget build(BuildContext context) {
@@ -138,7 +142,7 @@ class _ChallengeSuccessModal extends StatelessWidget {
                     const SizedBox(height: AppSpacing.sm),
                     // Message
                     Text(
-                      cfg.message,
+                      message ?? cfg.message,
                       textAlign: TextAlign.center,
                       style: AppTypography.bodySmall.copyWith(
                         color: context.textSecondary,

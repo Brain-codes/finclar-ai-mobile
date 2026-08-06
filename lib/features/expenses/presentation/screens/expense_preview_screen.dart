@@ -8,6 +8,7 @@ import '../../../../shared/widgets/app_loading_overlay.dart';
 import '../../../../shared/widgets/app_snackbar.dart';
 import '../../data/models/expense_model.dart';
 import '../../providers/expense_providers.dart';
+import '../../../../shared/widgets/clara_note.dart';
 import '../widgets/delete_expense_sheet.dart';
 import '../widgets/edit_expense_sheet.dart';
 import '../widgets/expense_detail_card.dart';
@@ -69,12 +70,31 @@ class _ExpensePreviewScreenState extends ConsumerState<ExpensePreviewScreen> {
                   onEdit: _onEdit,
                   onDelete: _onDelete,
                 ),
-                const SizedBox(height: AppSpacing.base),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.screenPadding,
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.base),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: AppSpacing.base),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.screenPadding,
+                          ),
+                          child: ExpenseDetailCard(expense: _expense),
+                        ),
+                        if ((_expense.claraInsight?.trim().isNotEmpty ??
+                            false)) ...[
+                          const SizedBox(height: AppSpacing.base),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.screenPadding,
+                            ),
+                            child: ClaraNote(text: _expense.claraInsight),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
-                  child: ExpenseDetailCard(expense: _expense),
                 ),
               ],
             ),

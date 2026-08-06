@@ -2,6 +2,12 @@ abstract class AppConstants {
   // Group membership limits (includes the owner)
   static const int maxGroupMembers = 10;
 
+  // The gamification design gallery is internal-only. Off unless a build
+  // passes --dart-define=SHOW_GAMIFY_GALLERY=true, so release builds hide it.
+  // static const bool showGamifyGallery =
+  //     bool.fromEnvironment('SHOW_GAMIFY_GALLERY');
+    static const bool showGamifyGallery = true;
+
   // Storage Keys
   static const String tokenKey = 'auth_token';
   static const String refreshTokenKey = 'refresh_token';
@@ -15,8 +21,18 @@ abstract class AppConstants {
   static const String categoriesKey = 'categories_cache';
   static const String goalsSkippedKey = 'goals_skipped';
   static const String goalsCompletedKey = 'goals_completed';
+  static const String challengePromptWeekKey = 'challenge_prompt_week';
+  static const String weekendPromptWeekKey = 'weekend_prompt_week';
+  static const String categoryPromptDateKey = 'category_prompt_date';
+  static const String streakModalDateKey = 'streak_modal_date';
   static const String biometricEnabledKey = 'biometric_enabled';
   static const String biometricPasscodeKey = 'biometric_passcode';
+  static const String tourPendingKey = 'home_tour_pending';
+  static const String pendingInviteKey = 'pending_invite_username';
+
+  // Invites / deep links
+  static const String appScheme = 'finclar';
+  static const String inviteBaseUrl = 'https://finclarai.com/invite';
 
   // API
   static const Duration connectTimeout = Duration(seconds: 30);

@@ -309,6 +309,30 @@ class _ErrorState extends StatelessWidget {
   }
 }
 
+class _HeaderAction extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _HeaderAction({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: context.surfaceColor,
+          shape: BoxShape.circle,
+          border: Border.all(color: context.borderColor),
+        ),
+        child: Icon(icon, size: 20, color: context.textSecondary),
+      ),
+    );
+  }
+}
+
 class _Header extends StatelessWidget {
   const _Header();
 
@@ -330,18 +354,18 @@ class _Header extends StatelessWidget {
               color: context.textPrimary,
             ),
           ),
-          GestureDetector(
-            onTap: () => context.push(RouteNames.createGroup),
-            child: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: context.surfaceColor,
-                shape: BoxShape.circle,
-                border: Border.all(color: context.borderColor),
+          Row(
+            children: [
+              _HeaderAction(
+                icon: AppIcons.addUser,
+                onTap: () => context.push(RouteNames.friends),
               ),
-              child: Icon(AppIcons.add, size: 20, color: context.textSecondary),
-            ),
+              const SizedBox(width: AppSpacing.sm),
+              _HeaderAction(
+                icon: AppIcons.add,
+                onTap: () => context.push(RouteNames.createGroup),
+              ),
+            ],
           ),
         ],
       ),

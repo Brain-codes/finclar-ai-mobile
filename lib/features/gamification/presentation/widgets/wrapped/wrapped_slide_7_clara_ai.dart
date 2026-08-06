@@ -1,10 +1,13 @@
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import '../../../../../core/theme/app_typography.dart';
+import '../../../data/models/wrapped_model.dart';
 import 'wrapped_shared.dart';
 
 class WrappedSlide7ClaraAI extends StatelessWidget {
-  const WrappedSlide7ClaraAI({super.key});
+  final WrappedTip data;
+
+  const WrappedSlide7ClaraAI({super.key, required this.data});
 
   @override
   Widget build(BuildContext context) {
@@ -64,12 +67,9 @@ class WrappedSlide7ClaraAI extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 32),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: WrappedHeadline(
-                    "Here's an idea for you",
-                    padding: EdgeInsets.zero,
-                  ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: WrappedHeadline(data.title, padding: EdgeInsets.zero),
                 ),
                 const SizedBox(height: 24),
                 // Robot image — left-aligned, 40px from left (Figma x offset)
@@ -91,19 +91,11 @@ class WrappedSlide7ClaraAI extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Your food spending is ₦28,000/month. That is ₦347,000 a year and you\'ve been consistent for 4 months straight which amounts ₦247,000/month.',
-                        style: AppTypography.bodySmall.copyWith(
-                          color: const Color(0xFF101010),
-                          fontFamily: 'Geist',
-                          fontVariations: const [FontVariation('wght', 500)],
-                          fontSize: 16,
-                          height: 24 / 16,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Trimming by a third could unlock an extra ₦180k annually',
+                      WrappedAutoText(
+                        data.body,
+                        maxLines: 6,
+                        maxFontSize: 16,
+                        minFontSize: 12,
                         style: AppTypography.bodySmall.copyWith(
                           color: const Color(0xFF101010),
                           fontFamily: 'Geist',
@@ -113,48 +105,6 @@ class WrappedSlide7ClaraAI extends StatelessWidget {
                         ),
                       ),
                     ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                // Recommendation card
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: WrappedColors.claraRedCard,
-                    borderRadius: BorderRadius.circular(12),
-                    image: DecorationImage(
-                      image: AssetImage(WrappedAssets.wrapped7card1),
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Recommendation',
-                          style: AppTypography.labelSmall.copyWith(
-                            color: WrappedColors.claraRed,
-                            fontFamily: 'Geist',
-                            fontVariations: const [FontVariation('wght', 500)],
-                            fontSize: 14,
-                            height: 20 / 14,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Set a food budget of ₦75,000 next month. You were 19% over in March, a small nudge here has the highest impact',
-                          style: AppTypography.bodySmall.copyWith(
-                            color: WrappedColors.tagConsistent,
-                            fontFamily: 'Geist',
-                            fontVariations: const [FontVariation('wght', 500)],
-                            fontSize: 14,
-                            height: 20 / 14,
-                          ),
-                        ),
-                      ],
-                    ),
                   ),
                 ),
                 const Spacer(),

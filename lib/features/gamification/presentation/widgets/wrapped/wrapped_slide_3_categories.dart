@@ -1,29 +1,52 @@
 import 'package:flutter/material.dart';
 import '../../../../../core/theme/app_typography.dart';
+import '../../../../../core/utils/number_formatter.dart';
+import '../../../data/models/wrapped_model.dart';
 import 'wrapped_shared.dart';
 
 class WrappedSlide3Categories extends StatelessWidget {
-  const WrappedSlide3Categories({super.key});
+  final WrappedSpendingBreakdown data;
+  final String symbol;
 
-  static const _categories = [
-    _Category('Food & dining', '₦450,000', '32%', WrappedColors.catFood, 1.0),
-    _Category(
-      'Transportation',
-      '₦350,000',
-      '28%',
-      WrappedColors.catTransport,
-      0.925,
-    ),
-    _Category('Shopping', '₦250,000', '24%', WrappedColors.catShopping, 0.865),
-    _Category(
-      'Entertainment',
-      '₦150,000',
-      '20%',
-      WrappedColors.catEntertain,
-      0.786,
-    ),
-    _Category('Others', '₦50,000', '15%', WrappedColors.catOther, 0.690),
+  const WrappedSlide3Categories({
+    super.key,
+    required this.data,
+    required this.symbol,
+  });
+
+  /// Fixed palette cycled across however many categories come back — the
+  /// backend sends no per-category color.
+  static const _palette = [
+    WrappedColors.catFood,
+    WrappedColors.catTransport,
+    WrappedColors.catShopping,
+    WrappedColors.catEntertain,
+    WrappedColors.catOther,
   ];
+
+  /// The slide is fixed-height (no scrolling), so only the top few categories
+  /// fit. The backend can return more than this.
+  static const int _maxBars = 5;
+
+  /// Bars are sized relative to the biggest category, not to 100%, so the
+  /// chart still reads well when one category dominates.
+  List<_Category> _bars() {
+    if (data.categories.isEmpty) return const [];
+    final sorted = [...data.categories]
+      ..sort((a, b) => b.amount.compareTo(a.amount));
+    final shown = sorted.take(_maxBars).toList();
+    final top = shown.first.amount;
+    return List.generate(shown.length, (i) {
+      final c = shown[i];
+      return _Category(
+        c.name,
+        formatCurrency(c.amount, symbol, abbreviate: false, withCommas: true),
+        '${c.percentage.round()}%',
+        _palette[i % _palette.length],
+        top > 0 ? (0.35 + 0.65 * (c.amount / top)) : 1.0,
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,13 +65,10 @@ class WrappedSlide3Categories extends StatelessWidget {
                 padding: EdgeInsets.zero,
               ),
               const SizedBox(height: 8),
-              const WrappedSubtitle(
-                'Your spent a total of ₦450,000 across 5 categories',
-                padding: EdgeInsets.zero,
-              ),
+              WrappedSubtitle(data.headline, padding: EdgeInsets.zero),
               const SizedBox(height: 28),
               // Category bars
-              ..._categories.map(
+              ..._bars().map(
                 (c) => _CategoryBar(category: c, maxWidth: screenW - 32),
               ),
               const Spacer(),

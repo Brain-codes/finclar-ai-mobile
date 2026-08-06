@@ -13,6 +13,7 @@ import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../shared/widgets/app_skeleton.dart';
 import '../../../expenses/data/models/expense_model.dart';
 import '../../../expenses/presentation/widgets/expense_category_utils.dart';
+import '../../../expenses/presentation/widgets/expense_verification_badge.dart';
 import '../../../expenses/providers/expense_providers.dart';
 
 enum HomeExpenseIconType { imageUrl, svgAsset, svgNetwork, appIcon }
@@ -28,6 +29,7 @@ class HomeExpenseItem {
   final String? imageUrl;
   final String? svgPath;
   final IconData? iconData;
+  final ExpenseVerificationLevel verificationLevel;
 
   const HomeExpenseItem({
     required this.merchant,
@@ -40,6 +42,7 @@ class HomeExpenseItem {
     this.imageUrl,
     this.svgPath,
     this.iconData,
+    this.verificationLevel = ExpenseVerificationLevel.selfReported,
   });
 }
 
@@ -61,6 +64,7 @@ class RecentExpensesSection extends ConsumerWidget {
         categoryColor: expenseCategoryColor(e.category),
         iconType: HomeExpenseIconType.appIcon,
         iconData: expenseCategoryIcon(e.category),
+        verificationLevel: e.verificationLevel,
       );
 
   @override
@@ -224,6 +228,8 @@ class _ExpenseTile extends StatelessWidget {
                   children: [
                     Text(
                       item.merchant,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: AppTypography.labelSmall.copyWith(
                         color: context.textPrimary,
                         fontVariations: const [FontVariation('wght', 500)],
@@ -232,11 +238,29 @@ class _ExpenseTile extends StatelessWidget {
                     ),
                     if (item.detail != null) ...[
                       const SizedBox(height: 2),
-                      Text(
-                        item.detail!,
-                        style: AppTypography.labelXSmall.copyWith(
-                          color: item.categoryColor,
-                        ),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              item.detail!,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTypography.labelXSmall.copyWith(
+                                color: item.categoryColor,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.xs),
+                          Text(
+                            '·',
+                            style: AppTypography.labelXSmall.copyWith(
+                              color: context.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.xs),
+                          ExpenseVerificationLabel(
+                            level: item.verificationLevel,
+                          ),
+                        ],
                       ),
                     ],
                   ],

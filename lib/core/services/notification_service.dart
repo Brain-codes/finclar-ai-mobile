@@ -3,13 +3,18 @@ import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
+import '../api/api_client.dart';
+import '../api/api_endpoints.dart';
+import '../errors/app_exceptions.dart';
 import 'logger_service.dart';
+import 'storage_service.dart';
 
 enum NotificationCategory {
   transaction,
   budget,
   group,
   aiInsight,
+  challenge,
   unknown;
 
   static NotificationCategory fromData(Map<String, dynamic> data) {
@@ -18,6 +23,11 @@ enum NotificationCategory {
       'budget' || 'budget_limit' || 'budget_warning' => budget,
       'group' || 'group_activity' => group,
       'ai' || 'ai_insight' || 'insight' => aiInsight,
+      'challenge' ||
+      'challenge_reminder' ||
+      'friday_savings' ||
+      'no_spend' ||
+      'budget_category' => challenge,
       _ => unknown,
     };
   }
@@ -87,11 +97,50 @@ abstract class NotificationService {
     if (initial != null) _onMessageOpened(initial);
   }
 
-  static Future<void> _registerToken(String token) async {
-    // No device-token registration endpoint exists in docs/API.md yet.
-    // When the backend adds one, call it here via ApiClient.
-    Log.d('FCM token ready for backend registration: ${token.substring(0, 12)}...');
+  static ApiClient? _apiClient;
+  static ApiClient get _api => _apiClient ??= ApiClient();
+
+  static String get _platform => Platform.isIOS
+      ? 'ios'
+      : Platform.isAndroid
+      ? 'android'
+      : 'web';
+
+  /// Registers the current FCM token for push. Safe to call repeatedly — the
+  /// backend upserts by token.
+  ///
+  /// Call after a successful login: [init] runs before the user is
+  /// authenticated, and this endpoint is 🔒, so registration at startup only
+  /// lands for an already-logged-in session.
+  static Future<void> registerToken() async {
+    final token = _token;
+    if (token == null) return;
+    await _registerToken(token);
   }
+
+  static Future<void> _registerToken(String token) async {
+    // 🔒 endpoint — a pre-login call would just 401. The token is cached in
+    // [_token], so [registerToken] can retry once the user authenticates.
+    if (await StorageService.getAccessToken() == null) {
+      Log.d('FCM token cached; registering after login');
+      return;
+    }
+    try {
+      await _api.post<void>(
+        ApiEndpoints.deviceTokens,
+        body: {'token': token, 'platform': _platform},
+      );
+      Log.i('FCM token registered ($_platform)');
+    } on AppException catch (e) {
+      // Never surface this — push registration failing must not block the app.
+      Log.e('FCM token registration failed', error: e.message);
+    }
+  }
+
+  /// Debug only — asks the backend to push to this account's registered
+  /// devices, so token registration and FCM can be confirmed before testing
+  /// anything feature-specific.
+  static Future<void> sendTestPush() => _api.post<void>(ApiEndpoints.testPush);
 
   static void _onForegroundMessage(RemoteMessage message) {
     final category = NotificationCategory.fromData(message.data);

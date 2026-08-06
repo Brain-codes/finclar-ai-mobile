@@ -75,6 +75,8 @@ class ScannedReceiptModel {
   final String merchantName;
   final double totalAmount;
   final String? imagePath;
+  // Remote receipt image, present on expenses loaded from the backend.
+  final String? receiptUrl;
   final List<ScannedItemModel> items;
   // Set when the receipt was already saved to the backend (backend scan path).
   // Used to PATCH the expense amount when the user edits item quantities/prices.
@@ -87,6 +89,7 @@ class ScannedReceiptModel {
     required this.merchantName,
     required this.totalAmount,
     this.imagePath,
+    this.receiptUrl,
     required this.items,
     this.expenseId,
     this.sourceExpense,
@@ -114,6 +117,7 @@ class ScannedReceiptModel {
       merchantName: expense.description ?? 'Receipt',
       totalAmount: expense.amount,
       imagePath: imagePath,
+      receiptUrl: expense.receiptUrl,
       items: mappedItems,
       expenseId: expense.id,
       sourceExpense: expense,
@@ -124,6 +128,7 @@ class ScannedReceiptModel {
     String? merchantName,
     double? totalAmount,
     String? imagePath,
+    String? receiptUrl,
     List<ScannedItemModel>? items,
     String? expenseId,
     ExpenseModel? sourceExpense,
@@ -132,6 +137,7 @@ class ScannedReceiptModel {
         merchantName: merchantName ?? this.merchantName,
         totalAmount: totalAmount ?? this.totalAmount,
         imagePath: imagePath ?? this.imagePath,
+        receiptUrl: receiptUrl ?? this.receiptUrl,
         items: items ?? this.items,
         expenseId: expenseId ?? this.expenseId,
         sourceExpense: sourceExpense ?? this.sourceExpense,

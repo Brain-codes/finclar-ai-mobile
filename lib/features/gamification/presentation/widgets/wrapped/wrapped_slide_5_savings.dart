@@ -1,9 +1,18 @@
 import 'package:flutter/material.dart';
 import '../../../../../core/theme/app_typography.dart';
+import '../../../../../core/utils/number_formatter.dart';
+import '../../../data/models/wrapped_model.dart';
 import 'wrapped_shared.dart';
 
 class WrappedSlide5Savings extends StatelessWidget {
-  const WrappedSlide5Savings({super.key});
+  final WrappedSavings data;
+  final String symbol;
+
+  const WrappedSlide5Savings({
+    super.key,
+    required this.data,
+    required this.symbol,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -17,10 +26,7 @@ class WrappedSlide5Savings extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 32),
-              const WrappedHeadline(
-                'Your savings game is fire!',
-                padding: EdgeInsets.zero,
-              ),
+              WrappedHeadline(data.headline, padding: EdgeInsets.zero),
               const SizedBox(height: 16),
               const WrappedSubtitle(
                 "You're building something real!",
@@ -44,7 +50,7 @@ class WrappedSlide5Savings extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '22%',
+                      '${data.savingsRate.round()}%',
                       style: AppTypography.amountLarge.copyWith(
                         color: WrappedColors.neonGreen,
                         fontFamily: 'BricolageGrotesque',
@@ -52,39 +58,6 @@ class WrappedSlide5Savings extends StatelessWidget {
                         fontSize: 36,
                         height: 40 / 36,
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF0F1C18),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            '24% faster',
-                            style: AppTypography.labelXSmall.copyWith(
-                              color: WrappedColors.neonGreen,
-                              fontFamily: 'Geist',
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'compared to March',
-                          style: AppTypography.bodySmall.copyWith(
-                            color: WrappedColors.white.withValues(alpha: 0.8),
-                            fontFamily: 'Geist',
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
                     ),
                   ],
                 ),
@@ -107,7 +80,12 @@ class WrappedSlide5Savings extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '₦2,450,000',
+                      formatCurrency(
+                        data.totalSaved,
+                        symbol,
+                        abbreviate: false,
+                        withCommas: true,
+                      ),
                       style: AppTypography.amountLarge.copyWith(
                         color: WrappedColors.neonGreen,
                         fontFamily: 'BricolageGrotesque',
@@ -121,7 +99,9 @@ class WrappedSlide5Savings extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Column(
                         children: [
-                          _SavingsProgressBar(progress: 0.5),
+                          _SavingsProgressBar(
+                            progress: (data.savingsRate / 100).clamp(0.0, 1.0),
+                          ),
                           const SizedBox(height: 6),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,

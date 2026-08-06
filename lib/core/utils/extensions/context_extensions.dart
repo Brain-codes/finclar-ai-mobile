@@ -43,6 +43,11 @@ extension ContextX on BuildContext {
   Color get warningBg        => isDark ? AppColors.warningDark : AppColors.warningLight;
   Color get infoBg           => isDark ? AppColors.infoDark    : AppColors.infoLight;
 
+  // Text/icon colors to pair with successBg / warningBg. Both directions clear
+  // WCAG AA — the base hues do not (only ~3:1 on their own light backgrounds).
+  Color get successOn        => isDark ? AppColors.successLight : AppColors.successOn;
+  Color get warningOn        => isDark ? AppColors.warningLight : AppColors.warningOn;
+
   // ─── Category chip backgrounds ────────────────────────────────────────────
   Color get categoryFoodBg       => isDark ? AppColors.categoryFoodBgDark       : AppColors.categoryFoodBg;
   Color get categoryTransportBg  => isDark ? AppColors.categoryTransportBgDark  : AppColors.categoryTransportBg;

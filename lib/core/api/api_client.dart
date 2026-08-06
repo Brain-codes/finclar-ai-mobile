@@ -150,10 +150,11 @@ class ApiClient {
 
   Future<ApiResponse<T>> delete<T>(
     String path, {
+    Map<String, dynamic>? queryParams,
     T Function(dynamic)? fromData,
   }) async {
     try {
-      final response = await _dio.delete(path);
+      final response = await _dio.delete(path, queryParameters: queryParams);
       Log.apiResponse('DELETE', path, response.statusCode ?? 0, response.data);
       return ApiResponse.fromJson(
         response.data as Map<String, dynamic>,
@@ -164,18 +165,23 @@ class ApiClient {
     }
   }
 
+  /// [method] covers endpoints that take multipart on a verb other than POST —
+  /// e.g. `PATCH /expenses/{id}`, which accepts a receipt alongside the DTO.
   Future<ApiResponse<T>> uploadFile<T>(
     String path, {
     required FormData formData,
     T Function(dynamic)? fromData,
     void Function(int, int)? onProgress,
+    String method = 'POST',
   }) async {
     try {
-      final response = await _dio.post(
+      final response = await _dio.request(
         path,
         data: formData,
+        options: Options(method: method),
         onSendProgress: onProgress,
       );
+      Log.apiResponse(method, path, response.statusCode ?? 0, response.data);
       return ApiResponse.fromJson(
         response.data as Map<String, dynamic>,
         fromData,
@@ -198,12 +204,20 @@ class ApiClient {
         return const NetworkException('No internet connection.');
       case DioExceptionType.badResponse:
         final statusCode = e.response?.statusCode ?? 0;
-        final message =
-            _extractMessage(e.response?.data) ?? 'Something went wrong';
+        final backendMessage = _extractMessage(e.response?.data);
+        final message = backendMessage ?? 'Something went wrong';
         if (statusCode == 401) return UnauthorizedException(message);
         if (statusCode == 403) return ForbiddenException(message);
         if (statusCode == 404) return NotFoundException(message);
         if (statusCode == 409) return ConflictException(message);
+        if (statusCode == 413) {
+          // Prefer the server's wording when it sends one — it may name the
+          // actual limit. The friendly line is only a fallback.
+          return ValidationException(
+            backendMessage ??
+                'That file is too large. Please attach a smaller image.',
+          );
+        }
         if (statusCode == 422) return ValidationException(message);
         if (statusCode >= 500) return ServerException(message);
         return ApiException(message, statusCode: statusCode);

@@ -1,9 +1,18 @@
 import 'package:flutter/material.dart';
 import '../../../../../core/theme/app_typography.dart';
+import '../../../../../core/utils/number_formatter.dart';
+import '../../../data/models/wrapped_model.dart';
 import 'wrapped_shared.dart';
 
 class WrappedSlide4TopCategory extends StatelessWidget {
-  const WrappedSlide4TopCategory({super.key});
+  final WrappedTopCategory data;
+  final String symbol;
+
+  const WrappedSlide4TopCategory({
+    super.key,
+    required this.data,
+    required this.symbol,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -19,13 +28,10 @@ class WrappedSlide4TopCategory extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const WrappedHeadline(
-                    'Food took the biggest bite',
-                    padding: EdgeInsets.zero,
-                  ),
+                  WrappedHeadline(data.headline, padding: EdgeInsets.zero),
                   const SizedBox(height: 8),
-                  const WrappedSubtitle(
-                    'You visited restaurants 14 times with 24 food purchases this month',
+                  WrappedSubtitle(
+                    'Your biggest category this month was ${data.name}',
                     padding: EdgeInsets.zero,
                   ),
                   const SizedBox(height: 28),
@@ -40,7 +46,12 @@ class WrappedSlide4TopCategory extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        '₦550,000',
+                        formatCurrency(
+                          data.amount,
+                          symbol,
+                          abbreviate: false,
+                          withCommas: true,
+                        ),
                         style: AppTypography.amountLarge.copyWith(
                           color: WrappedColors.white,
                           fontSize: 40,
@@ -70,7 +81,7 @@ class WrappedSlide4TopCategory extends StatelessWidget {
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
-                              '24% of your income',
+                              '${data.percentage.round()}% of spending',
                               style: AppTypography.labelXSmall.copyWith(
                                 color: WrappedColors.foodPct,
                                 fontVariations: const [

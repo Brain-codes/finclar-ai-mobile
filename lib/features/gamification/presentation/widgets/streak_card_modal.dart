@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/errors/app_exceptions.dart';
+import '../../../../core/services/logger_service.dart';
+import '../../../../core/services/storage_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -6,27 +10,45 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../shared/icons/app_icons.dart';
 import '../../../../shared/widgets/app_button.dart';
+import '../../data/models/expense_streak_model.dart';
+import '../../providers/streak_providers.dart';
 
 Future<void> showStreakCardModal(
   BuildContext context, {
-  int streakCount = 5,
-  String currentDay = 'Mo',
+  required ExpenseStreakModel streak,
 }) {
   return showDialog(
     context: context,
     barrierColor: Colors.black54,
-    builder: (_) =>
-        _StreakCardModal(streakCount: streakCount, currentDay: currentDay),
+    builder: (_) => _StreakCardModal(streak: streak),
   );
 }
 
+/// Celebrates the streak on the first expense logged each day. Silent when the
+/// user has already seen it today, has no streak, or the fetch fails — logging
+/// an expense must never be blocked by this.
+Future<void> maybeShowStreakModal(BuildContext context, WidgetRef ref) async {
+  final today = DateTime.now().toIso8601String().split('T').first;
+  if (await StorageService.getStreakModalDate() == today) return;
+
+  final ExpenseStreakModel streak;
+  try {
+    streak = await ref.read(expenseStreakProvider.future);
+  } on AppException catch (e) {
+    Log.e('Streak fetch failed', error: e.message);
+    return;
+  }
+  if (!streak.loggedToday || !streak.hasStreak) return;
+
+  await StorageService.setStreakModalDate(today);
+  if (!context.mounted) return;
+  await showStreakCardModal(context, streak: streak);
+}
+
 class _StreakCardModal extends StatelessWidget {
-  final int streakCount;
-  final String currentDay;
+  final ExpenseStreakModel streak;
 
-  const _StreakCardModal({required this.streakCount, required this.currentDay});
-
-  static const _days = ['Sa', 'Su', 'Mo', 'Tu', 'We', 'Th', 'Fr'];
+  const _StreakCardModal({required this.streak});
 
   @override
   Widget build(BuildContext context) {
@@ -97,7 +119,7 @@ class _StreakCardModal extends StatelessWidget {
                               Stack(
                                 children: [
                                   Text(
-                                    '$streakCount',
+                                    '${streak.currentStreak}',
                                     style: AppTypography.displayLarge.copyWith(
                                       fontSize: 80,
                                       foreground: Paint()
@@ -108,7 +130,7 @@ class _StreakCardModal extends StatelessWidget {
                                     ),
                                   ),
                                   Text(
-                                    '$streakCount',
+                                    '${streak.currentStreak}',
                                     style: AppTypography.displayLarge.copyWith(
                                       fontSize: 80,
                                       color: AppColors.white,
@@ -122,7 +144,7 @@ class _StreakCardModal extends StatelessWidget {
                       ],
                     ),
                     Text(
-                      'Days streak',
+                      streak.currentStreak == 1 ? 'Day streak' : 'Days streak',
                       style: AppTypography.headingSmall.copyWith(
                         color: AppColors.streakGold,
                         fontVariations: const [FontVariation('wght', 600)],
@@ -132,87 +154,29 @@ class _StreakCardModal extends StatelessWidget {
                     // Day labels row
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: _days.map((d) {
-                        final isActive = d == currentDay;
+                      children: streak.days.map((d) {
                         return Text(
-                          d,
+                          d.dayLabel,
                           style: AppTypography.labelMedium.copyWith(
-                            color: isActive
+                            color: d.isToday
                                 ? AppColors.streakGold
                                 : AppColors.textSecondary,
                             fontVariations: [
-                              FontVariation('wght', isActive ? 600 : 500),
+                              FontVariation('wght', d.isToday ? 600 : 500),
                             ],
                           ),
                         );
                       }).toList(),
                     ),
                     const SizedBox(height: AppSpacing.sm),
-                    // Streak indicator row
-                    Row(
-                      children: [
-                        // Active streak pill
-                        Container(
-                          height: 40,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.md,
-                          ),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [
-                                Color(0xFFFF751F),
-                                Color(0xFFFD972E),
-                                Color(0xFFF9D549),
-                              ],
-                              stops: [0.0, 0.67, 1.0],
-                            ),
-                            borderRadius: AppRadius.radiusFull,
-                            border: Border.all(
-                              color: const Color(0xFFF7D749),
-                              width: 1,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: List.generate(
-                              3,
-                              (_) => const Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 3),
-                                child: Icon(
-                                  AppIcons.sparkle,
-                                  size: 16,
-                                  color: AppColors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
-                        // Inactive day circles
-                        ...List.generate(
-                          4,
-                          (_) => Padding(
-                            padding: const EdgeInsets.only(
-                              right: AppSpacing.sm,
-                            ),
-                            child: Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                color: AppColors.surfaceMuted,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: AppColors.borderStrong,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                    _StreakIndicatorRow(days: streak.days),
                     const SizedBox(height: AppSpacing.xl),
                     Text(
-                      'You earned a perfect streak for logging your expenses $streakCount days in a row!',
+                      streak.isPersonalBest
+                          ? 'A new personal best — you logged your expenses '
+                                '${streak.currentStreak} days in a row!'
+                          : 'You earned a perfect streak for logging your '
+                                'expenses ${streak.currentStreak} days in a row!',
                       textAlign: TextAlign.center,
                       style: AppTypography.bodyLarge.copyWith(
                         color: AppColors.textSecondary,
@@ -232,6 +196,94 @@ class _StreakCardModal extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Each unbroken run of logged days collapses into one gradient pill; every
+/// missed day is a hollow circle. A full week logged is a single wide pill.
+class _StreakIndicatorRow extends StatelessWidget {
+  final List<ExpenseStreakDayModel> days;
+
+  const _StreakIndicatorRow({required this.days});
+
+  @override
+  Widget build(BuildContext context) {
+    final children = <Widget>[];
+    var run = 0;
+
+    void flushRun() {
+      if (run == 0) return;
+      children.add(_StreakPill(count: run));
+      run = 0;
+    }
+
+    for (final day in days) {
+      if (day.logged) {
+        run++;
+      } else {
+        flushRun();
+        children.add(const _MissedDayCircle());
+      }
+    }
+    flushRun();
+
+    return Row(
+      children: [
+        for (final child in children) ...[
+          child,
+          const SizedBox(width: AppSpacing.sm),
+        ],
+      ],
+    );
+  }
+}
+
+class _StreakPill extends StatelessWidget {
+  final int count;
+
+  const _StreakPill({required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 40,
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFF751F), Color(0xFFFD972E), Color(0xFFF9D549)],
+          stops: [0.0, 0.67, 1.0],
+        ),
+        borderRadius: AppRadius.radiusFull,
+        border: Border.all(color: const Color(0xFFF7D749)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: List.generate(
+          count,
+          (_) => const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 3),
+            child: Icon(AppIcons.sparkle, size: 16, color: AppColors.white),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MissedDayCircle extends StatelessWidget {
+  const _MissedDayCircle();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: AppColors.surfaceMuted,
+        shape: BoxShape.circle,
+        border: Border.all(color: AppColors.borderStrong),
       ),
     );
   }

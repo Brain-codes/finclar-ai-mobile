@@ -10,6 +10,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_skeleton.dart';
 import '../../../../shared/widgets/gradient_text.dart';
 import '../../../../shared/widgets/gradient_icon.dart';
+import '../../data/models/home_insight_model.dart';
 import '../../providers/home_dashboard_provider.dart';
 
 class ClaraCard extends ConsumerWidget {
@@ -35,9 +36,13 @@ class ClaraCard extends ConsumerWidget {
     return ref.watch(homeInsightProvider).when(
           loading: () => const _ClaraSkeleton(),
           error: (_, _) => _EmptyClaraCard(onTap: onTap),
-          data: (insight) => insight.trim().isEmpty
+          data: (insight) => !insight.hasInsight
               ? _EmptyClaraCard(onTap: onTap)
-              : _FilledClaraCard(insightText: insight, onTap: onTap),
+              : _FilledClaraCard(
+                  insightText: insight.insight,
+                  insight: insight,
+                  onTap: onTap,
+                ),
         );
   }
 }
@@ -75,9 +80,14 @@ class _ClaraSkeleton extends StatelessWidget {
 
 class _FilledClaraCard extends StatelessWidget {
   final String insightText;
+  final HomeInsightModel? insight;
   final VoidCallback? onTap;
 
-  const _FilledClaraCard({required this.insightText, this.onTap});
+  const _FilledClaraCard({
+    required this.insightText,
+    this.insight,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -123,12 +133,74 @@ class _FilledClaraCard extends StatelessWidget {
                   height: 20 / 14,
                 ),
               ),
+              if (insight?.hasVerificationData ?? false) ...[
+                const SizedBox(height: AppSpacing.md),
+                _VerificationSplit(insight: insight!),
+              ],
               const SizedBox(height: AppSpacing.md),
               // Pagination dots
               const _ClaraDots(totalDots: 3, activeDot: 0),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// How much of the period's spending Clara could verify. Tells the user what
+/// the insight above is actually based on.
+///
+/// Note: [_GradientBorderCard] paints a fixed light background in both themes,
+/// so this deliberately uses the light-mode `AppColors.*On` foregrounds rather
+/// than the theme-aware `context.*On` getters — the dark-mode variants are pale
+/// and would be unreadable here.
+class _VerificationSplit extends StatelessWidget {
+  final HomeInsightModel insight;
+
+  const _VerificationSplit({required this.insight});
+
+  @override
+  Widget build(BuildContext context) {
+    final verified = insight.verifiedPctRounded;
+    final selfReported = insight.selfReportedPctRounded;
+
+    return Semantics(
+      label:
+          'This insight is based on $verified percent verified and '
+          '$selfReported percent self-reported spending.',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: AppRadius.radiusXs,
+            child: SizedBox(
+              height: 4,
+              child: Row(
+                children: [
+                  if (verified > 0)
+                    Expanded(
+                      flex: verified,
+                      child: const ColoredBox(color: AppColors.successOn),
+                    ),
+                  if (selfReported > 0)
+                    Expanded(
+                      flex: selfReported,
+                      child: const ColoredBox(color: AppColors.warningOn),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Based on $verified% verified · $selfReported% self-reported',
+            style: AppTypography.bodySmall.copyWith(
+              fontSize: 11,
+              color: const Color(0xFF4D4845),
+            ),
+          ),
+        ],
       ),
     );
   }

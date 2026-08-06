@@ -1,6 +1,7 @@
 import '../../../../core/api/api_client.dart';
 import '../../../../core/api/api_endpoints.dart';
 import '../../../../core/services/logger_service.dart';
+import '../../../../core/services/notification_service.dart';
 import '../models/financial_goal_model.dart';
 import '../models/token_pair_model.dart';
 import '../models/user_model.dart';
@@ -87,6 +88,28 @@ class AuthRepository {
     return response.data!;
   }
 
+  /// `PATCH /user/me` — all fields optional, only send what changed.
+  Future<UserModel> updateProfile({
+    String? username,
+    String? preferredName,
+    String? defaultCurrency,
+    String? profileIcon,
+  }) async {
+    final body = <String, dynamic>{
+      'username': ?username,
+      'preferred_name': ?preferredName,
+      'default_currency': ?defaultCurrency,
+      'profile_icon': ?profileIcon,
+    };
+    Log.api('PATCH', ApiEndpoints.me, body: body);
+    final response = await _api.patch<UserModel>(
+      ApiEndpoints.me,
+      body: body,
+      fromData: (data) => UserModel.fromJson(data as Map<String, dynamic>),
+    );
+    return response.data!;
+  }
+
   Future<List<FinancialGoalModel>> getGoals() async {
     Log.api('GET', ApiEndpoints.goals);
     return _api.getAllPaginated<FinancialGoalModel>(
@@ -103,9 +126,15 @@ class AuthRepository {
     );
   }
 
+  /// Sends this device's FCM token so the backend stops pushing to it — a
+  /// logged-out device must not keep receiving the previous user's alerts.
   Future<void> logout() async {
+    final deviceToken = NotificationService.token;
     Log.api('POST', ApiEndpoints.logout);
-    await _api.post<void>(ApiEndpoints.logout);
+    await _api.post<void>(
+      ApiEndpoints.logout,
+      body: deviceToken != null ? {'device_token': deviceToken} : null,
+    );
   }
 
   Future<void> logoutAll() async {

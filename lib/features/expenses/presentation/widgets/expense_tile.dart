@@ -6,6 +6,7 @@ import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../shared/widgets/app_avatar.dart';
 import '../../data/models/expense_model.dart';
 import 'expense_category_utils.dart';
+import 'expense_verification_badge.dart';
 
 class ExpenseTile extends StatelessWidget {
   final ExpenseModel expense;
@@ -44,6 +45,8 @@ class ExpenseTile extends StatelessWidget {
                     children: [
                       Text(
                         expense.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: AppTypography.bodyMedium.copyWith(
                           color: context.textQuaternary,
                           fontSize: 14,
@@ -51,12 +54,31 @@ class ExpenseTile extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 2),
-                      Text(
-                        expense.category,
-                        style: AppTypography.bodySmall.copyWith(
-                          color: color,
-                          fontSize: 12,
-                        ),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              expense.category,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTypography.bodySmall.copyWith(
+                                color: color,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.xs),
+                          Text(
+                            '·',
+                            style: AppTypography.bodySmall.copyWith(
+                              color: context.textSecondary,
+                              fontSize: 12,
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.xs),
+                          ExpenseVerificationLabel(
+                            level: expense.verificationLevel,
+                          ),
+                        ],
                       ),
                     ],
                   ),

@@ -20,6 +20,20 @@ class AppConfig {
     categories: AppLocalDefaults.categories,
   );
 
+  /// The currencies the app offers in pickers. Every code here must have a
+  /// symbol in [symbolFor], otherwise the picker shows a bare code.
+  static const List<({String code, String name})> supportedCurrencies = [
+    (code: 'NGN', name: 'Nigerian Naira'),
+    (code: 'USD', name: 'US Dollar'),
+    (code: 'GBP', name: 'British Pound'),
+    (code: 'EUR', name: 'Euro'),
+    (code: 'GHS', name: 'Ghanaian Cedi'),
+    (code: 'KES', name: 'Kenyan Shilling'),
+    (code: 'ZAR', name: 'South African Rand'),
+    (code: 'CAD', name: 'Canadian Dollar'),
+    (code: 'AUD', name: 'Australian Dollar'),
+  ];
+
   /// Maps an ISO 4217 currency code to its display symbol.
   static String symbolFor(String code) {
     switch (code.toUpperCase()) {

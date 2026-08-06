@@ -79,8 +79,28 @@ class ReceiptAiService {
       return receipt;
     } on DioException catch (e, st) {
       Log.e('[ReceiptAI] Request failed', error: e, stackTrace: st);
-      throw const AppException('Could not scan receipt. Please try again.');
+      // Surface the provider's own reason (bad key, rate limit, timeout).
+      // Flattening every failure to one line made this path undebuggable
+      // from a tester's device.
+      throw AppException(_dioMessage(e));
     }
+  }
+
+  static String _dioMessage(DioException e) {
+    final data = e.response?.data;
+    if (data is Map && data['error'] is Map) {
+      final msg = (data['error'] as Map)['message'];
+      if (msg is String && msg.trim().isNotEmpty) return msg.trim();
+    }
+    return switch (e.type) {
+      DioExceptionType.connectionTimeout ||
+      DioExceptionType.sendTimeout ||
+      DioExceptionType.receiveTimeout =>
+        'Scanning timed out. Check your connection and try again.',
+      DioExceptionType.connectionError =>
+        'No internet connection. Please try again.',
+      _ => 'Could not scan receipt. Please try again.',
+    };
   }
 
   static const _systemPrompt =

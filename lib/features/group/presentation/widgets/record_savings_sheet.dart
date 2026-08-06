@@ -1,8 +1,6 @@
 import 'dart:io';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/config/app_config_notifier.dart';
 import '../../../../core/errors/app_exceptions.dart';
@@ -11,6 +9,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../shared/icons/app_icons.dart';
 import '../../../../shared/widgets/app_button.dart';
+import '../../../../shared/widgets/app_attach_receipt_field.dart';
 import '../../../../shared/widgets/app_snackbar.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../providers/group_providers.dart';
@@ -43,10 +42,8 @@ class _RecordSavingsSheet extends ConsumerStatefulWidget {
 class _RecordSavingsSheetState extends ConsumerState<_RecordSavingsSheet> {
   final _amountController = TextEditingController();
   final _noteController = TextEditingController();
-  final _picker = ImagePicker();
   File? _receipt;
   bool _isSaving = false;
-  bool _isAttaching = false;
 
   @override
   void dispose() {
@@ -73,19 +70,6 @@ class _RecordSavingsSheetState extends ConsumerState<_RecordSavingsSheet> {
 
   double get _amount =>
       double.tryParse(_amountController.text.replaceAll(',', '')) ?? 0;
-
-  Future<void> _attachReceipt() async {
-    if (_isAttaching) return;
-    setState(() => _isAttaching = true);
-    try {
-      final image =
-          await _picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
-      if (!mounted) return;
-      if (image != null) setState(() => _receipt = File(image.path));
-    } finally {
-      if (mounted) setState(() => _isAttaching = false);
-    }
-  }
 
   Future<void> _save() async {
     if (_amount <= 0 || _receipt == null) return;
@@ -170,54 +154,9 @@ class _RecordSavingsSheetState extends ConsumerState<_RecordSavingsSheet> {
             controller: _noteController,
           ),
           const SizedBox(height: AppSpacing.base),
-          GestureDetector(
-            onTap: _attachReceipt,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 16, vertical: 13),
-              decoration: BoxDecoration(
-                color: context.inputFill,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: context.inputBorder),
-              ),
-              child: Row(
-                children: [
-                  if (_isAttaching)
-                    SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CupertinoActivityIndicator(
-                        radius: 8,
-                        color: context.textTertiary,
-                      ),
-                    )
-                  else
-                    Icon(AppIcons.image, size: 18, color: context.textTertiary),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: Text(
-                      _isAttaching
-                          ? 'Attaching receipt...'
-                          : _receipt != null
-                              ? 'Receipt attached'
-                              : 'Attach receipt',
-                      style: AppTypography.bodyMedium.copyWith(
-                        color: _receipt != null && !_isAttaching
-                            ? context.textPrimary
-                            : context.inputPlaceholder,
-                      ),
-                    ),
-                  ),
-                  if (_receipt != null && !_isAttaching)
-                    GestureDetector(
-                      onTap: () => setState(() => _receipt = null),
-                      child: Icon(AppIcons.close,
-                          size: 16, color: context.textTertiary),
-                    ),
-                ],
-              ),
-            ),
+          AppAttachReceiptField(
+            file: _receipt,
+            onChanged: (f) => setState(() => _receipt = f),
           ),
           const SizedBox(height: AppSpacing.xl),
           AppButton(

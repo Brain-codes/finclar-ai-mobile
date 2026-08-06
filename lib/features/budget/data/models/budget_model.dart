@@ -27,6 +27,10 @@ class BudgetModel {
   final DateTime? endDate;
   final List<AllocationModel> allocations;
 
+  /// AI one-liner delivered inline with the budget — saves a separate call to
+  /// `GET /budgets/{id}/insight`. Defaults to `""` on the backend.
+  final String? claraInsight;
+
   const BudgetModel({
     required this.id,
     required this.amountAllocated,
@@ -36,6 +40,7 @@ class BudgetModel {
     this.startDate,
     this.endDate,
     required this.allocations,
+    this.claraInsight,
   });
 
   double get totalAllocatedToCategories =>
@@ -62,6 +67,7 @@ class BudgetModel {
             ? List<AllocationModel>.from(
                 json['allocations'].map((x) => AllocationModel.fromJson(x)))
             : [],
+        claraInsight: json['clara_insight'],
       );
 
   Map<String, dynamic> toJson() => {
@@ -73,6 +79,7 @@ class BudgetModel {
         'start_date': startDate?.toIso8601String(),
         'end_date': endDate?.toIso8601String(),
         'allocations': List<dynamic>.from(allocations.map((x) => x.toJson())),
+        'clara_insight': claraInsight,
       };
 }
 

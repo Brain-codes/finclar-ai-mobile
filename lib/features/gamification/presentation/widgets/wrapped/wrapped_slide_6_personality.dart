@@ -1,10 +1,13 @@
 import 'package:finclar_ai/core/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 import '../../../../../core/theme/app_typography.dart';
+import '../../../data/models/wrapped_model.dart';
 import 'wrapped_shared.dart';
 
 class WrappedSlide6Personality extends StatelessWidget {
-  const WrappedSlide6Personality({super.key});
+  final WrappedPersonality data;
+
+  const WrappedSlide6Personality({super.key, required this.data});
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +25,7 @@ class WrappedSlide6Personality extends StatelessWidget {
                 padding: EdgeInsets.zero,
               ),
               const SizedBox(height: 24),
-              const Expanded(child: _PersonalityCard()),
+              Expanded(child: _PersonalityCard(data: data)),
             ],
           ),
         ),
@@ -36,7 +39,9 @@ class _PersonalityCard extends StatelessWidget {
   static const double _imageBleed = 32;
   static const double _imageSize = 293;
 
-  const _PersonalityCard();
+  final WrappedPersonality data;
+
+  const _PersonalityCard({required this.data});
 
   @override
   Widget build(BuildContext context) {
@@ -76,7 +81,7 @@ class _PersonalityCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    _CardContent(),
+                    _CardContent(data: data),
                   ],
                 ),
               ),
@@ -89,7 +94,8 @@ class _PersonalityCard extends StatelessWidget {
 }
 
 class _CardContent extends StatelessWidget {
-  const _CardContent();
+  final WrappedPersonality data;
+  const _CardContent({required this.data});
 
   @override
   Widget build(BuildContext context) {
@@ -97,8 +103,11 @@ class _CardContent extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          'The pragmatic planner',
+        WrappedAutoText(
+          data.name,
+          maxLines: 2,
+          maxFontSize: 24,
+          minFontSize: 16,
           style: AppTypography.displayLarge.copyWith(
             color: WrappedColors.white,
             fontFamily: 'BricolageGrotesque',
@@ -109,8 +118,11 @@ class _CardContent extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Text(
-          'You spend with intention but leave room for life. You know your fixed costs, hit your savings target most months, and still treat yourself, just not recklessly.',
+        WrappedAutoText(
+          data.description,
+          maxLines: 6,
+          maxFontSize: 14,
+          minFontSize: 11,
           style: AppTypography.bodySmall.copyWith(
             color: WrappedColors.white,
             fontFamily: 'Geist',

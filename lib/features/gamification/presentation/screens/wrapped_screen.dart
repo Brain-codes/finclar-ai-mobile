@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../shared/widgets/app_button.dart';
+import '../../data/models/wrapped_model.dart';
+import '../../../auth/providers/user_profile_provider.dart';
+import '../../providers/wrapped_providers.dart';
 import '../widgets/wrapped/wrapped_shared.dart';
 import '../widgets/wrapped/wrapped_slide_1_intro.dart';
 import '../widgets/wrapped/wrapped_slide_2_income.dart';
@@ -14,21 +19,134 @@ import '../widgets/wrapped/wrapped_slide_7_clara_ai.dart';
 import '../widgets/wrapped/wrapped_slide_8_well_done.dart';
 import '../widgets/wrapped/wrapped_slide_9_passport.dart';
 
-class WrappedScreen extends StatefulWidget {
-  const WrappedScreen({super.key});
+/// Fetches the monthly recap, then hands it to [WrappedStory]. The story only
+/// ever renders with real data — no partially-populated slides.
+class WrappedScreen extends ConsumerWidget {
+  final int? year;
+  final int? month;
+
+  const WrappedScreen({super.key, this.year, this.month});
 
   @override
-  State<WrappedScreen> createState() => _WrappedScreenState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final period = (year: year, month: month);
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: ref
+          .watch(wrappedProvider(period))
+          .when(
+            loading: () => const _WrappedLoading(),
+            error: (_, _) => _WrappedError(
+              onRetry: () => ref.invalidate(wrappedProvider(period)),
+            ),
+            data: (wrapped) => WrappedStory(
+              wrapped: wrapped,
+              // The passport shows a human name; the payload only carries the
+              // username, so use the preferred name the user chose.
+              displayName:
+                  ref.watch(userProfileProvider).valueOrNull?.displayName ?? '',
+            ),
+          ),
+    );
+  }
 }
 
-class _WrappedScreenState extends State<WrappedScreen>
+class _WrappedLoading extends StatelessWidget {
+  const _WrappedLoading();
+
+  @override
+  Widget build(BuildContext context) =>
+      const Center(child: CircularProgressIndicator(color: AppColors.primary));
+}
+
+class _WrappedError extends StatelessWidget {
+  final VoidCallback onRetry;
+
+  const _WrappedError({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              "We couldn't build your wrapped",
+              textAlign: TextAlign.center,
+              style: AppTypography.headingSmall.copyWith(color: Colors.white),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Check your connection and try again.',
+              textAlign: TextAlign.center,
+              style: AppTypography.bodySmall.copyWith(
+                color: Colors.white.withValues(alpha: 0.6),
+              ),
+            ),
+            const SizedBox(height: 24),
+            AppButton(label: 'Try again', onTap: onRetry),
+            const SizedBox(height: 12),
+            AppButton(
+              label: 'Close',
+              variant: AppButtonVariant.ghost,
+              onTap: () => context.pop(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class WrappedStory extends StatefulWidget {
+  final WrappedModel wrapped;
+  final String displayName;
+
+  const WrappedStory({
+    super.key,
+    required this.wrapped,
+    required this.displayName,
+  });
+
+  @override
+  State<WrappedStory> createState() => _WrappedScreenState();
+}
+
+class _WrappedScreenState extends State<WrappedStory>
     with SingleTickerProviderStateMixin {
   late final PageController _pageController;
   late final AnimationController _progressController;
   int _currentPage = 0;
 
-  static const int _totalSlides = 9;
   static const Duration _slideDuration = Duration(seconds: 6);
+
+  late final List<Widget> _slides = _buildSlides();
+
+  int get _totalSlides => _slides.length;
+
+  List<Widget> _buildSlides() {
+    final w = widget.wrapped;
+    final symbol = w.symbol;
+    return [
+      WrappedSlide1Intro(cover: w.cover),
+      WrappedSlide2Income(data: w.incomeVsExpense, symbol: symbol),
+      WrappedSlide3Categories(data: w.spendingBreakdown, symbol: symbol),
+      // Absent for a year with no expenses — skip rather than render an empty slide.
+      if (w.topCategory != null)
+        WrappedSlide4TopCategory(data: w.topCategory!, symbol: symbol),
+      WrappedSlide5Savings(data: w.savings, symbol: symbol),
+      WrappedSlide6Personality(data: w.personality),
+      WrappedSlide7ClaraAI(data: w.tip),
+      WrappedSlide8WellDone(data: w.badge),
+      WrappedSlide9Passport(
+        data: w.sharePassport,
+        symbol: symbol,
+        displayName: widget.displayName,
+      ),
+    ];
+  }
 
   @override
   void initState() {
@@ -79,56 +197,67 @@ class _WrappedScreenState extends State<WrappedScreen>
     _startAutoPlay();
   }
 
+  /// Hold-to-pause, like a story. Holds the current slide until release.
+  void _pauseAutoPlay() {
+    if (!_progressController.isAnimating) return;
+    _progressController.stop();
+  }
+
+  /// Resumes from where it paused rather than restarting the slide.
+  void _resumeAutoPlay() {
+    if (_currentPage >= _totalSlides - 1) return;
+    if (_progressController.isAnimating) return;
+    if (_progressController.value >= 1.0) return;
+    _progressController.forward();
+  }
+
   @override
   Widget build(BuildContext context) {
     final topPad = MediaQuery.of(context).padding.top;
     final bottomPad = MediaQuery.of(context).padding.bottom;
     final isPassport = _currentPage == _totalSlides - 1;
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          // ── Swipeable slides ────────────────────────────────────────────
-          PageView(
+    return Stack(
+      children: [
+        // ── Swipeable slides ────────────────────────────────────────────
+        // Hold anywhere on a slide to pause; release to resume. The gesture
+        // arena hands a horizontal drag to the PageView, so swiping between
+        // slides still works.
+        GestureDetector(
+          onLongPressStart: (_) => _pauseAutoPlay(),
+          onLongPressEnd: (_) => _resumeAutoPlay(),
+          onLongPressCancel: _resumeAutoPlay,
+          child: PageView(
             controller: _pageController,
             onPageChanged: _onPageChanged,
-            children: const [
-              WrappedSlide1Intro(),
-              WrappedSlide2Income(),
-              WrappedSlide3Categories(),
-              WrappedSlide4TopCategory(),
-              WrappedSlide5Savings(),
-              WrappedSlide6Personality(),
-              WrappedSlide7ClaraAI(),
-              WrappedSlide8WellDone(),
-              WrappedSlide9Passport(),
-            ],
+            children: _slides,
           ),
-          // ── Progress bar — left-aligned, auto-filling ───────────────────
-          if (!isPassport)
-            Positioned(
-              top: topPad + 12,
-              left: 16,
-              right: 16,
-              child: AnimatedBuilder(
-                animation: _progressController,
-                builder: (_, _) => WrappedProgressBar(
-                  currentIndex: _currentPage,
-                  currentProgress: _progressController.value,
-                ),
+        ),
+        // ── Progress bar — left-aligned, auto-filling ───────────────────
+        if (!isPassport)
+          Positioned(
+            top: topPad + 12,
+            left: 16,
+            right: 16,
+            child: AnimatedBuilder(
+              animation: _progressController,
+              builder: (_, _) => WrappedProgressBar(
+                currentIndex: _currentPage,
+                currentProgress: _progressController.value,
+                // Passport is the finale and shows no progress bar.
+                totalSteps: _totalSlides - 1,
               ),
             ),
-          // ── Footer — lives exclusively in WrappedScreen ─────────────────
-          if (!isPassport)
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: _buildFooter(bottomPad, isPassport),
-            ),
-        ],
-      ),
+          ),
+        // ── Footer — lives exclusively in WrappedScreen ─────────────────
+        if (!isPassport)
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: _buildFooter(bottomPad, isPassport),
+          ),
+      ],
     );
   }
 
@@ -188,11 +317,13 @@ class _WrappedScreenState extends State<WrappedScreen>
       );
     }
 
-    final label = switch (_currentPage) {
-      0 => 'View my passport',
-      7 => 'See my passport',
-      _ => 'Next',
-    };
+    // Indices are relative to the end, since the top-category slide is
+    // omitted for a year with no expenses.
+    final isFirst = _currentPage == 0;
+    final isLastBeforePassport = _currentPage == _totalSlides - 2;
+    final label = isFirst
+        ? 'View my passport'
+        : (isLastBeforePassport ? 'See my passport' : 'Next');
 
     return Padding(
       padding: EdgeInsets.fromLTRB(0, 0, 0, bottomPad + 36),
@@ -203,7 +334,7 @@ class _WrappedScreenState extends State<WrappedScreen>
             _next();
           },
           label: label,
-          buttonType: _currentPage == 0 || _currentPage == 7 ? 'share' : 'next',
+          buttonType: isFirst || isLastBeforePassport ? 'share' : 'next',
         ),
       ),
     );

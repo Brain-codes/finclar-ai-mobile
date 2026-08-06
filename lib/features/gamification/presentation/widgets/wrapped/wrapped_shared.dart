@@ -53,20 +53,25 @@ abstract class WrappedColors {
 // ─── 8-pill progress bar (left-aligned, auto-filling) ───────────────────────
 
 class WrappedProgressBar extends StatelessWidget {
-  final int currentIndex; // 0–7
+  final int currentIndex;
   final double currentProgress; // 0.0–1.0 fill of the active pill
+
+  /// Number of pills. The story omits the top-category slide for a year with
+  /// no expenses, so this can't be a fixed count.
+  final int totalSteps;
 
   const WrappedProgressBar({
     super.key,
     required this.currentIndex,
     this.currentProgress = 0.0,
+    this.totalSteps = 8,
   });
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.start,
-      children: List.generate(8, (i) {
+      children: List.generate(totalSteps, (i) {
         final isPast = i < currentIndex;
         final isCurrent = i == currentIndex;
         return Padding(
@@ -135,7 +140,10 @@ class WrappedNextButton extends StatelessWidget {
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
+                ),
                 color: WrappedColors.nextBtnBg,
                 child: Text(
                   label,
@@ -245,24 +253,108 @@ class WrappedSlide extends StatelessWidget {
   }
 }
 
+// ─── Auto-fitting text ───────────────────────────────────────────────────────
+
+/// Renders [text] at the largest size between [minFontSize] and [maxFontSize]
+/// that still fits inside [maxLines] at the available width.
+///
+/// Slides are fixed-height and must not scroll, and the copy is backend-written
+/// and variable length — so long text shrinks to fit rather than being cut off.
+/// Ellipsis only kicks in if the text still doesn't fit at [minFontSize].
+class WrappedAutoText extends StatelessWidget {
+  final String text;
+  final TextStyle style;
+  final int maxLines;
+  final double maxFontSize;
+  final double minFontSize;
+
+  const WrappedAutoText(
+    this.text, {
+    super.key,
+    required this.style,
+    required this.maxLines,
+    required this.maxFontSize,
+    required this.minFontSize,
+  });
+
+  bool _fits(double fontSize, double maxWidth, TextScaler scaler) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: style.copyWith(fontSize: fontSize),
+      ),
+      maxLines: maxLines,
+      textDirection: TextDirection.ltr,
+      textScaler: scaler,
+    )..layout(maxWidth: maxWidth);
+    return !painter.didExceedMaxLines;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scaler = MediaQuery.textScalerOf(context);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxWidth = constraints.maxWidth;
+        var fontSize = maxFontSize;
+
+        if (maxWidth.isFinite && !_fits(maxFontSize, maxWidth, scaler)) {
+          // Binary search to within 0.5pt — cheaper than stepping down 1pt at
+          // a time, and the half-point difference isn't visible.
+          var low = minFontSize;
+          var high = maxFontSize;
+          while (high - low > 0.5) {
+            final mid = (low + high) / 2;
+            if (_fits(mid, maxWidth, scaler)) {
+              low = mid;
+            } else {
+              high = mid;
+            }
+          }
+          fontSize = low;
+        }
+
+        return Text(
+          text,
+          maxLines: maxLines,
+          overflow: TextOverflow.ellipsis,
+          style: style.copyWith(fontSize: fontSize),
+        );
+      },
+    );
+  }
+}
+
 // ─── Wrapped 48 px headline ──────────────────────────────────────────────────
 
 class WrappedHeadline extends StatelessWidget {
   final String text;
   final EdgeInsetsGeometry padding;
 
+  /// Headlines are backend-written and variable length. Slides are fixed-height
+  /// (no scrolling), so long copy shrinks to fit within this many lines rather
+  /// than pushing content off the bottom.
+  final int maxLines;
+
   const WrappedHeadline(
     this.text, {
     super.key,
     this.padding = const EdgeInsets.symmetric(horizontal: 16),
+    this.maxLines = 2,
   });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: padding,
-      child: Text(
+      child: WrappedAutoText(
         text,
+        maxLines: maxLines,
+        maxFontSize: 48,
+        // Floor picked so a long headline still reads as the slide's title and
+        // doesn't shrink into the subtitle's weight class.
+        minFontSize: 28,
         style: AppTypography.displayLarge.copyWith(
           color: WrappedColors.white,
           fontFamily: 'BricolageGrotesque',
@@ -280,19 +372,24 @@ class WrappedHeadline extends StatelessWidget {
 class WrappedSubtitle extends StatelessWidget {
   final String text;
   final EdgeInsetsGeometry padding;
+  final int maxLines;
 
   const WrappedSubtitle(
     this.text, {
     super.key,
     this.padding = const EdgeInsets.symmetric(horizontal: 16),
+    this.maxLines = 3,
   });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: padding,
-      child: Text(
+      child: WrappedAutoText(
         text,
+        maxLines: maxLines,
+        maxFontSize: 20,
+        minFontSize: 14,
         style: AppTypography.bodyLarge.copyWith(
           color: WrappedColors.whiteMuted,
           fontSize: 20,
@@ -341,6 +438,8 @@ abstract class WrappedAssets {
       'assets/images/wrapped/wrapped-8-image.png';
   static const String passportPhoto =
       'assets/images/wrapped/passport-photo.png';
+  static const String passportCoin = 'assets/images/wrapped/passportCoin.png';
+  static const String passportMedal = 'assets/images/wrapped/passportMedal.png';
   static const String passportMemoji =
       'assets/images/wrapped/passport-memoji.png';
 }

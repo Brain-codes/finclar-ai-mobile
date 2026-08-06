@@ -104,14 +104,14 @@ class GroupDetailNotifier
     return updated;
   }
 
-  Future<void> removeMember(String memberId) async {
-    await _repo.removeMember(arg, memberId);
-    final current = state.valueOrNull;
-    if (current != null) {
-      state = AsyncData(current.copyWith(
-        members: current.members.where((m) => m.id != memberId).toList(),
-      ));
-    }
+  Future<void> removeMember(
+    String memberId, {
+    required RedistributionChoice redistribution,
+  }) async {
+    await _repo.removeMember(arg, memberId, redistribution: redistribution);
+    // Redistribution rewrites the remaining members' targets server-side, so
+    // dropping the row locally would leave every other target stale.
+    await refresh();
   }
 
   Future<SavingsEntryModel> recordSavings({

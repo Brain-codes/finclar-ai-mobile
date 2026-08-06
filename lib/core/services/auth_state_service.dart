@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'analytics_service.dart';
+import 'deep_link_service.dart';
 import 'logger_service.dart';
+import 'notification_service.dart';
 import 'storage_service.dart';
 
 class AuthStateService extends ChangeNotifier {
@@ -56,8 +59,20 @@ class AuthStateService extends ChangeNotifier {
     await StorageService.saveTokens(access: accessToken, refresh: refreshToken);
     _isLoggedIn = true;
 
+    // Tokens are stored, so the 🔒 register call now authenticates. Not awaited
+    // — push registration must never delay landing on the home screen.
+    unawaited(NotificationService.registerToken());
+
+    // An invite link opened before this user had an account can only be acted
+    // on now. Not awaited — it must never delay landing on home.
+    unawaited(DeepLinkService.replayPendingInvite());
+
     if (isNewUser) {
       _needsGoalsPrompt = true;
+      // Only a brand-new account gets the app tour. Queuing it here (rather
+      // than inferring it from an unset flag) is what stops existing users
+      // being ambushed by it after an update.
+      await StorageService.setTourPending();
     } else {
       final skipped = await StorageService.isGoalsSkipped();
       final completed = await StorageService.isGoalsCompleted();
@@ -84,6 +99,10 @@ class AuthStateService extends ChangeNotifier {
     await StorageService.clearCachedUser();
     await StorageService.clearBiometricPasscode();
     await StorageService.setBiometricEnabled(false);
+    // A queued tour and any parked invite belong to the previous user — the
+    // next account must not inherit either.
+    await StorageService.clearTourPending();
+    await StorageService.clearPendingInvite();
     _isLoggedIn = false;
     _needsGoalsPrompt = false;
     Analytics.clearUser();

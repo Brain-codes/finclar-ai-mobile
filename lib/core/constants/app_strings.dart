@@ -73,6 +73,14 @@ abstract class AppStrings {
       'Help me feel less stressed about money by giving me a clearer picture of my finances.';
   static const String skipForNow = 'Skip for now';
 
+  // Auth — Preferred name step
+  static const String preferredNameTitle = 'What should Clara call you?';
+  static const String preferredNameSubtitle =
+      'Use whatever name feels right — a first name, a nickname, anything. '
+      'You can change it later in Settings.';
+  static const String preferredNameLabel = 'Preferred name';
+  static const String preferredNameHint = 'e.g. Chinasa';
+
   // Auth — Login
   static const String loginTitle = 'Login';
   static const String welcomeBack = 'Welcome back, ';

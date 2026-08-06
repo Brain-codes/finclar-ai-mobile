@@ -5,6 +5,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/errors/app_exceptions.dart';
 import '../../../core/services/analytics_service.dart';
 import '../../../core/services/logger_service.dart';
+import '../../gamification/providers/streak_providers.dart';
 import '../data/models/category_model.dart';
 import '../data/models/expense_model.dart';
 import '../data/repositories/expense_repository.dart';
@@ -143,6 +144,7 @@ class ExpenseListNotifier extends AsyncNotifier<ExpenseListState> {
       amount: created.amount,
       currency: created.currency,
     );
+    ref.invalidate(expenseStreakProvider);
     await refresh();
     return created;
   }
@@ -153,6 +155,7 @@ class ExpenseListNotifier extends AsyncNotifier<ExpenseListState> {
     List<String> categoryIds = const [],
     required DateTime expenseDate,
     String? currency,
+    File? receipt,
   }) async {
     final created = await _repo.createExpense(
       amount: amount,
@@ -160,12 +163,14 @@ class ExpenseListNotifier extends AsyncNotifier<ExpenseListState> {
       categoryIds: categoryIds,
       expenseDate: expenseDate,
       currency: currency,
+      receipt: receipt,
     );
     Analytics.expenseAdded(
-      method: 'manual',
+      method: receipt != null ? 'manual_with_receipt' : 'manual',
       amount: created.amount,
       currency: created.currency,
     );
+    ref.invalidate(expenseStreakProvider);
     await refresh();
     return created;
   }
@@ -178,6 +183,7 @@ class ExpenseListNotifier extends AsyncNotifier<ExpenseListState> {
     DateTime? expenseDate,
     String? currency,
     List<ExpenseItemUpdate>? items,
+    File? receipt,
   }) async {
     final updated = await _repo.updateExpense(
       id,
@@ -187,6 +193,7 @@ class ExpenseListNotifier extends AsyncNotifier<ExpenseListState> {
       expenseDate: expenseDate,
       currency: currency,
       items: items,
+      receipt: receipt,
     );
     final current = state.valueOrNull;
     if (current != null) {

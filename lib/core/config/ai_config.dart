@@ -10,12 +10,14 @@ enum ReceiptScanSource { openai, backend }
 
 abstract class AiConfig {
   /// Single switch for the receipt-scanning implementation.
-  /// Flip this to change which path the camera flow uses.
-  /// Can also be overridden at build time:
-  ///   --dart-define=RECEIPT_SCAN_SOURCE=backend
+  ///
+  /// Defaults to [backend]: the server owns the AI key and returns real,
+  /// actionable error messages, which the on-device OpenAI path cannot.
+  /// Override at build time to go back to on-device scanning:
+  ///   --dart-define=RECEIPT_SCAN_SOURCE=openai
   static const ReceiptScanSource receiptScanSource =
-      _fromEnv == 'backend' ? ReceiptScanSource.backend : ReceiptScanSource.openai;
+      _fromEnv == 'openai' ? ReceiptScanSource.openai : ReceiptScanSource.backend;
 
   static const String _fromEnv =
-      String.fromEnvironment('RECEIPT_SCAN_SOURCE', defaultValue: 'openai');
+      String.fromEnvironment('RECEIPT_SCAN_SOURCE', defaultValue: 'backend');
 }

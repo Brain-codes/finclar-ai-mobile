@@ -1,6 +1,8 @@
 import 'package:finclar_ai/shared/icons/app_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../app/routes/route_names.dart';
 import '../../../../core/config/app_config_notifier.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -198,6 +200,7 @@ class _ChartContent extends StatelessWidget {
           label: AppStrings.incomeLabel,
           amount: formatCurrency(totalIncome, symbol,
               abbreviate: false, withCommas: true),
+          onTap: () => context.push(RouteNames.incomeSetup),
         ),
         const SizedBox(height: AppSpacing.base),
         _LegendItem(
@@ -250,16 +253,18 @@ class _LegendItem extends StatelessWidget {
   final Color stripeColor;
   final String label;
   final String amount;
+  final VoidCallback? onTap;
 
   const _LegendItem({
     required this.stripeColor,
     required this.label,
     required this.amount,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    final row = Row(
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(AppRadius.xs),
@@ -286,7 +291,18 @@ class _LegendItem extends StatelessWidget {
             fontVariations: const [FontVariation('wght', 500)],
           ),
         ),
+        if (onTap != null) ...[
+          const SizedBox(width: AppSpacing.xs),
+          Icon(AppIcons.chevronRight, size: 14, color: context.textSecondary),
+        ],
       ],
+    );
+
+    if (onTap == null) return row;
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: row,
     );
   }
 }

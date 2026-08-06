@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/routes/route_names.dart';
 import '../../../../app/providers/theme_provider.dart';
+import '../../../../core/constants/app_constants.dart';
+import '../../../../core/errors/app_exceptions.dart';
 import '../../../../core/services/biometric_service.dart';
 import '../../../../core/services/storage_service.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -10,7 +12,9 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../shared/icons/app_icons.dart';
 import '../../../../shared/widgets/app_snackbar.dart';
-import '../widgets/edit_username_sheet.dart';
+import '../../../auth/data/models/user_model.dart';
+import '../../../onboarding/providers/tour_provider.dart';
+import '../widgets/edit_profile_sheet.dart';
 import '../../../../shared/widgets/app_top_bar.dart';
 import '../widgets/logout_sheet.dart';
 import '../widgets/theme_selection_sheet.dart';
@@ -79,9 +83,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  Future<void> _onEditUsername(String current) async {
-    final result = await showEditUsernameSheet(context, current: current);
-    if (result != null && mounted) setState(() {});
+  Future<void> _onEditProfile(UserModel user) async {
+    final result = await showEditProfileSheet(context, user: user);
+    if (result == null || !result.hasChanges || !mounted) return;
+    try {
+      await ref.read(userProfileProvider.notifier).updateProfile(
+            preferredName: result.preferredName,
+            username: result.username,
+            profileIcon: result.profileIcon,
+          );
+      if (mounted) AppSnackbar.success(context, 'Details updated');
+    } on AppException catch (e) {
+      if (mounted) AppSnackbar.error(context, e.message);
+    }
+  }
+
+  Future<void> _onReplayTour() async {
+    await ref.read(tourProvider.notifier).enqueue();
+    if (!mounted) return;
+    // The tour targets the shell's nav bar and the home balance card, so it
+    // can only run from home. Home picks the queued tour up on arrival.
+    context.go(RouteNames.home);
   }
 
   Future<void> _onLogout() async {
@@ -98,7 +120,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget build(BuildContext context) {
     final user = ref.watch(userProfileProvider).valueOrNull;
     final email = user?.email ?? '';
-    final username = user?.username ?? '';
+    final displayName = user?.displayName ?? '';
     final themeMode = ref.watch(themeProvider);
     final isSubscribed = ref.watch(isSubscribedProvider);
 
@@ -120,8 +142,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     Center(
                       child: SettingsProfileHeader(
                         email: email,
-                        username: username,
-                        onEditTap: () => _onEditUsername(username),
+                        username: displayName,
+                        profileIcon: user?.profileIcon,
+                        onEditTap:
+                            user == null ? null : () => _onEditProfile(user),
+                        onAvatarTap: user == null
+                            ? null
+                            : () => context.push(RouteNames.settingsAvatar),
                       ),
                     ),
                     const SizedBox(height: AppSpacing.xl),
@@ -174,7 +201,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           icon: AppIcons.passport,
                           iconBg: AppColors.settingsCoral,
                           label: 'Money passport',
-                          onTap: () {},
+                          onTap: () => context.push(RouteNames.wrapped),
+                        ),
+                        SettingsRow(
+                          icon: AppIcons.flame,
+                          iconBg: AppColors.primary,
+                          label: 'Challenges',
+                          onTap: () => context.push(RouteNames.challenges),
                         ),
                         SettingsRow(
                           icon: AppIcons.medal,
@@ -182,11 +215,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           label: 'My badges',
                           onTap: () => context.push(RouteNames.badges),
                         ),
+                        if (AppConstants.showGamifyGallery)
+                          SettingsRow(
+                            icon: AppIcons.game,
+                            iconBg: AppColors.categoryPurple,
+                            label: 'Gamify',
+                            onTap: () =>
+                                context.push(RouteNames.gamificationPreview),
+                          ),
                         SettingsRow(
-                          icon: AppIcons.game,
+                          icon: AppIcons.question,
                           iconBg: AppColors.categoryPurple,
-                          label: 'Gamify',
-                          onTap: () => context.push(RouteNames.gamificationPreview),
+                          label: 'Start app tour',
+                          onTap: _onReplayTour,
                         ),
                         SettingsRow(
                           icon: AppIcons.bank,

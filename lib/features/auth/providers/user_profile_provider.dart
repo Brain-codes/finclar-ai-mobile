@@ -31,6 +31,25 @@ class UserProfileNotifier extends AsyncNotifier<UserModel?> {
     }
   }
 
+  /// Patches the profile and folds the response straight into state — no
+  /// refetch needed, `PATCH /user/me` returns the full updated user.
+  Future<UserModel> updateProfile({
+    String? username,
+    String? preferredName,
+    String? defaultCurrency,
+    String? profileIcon,
+  }) async {
+    final updated = await ref.read(authRepositoryProvider).updateProfile(
+          username: username,
+          preferredName: preferredName,
+          defaultCurrency: defaultCurrency,
+          profileIcon: profileIcon,
+        );
+    await StorageService.saveCachedUser(userModelToJson(updated));
+    state = AsyncData(updated);
+    return updated;
+  }
+
   Future<UserModel> _fetchAndCache() async {
     final user = await ref.read(authRepositoryProvider).getUserProfile();
     await StorageService.saveCachedUser(userModelToJson(user));

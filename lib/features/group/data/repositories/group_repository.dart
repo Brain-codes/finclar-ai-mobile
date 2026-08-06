@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/api/api_endpoints.dart';
+import '../../../../core/services/image_compression_service.dart';
 import '../../../../core/services/logger_service.dart';
 import '../models/group_member_model.dart';
 import '../models/group_message_model.dart';
@@ -134,9 +135,16 @@ class GroupRepository {
     return response.data!;
   }
 
-  Future<void> removeMember(String groupId, String memberId) async {
+  Future<void> removeMember(
+    String groupId,
+    String memberId, {
+    required RedistributionChoice redistribution,
+  }) async {
     Log.api('DELETE', ApiEndpoints.groupMember(groupId, memberId));
-    await _api.delete<void>(ApiEndpoints.groupMember(groupId, memberId));
+    await _api.delete<void>(
+      ApiEndpoints.groupMember(groupId, memberId),
+      queryParams: {'redistribution': redistribution.value},
+    );
   }
 
   // ─── Savings ─────────────────────────────────────────────────────────────
@@ -158,7 +166,7 @@ class GroupRepository {
     final map = <String, dynamic>{'amount': amount};
     if (note != null && note.isNotEmpty) map['note'] = note;
     if (receipt != null) {
-      map['receipt'] = await MultipartFile.fromFile(receipt.path);
+      map['receipt'] = await ImageCompressionService.multipart(receipt);
     }
     final formData = FormData.fromMap(map);
     Log.api('POST', ApiEndpoints.groupSavings(groupId));
@@ -176,13 +184,13 @@ class GroupRepository {
   Future<List<GroupMessageModel>> getMessages(
     String groupId, {
     int page = 1,
-    int limit = 50,
+    int pageSize = 50,
   }) async {
     Log.api('GET', ApiEndpoints.groupMessages(groupId),
-        body: {'page': page, 'limit': limit});
+        body: {'page': page, 'page_size': pageSize});
     final response = await _api.get<List<GroupMessageModel>>(
       ApiEndpoints.groupMessages(groupId),
-      queryParams: {'page': page, 'limit': limit},
+      queryParams: {'page': page, 'page_size': pageSize},
       fromData: (data) => (data as List)
           .map((e) => GroupMessageModel.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -210,7 +218,7 @@ class GroupRepository {
     double? recordAmount,
   }) async {
     final map = <String, dynamic>{
-      'file': await MultipartFile.fromFile(file.path),
+      'file': await ImageCompressionService.multipart(file),
     };
     if (recordAmount != null) map['record_amount'] = recordAmount;
     final formData = FormData.fromMap(map);

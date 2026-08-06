@@ -1,10 +1,13 @@
 import 'package:finclar_ai/core/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 import '../../../../../core/theme/app_typography.dart';
+import '../../../data/models/wrapped_model.dart';
 import 'wrapped_shared.dart';
 
 class WrappedSlide8WellDone extends StatelessWidget {
-  const WrappedSlide8WellDone({super.key});
+  final WrappedBadge data;
+
+  const WrappedSlide8WellDone({super.key, required this.data});
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +25,7 @@ class WrappedSlide8WellDone extends StatelessWidget {
                 padding: EdgeInsets.zero,
               ),
               const SizedBox(height: 24),
-              const Expanded(child: _WellDoneCard()),
+              Expanded(child: _WellDoneCard(data: data)),
             ],
           ),
         ),
@@ -34,7 +37,9 @@ class WrappedSlide8WellDone extends StatelessWidget {
 class _WellDoneCard extends StatelessWidget {
   static const double _imageSize = 293;
 
-  const _WellDoneCard();
+  final WrappedBadge data;
+
+  const _WellDoneCard({required this.data});
 
   @override
   Widget build(BuildContext context) {
@@ -71,7 +76,7 @@ class _WellDoneCard extends StatelessWidget {
                       ),
                     ),
                     SizedBox(height: 80),
-                    const _CardContent(),
+                    _CardContent(data: data),
                   ],
                 ),
               ),
@@ -84,7 +89,8 @@ class _WellDoneCard extends StatelessWidget {
 }
 
 class _CardContent extends StatelessWidget {
-  const _CardContent();
+  final WrappedBadge data;
+  const _CardContent({required this.data});
 
   @override
   Widget build(BuildContext context) {
@@ -92,8 +98,11 @@ class _CardContent extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          'Well done Chinasa!',
+        WrappedAutoText(
+          data.headline,
+          maxLines: 2,
+          maxFontSize: 24,
+          minFontSize: 16,
           style: AppTypography.displayLarge.copyWith(
             color: WrappedColors.white,
             fontFamily: 'BricolageGrotesque',
@@ -104,8 +113,11 @@ class _CardContent extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        Text(
-          'You saved 36% of your income and kept every category in check except food. That’s not a flaw, that’s a target for May!',
+        WrappedAutoText(
+          data.description,
+          maxLines: 6,
+          maxFontSize: 16,
+          minFontSize: 12,
           style: AppTypography.bodySmall.copyWith(
             color: WrappedColors.whiteMuted,
             fontFamily: 'Geist',

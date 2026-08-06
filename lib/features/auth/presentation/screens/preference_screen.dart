@@ -11,6 +11,7 @@ import '../../../../shared/widgets/app_screen_header.dart';
 import '../../../../shared/widgets/app_snackbar.dart';
 import '../../data/models/financial_goal_model.dart';
 import '../../providers/preference_provider.dart';
+import '../widgets/preferred_name_step.dart';
 
 // ─── Visual metadata, keyed by backend goal `key` ─────────────────────────────
 
@@ -41,6 +42,19 @@ class PreferenceScreen extends ConsumerStatefulWidget {
 class _PreferenceScreenState extends ConsumerState<PreferenceScreen> {
   String? _selectedId;
 
+  /// Onboarding runs as two phases in one screen so the auth-state gate stays a
+  /// single flag. Phase 1 asks the preferred name, phase 2 asks the goal.
+  bool _askingName = true;
+
+  Future<void> _onNameContinue(String name) async {
+    final saved =
+        await ref.read(preferenceProvider.notifier).savePreferredName(name);
+    // Stay on the step when the save failed — the snackbar explains why.
+    if (saved && mounted) setState(() => _askingName = false);
+  }
+
+  void _onNameSkip() => setState(() => _askingName = false);
+
   Future<void> _onContinue() async {
     if (_selectedId == null) return;
     await ref.read(preferenceProvider.notifier).saveGoals([_selectedId!]);
@@ -69,7 +83,13 @@ class _PreferenceScreenState extends ConsumerState<PreferenceScreen> {
         children: [
           Image.asset('assets/images/GRADIENT.png', fit: BoxFit.cover),
           SafeArea(
-            child: Column(
+            child: _askingName
+                ? PreferredNameStep(
+                    isLoading: state.isLoading,
+                    onContinue: _onNameContinue,
+                    onSkip: _onNameSkip,
+                  )
+                : Column(
               children: [
                 // ── Top bar (no step indicator, no back — terminal onboarding) ──
                 const SizedBox(height: AppSpacing.base),
@@ -166,6 +186,7 @@ class _PreferenceScreenState extends ConsumerState<PreferenceScreen> {
     );
   }
 }
+
 
 // ─── Preference card ──────────────────────────────────────────────────────────
 

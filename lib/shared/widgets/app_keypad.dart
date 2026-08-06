@@ -8,7 +8,20 @@ import '../icons/app_icons.dart';
 class AppKeypadController extends ChangeNotifier {
   String _raw = '';
 
+  /// Currency symbol used by [displayAmount]. Set it from
+  /// `currencySymbolProvider` — this used to be hardcoded to ₦, which showed
+  /// the wrong symbol for anyone who changed their default currency.
+  String symbol;
+
+  AppKeypadController({this.symbol = '₦'});
+
   String get raw => _raw;
+
+  void setSymbol(String value) {
+    if (symbol == value) return;
+    symbol = value;
+    notifyListeners();
+  }
 
   double? get value {
     if (_raw.isEmpty) return null;
@@ -22,16 +35,16 @@ class AppKeypadController extends ChangeNotifier {
   }
 
   String get displayAmount {
-    if (_raw.isEmpty) return '₦0.00';
+    if (_raw.isEmpty) return '${symbol}0.00';
     final normalized = _raw.endsWith('.') ? '${_raw}00' : _raw;
     final v = double.tryParse(normalized);
-    if (v == null) return '₦0.00';
+    if (v == null) return '${symbol}0.00';
     final parts = normalized.split('.');
     final intPart = _formatIntPart(parts[0]);
     final decPart = parts.length > 1
         ? parts[1].padRight(2, '0').substring(0, 2)
         : '00';
-    return '₦$intPart.$decPart';
+    return '$symbol$intPart.$decPart';
   }
 
   void onKey(String key) {
@@ -51,6 +64,15 @@ class AppKeypadController extends ChangeNotifier {
 
   void clear() {
     _raw = '';
+    notifyListeners();
+  }
+
+  /// Seeds the keypad with an existing amount, so edit flows open pre-filled.
+  /// Trailing `.00` is dropped — the display re-adds it.
+  void setAmount(double amount) {
+    if (amount <= 0) return;
+    final s = amount.toStringAsFixed(2);
+    _raw = s.endsWith('.00') ? s.substring(0, s.length - 3) : s;
     notifyListeners();
   }
 

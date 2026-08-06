@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import '../../../data/models/wrapped_model.dart';
 import 'wrapped_shared.dart';
 
 class WrappedSlide1Intro extends StatelessWidget {
-  const WrappedSlide1Intro({super.key});
+  final WrappedCover cover;
+
+  const WrappedSlide1Intro({super.key, required this.cover});
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +18,12 @@ class WrappedSlide1Intro extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 32),
-            const WrappedHeadline('Your Money wrapped'),
+            WrappedHeadline(
+              cover.headline.isNotEmpty
+                  ? cover.headline
+                  : 'Your ${DateFormat('MMMM').format(DateTime(cover.year, cover.month))} '
+                        '${cover.year} money wrapped',
+            ),
             const SizedBox(height: 8),
             const WrappedSubtitle('See how you earned, saved and spent'),
             const SizedBox(height: 24),

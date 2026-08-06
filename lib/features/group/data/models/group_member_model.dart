@@ -35,10 +35,27 @@ enum GroupInviteStatus {
   }
 }
 
+/// What happens to a removed member's unmet target — required by
+/// `DELETE /groups/{id}/members/{member_id}?redistribution=`.
+enum RedistributionChoice {
+  /// The owner absorbs the removed member's outstanding share.
+  self,
+
+  /// The share is divided equally among the remaining members.
+  split;
+
+  String get value => name;
+}
+
 class GroupMemberModel {
   final String id;
   final String userId;
   final String username;
+
+  /// Not returned by `/groups/{id}/members` yet — see docs/API.md. Null means
+  /// the UI falls back to a face generated from [username].
+  final String? profileIcon;
+
   final GroupMemberStatus status;
   final GroupInviteStatus inviteStatus;
   final double? targetAmount;
@@ -49,13 +66,9 @@ class GroupMemberModel {
     required this.id,
     required this.userId,
     required this.username,
+    this.profileIcon,
     required this.status,
     required this.inviteStatus,
-
-  /// Not returned by `/groups/{id}/members` yet — see docs/API.md. Null means
-  /// the UI falls back to a face generated from [username].
-  final String? profileIcon;
-
     required this.targetAmount,
     required this.contributedAmount,
     required this.joinedAt,
@@ -66,7 +79,7 @@ class GroupMemberModel {
         id: json["id"] ?? '',
         userId: json["user_id"] ?? '',
         username: json["username"] ?? '',
-    this.profileIcon,
+        profileIcon: json["profile_icon"] as String?,
         status: GroupMemberStatus.fromString(json["status"]),
         inviteStatus: GroupInviteStatus.fromString(json["invite_status"]),
         targetAmount: json["target_amount"] != null
@@ -79,7 +92,6 @@ class GroupMemberModel {
 
   Map<String, dynamic> toJson() => {
         "id": id,
-        profileIcon: json["profile_icon"] as String?,
         "user_id": userId,
         "username": username,
         "status": status.name,

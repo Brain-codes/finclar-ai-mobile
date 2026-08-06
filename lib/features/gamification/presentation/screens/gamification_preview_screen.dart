@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/routes/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -7,9 +8,31 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../shared/icons/app_icons.dart';
 import '../../../../shared/widgets/app_top_bar.dart';
+import '../../data/models/challenge_model.dart';
+import '../../data/models/expense_streak_model.dart';
+import '../widgets/challenge_dev_tools_sheet.dart';
 import '../widgets/challenge_modal.dart';
+import '../widgets/challenge_prompts.dart';
 import '../widgets/challenge_success_modal.dart';
+import '../widgets/challenge_type_sheet.dart';
 import '../widgets/streak_card_modal.dart';
+
+/// Design-gallery fixture. The shipping modal is driven by
+/// `expenseStreakProvider`; this screen only exists to eyeball the layout.
+const _sampleStreak = ExpenseStreakModel(
+  currentStreak: 5,
+  longestStreak: 12,
+  loggedToday: true,
+  days: [
+    ExpenseStreakDayModel(dayLabel: 'Sa', logged: true, isToday: false),
+    ExpenseStreakDayModel(dayLabel: 'Su', logged: true, isToday: false),
+    ExpenseStreakDayModel(dayLabel: 'Mo', logged: true, isToday: true),
+    ExpenseStreakDayModel(dayLabel: 'Tu', logged: false, isToday: false),
+    ExpenseStreakDayModel(dayLabel: 'We', logged: false, isToday: false),
+    ExpenseStreakDayModel(dayLabel: 'Th', logged: false, isToday: false),
+    ExpenseStreakDayModel(dayLabel: 'Fr', logged: false, isToday: false),
+  ],
+);
 
 class GamificationPreviewScreen extends StatelessWidget {
   const GamificationPreviewScreen({super.key});
@@ -55,27 +78,81 @@ class GamificationPreviewScreen extends StatelessWidget {
                       icon: AppIcons.flame,
                       iconBg: AppColors.primary,
                       label: 'Streak Card',
-                      onTap: () => showStreakCardModal(context, streakCount: 5),
+                      onTap: () =>
+                          showStreakCardModal(context, streak: _sampleStreak),
+                    ),
+                    _PreviewTile(
+                      icon: AppIcons.settings,
+                      iconBg: AppColors.settingsBrown,
+                      label: 'Dev tools (live backend)',
+                      onTap: () => showChallengeDevToolsSheet(context),
+                    ),
+                    const SizedBox(height: AppSpacing.base),
+                    // Forced past the day/window guards so the weekend and
+                    // category prompts can be tested on any day.
+                    _SectionLabel('Prompts (live backend)'),
+                    _PreviewTile(
+                      icon: AppIcons.flame,
+                      iconBg: AppColors.streakGold,
+                      label: 'Friday prompt — force',
+                      onTap: () => maybeShowFridayChallengePrompt(
+                        context,
+                        ProviderScope.containerOf(context),
+                        fromPush: true,
+                      ),
+                    ),
+                    _PreviewTile(
+                      icon: AppIcons.target,
+                      iconBg: AppColors.primary,
+                      label: 'Weekend prompt — force',
+                      onTap: () => maybeShowWeekendChallengePrompt(
+                        context,
+                        ProviderScope.containerOf(context),
+                        fromPush: true,
+                      ),
+                    ),
+                    _PreviewTile(
+                      icon: AppIcons.budget,
+                      iconBg: AppColors.challengePurple,
+                      label: 'Category prompt — force',
+                      onTap: () => maybeShowCategoryChallengePrompt(
+                        context,
+                        ProviderScope.containerOf(context),
+                        fromPush: true,
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.base),
                     _SectionLabel('Challenge Intros'),
                     _PreviewTile(
+                      icon: AppIcons.add,
+                      iconBg: AppColors.challengePurple,
+                      label: 'Challenge type picker',
+                      onTap: () => showChallengeTypeSheet(context),
+                    ),
+                    _PreviewTile(
                       icon: AppIcons.trophy,
                       iconBg: AppColors.streakGold,
                       label: 'Friday Savings Challenge',
-                      onTap: () => showChallengeModal(context, ChallengeType.fridaySavings),
+                      onTap: () => showChallengeModal(
+                        context,
+                        ChallengeType.fridaySavings,
+                      ),
                     ),
                     _PreviewTile(
                       icon: AppIcons.trophy,
                       iconBg: AppColors.challengePurple,
                       label: 'Category Budget Challenge',
-                      onTap: () => showChallengeModal(context, ChallengeType.categoryBudget),
+                      onTap: () => showChallengeModal(
+                        context,
+                        ChallengeType.budgetCategory,
+                      ),
                     ),
                     _PreviewTile(
                       icon: AppIcons.trophy,
                       iconBg: AppColors.primary,
                       label: 'No Spend Weekend Challenge',
-                      onTap: () => showChallengeModal(context, ChallengeType.noSpend),
+                      onTap: () =>
+                          showChallengeModal(context, ChallengeType.noSpend),
                     ),
                     const SizedBox(height: AppSpacing.base),
                     _SectionLabel('Challenge Success'),

@@ -1,9 +1,12 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/api/api_endpoints.dart';
 import '../../../../core/api/api_response.dart';
+import '../../../../core/services/image_compression_service.dart';
 import '../../../../core/services/logger_service.dart';
+import '../../../home/data/models/home_insight_model.dart';
 import '../models/category_model.dart';
 import '../models/expense_model.dart';
 import '../models/expense_summary_model.dart';
@@ -56,31 +59,45 @@ class ExpenseRepository {
     return response.data!;
   }
 
+  /// [receipt] is optional — when provided, the backend AI-verifies the
+  /// entered amount against it and marks the expense verified. The endpoint
+  /// is multipart regardless of whether a receipt is attached: the DTO rides
+  /// as a JSON-encoded `dto` form field so the image can go in the same
+  /// request (backend change, 2026-08-03 — was a plain JSON body before).
   Future<ExpenseModel> createExpense({
     required double amount,
     String? description,
     List<String> categoryIds = const [],
     required DateTime expenseDate,
     String? currency,
+    File? receipt,
   }) async {
-    final body = <String, dynamic>{
+    final dto = <String, dynamic>{
       'amount': amount,
       'category_ids': categoryIds,
       'expense_date': expenseDate.toUtc().toIso8601String(),
     };
     if (description != null && description.isNotEmpty) {
-      body['description'] = description;
+      dto['description'] = description;
     }
-    if (currency != null) body['currency'] = currency;
-    Log.api('POST', ApiEndpoints.expenses, body: body);
-    final response = await _api.post<ExpenseModel>(
+    if (currency != null) dto['currency'] = currency;
+    final formData = FormData.fromMap({
+      'dto': jsonEncode(dto),
+      if (receipt != null) 'receipt': await ImageCompressionService.multipart(receipt),
+    });
+    Log.api('POST', ApiEndpoints.expenses, body: dto);
+    final response = await _api.uploadFile<ExpenseModel>(
       ApiEndpoints.expenses,
-      body: body,
+      formData: formData,
       fromData: (data) => ExpenseModel.fromJson(data as Map<String, dynamic>),
     );
     return response.data!;
   }
 
+  /// [receipt] attaches proof to an existing expense — the backend AI-verifies
+  /// it against the new [amount] (or the current one when amount isn't
+  /// changing) and flips the expense to verified. Multipart for the same
+  /// reason as [createExpense] (backend change, 2026-08-03).
   Future<ExpenseModel> updateExpense(
     String id, {
     double? amount,
@@ -90,23 +107,29 @@ class ExpenseRepository {
     String? currency,
     String? status,
     List<ExpenseItemUpdate>? items,
+    File? receipt,
   }) async {
-    final body = <String, dynamic>{};
-    if (amount != null) body['amount'] = amount;
-    if (description != null) body['description'] = description;
-    if (categoryIds != null) body['category_ids'] = categoryIds;
+    final dto = <String, dynamic>{};
+    if (amount != null) dto['amount'] = amount;
+    if (description != null) dto['description'] = description;
+    if (categoryIds != null) dto['category_ids'] = categoryIds;
     if (expenseDate != null) {
-      body['expense_date'] = expenseDate.toUtc().toIso8601String();
+      dto['expense_date'] = expenseDate.toUtc().toIso8601String();
     }
-    if (currency != null) body['currency'] = currency;
-    if (status != null) body['status'] = status;
+    if (currency != null) dto['currency'] = currency;
+    if (status != null) dto['status'] = status;
     if (items != null && items.isNotEmpty) {
-      body['items'] = items.map((e) => e.toJson()).toList();
+      dto['items'] = items.map((e) => e.toJson()).toList();
     }
-    Log.api('PATCH', ApiEndpoints.expense(id), body: body);
-    final response = await _api.patch<ExpenseModel>(
+    final formData = FormData.fromMap({
+      'dto': jsonEncode(dto),
+      if (receipt != null) 'receipt': await ImageCompressionService.multipart(receipt),
+    });
+    Log.api('PATCH', ApiEndpoints.expense(id), body: dto);
+    final response = await _api.uploadFile<ExpenseModel>(
       ApiEndpoints.expense(id),
-      body: body,
+      formData: formData,
+      method: 'PATCH',
       fromData: (data) => ExpenseModel.fromJson(data as Map<String, dynamic>),
     );
     return response.data!;
@@ -119,7 +142,7 @@ class ExpenseRepository {
 
   Future<ExpenseModel> uploadReceipt(File image) async {
     final formData = FormData.fromMap({
-      'image': await MultipartFile.fromFile(image.path),
+      'image': await ImageCompressionService.multipart(image),
     });
     Log.api('POST', ApiEndpoints.expenseReceipt);
     final response = await _api.uploadFile<ExpenseModel>(
@@ -144,15 +167,32 @@ class ExpenseRepository {
     return response.data!;
   }
 
-  Future<String> getHomeInsight() async {
+  Future<HomeInsightModel> getHomeInsight() async {
     Log.api('GET', ApiEndpoints.homeInsight);
-    final response = await _api.get<String>(
+    final response = await _api.get<HomeInsightModel>(
       ApiEndpoints.homeInsight,
+      // Older builds of this endpoint returned a bare string; tolerate both so
+      // a backend rollback can't blank the home card.
       fromData: (data) => data is Map<String, dynamic>
-          ? (data['insight'] as String? ?? '')
-          : (data as String? ?? ''),
+          ? HomeInsightModel.fromJson(data)
+          : HomeInsightModel(
+              insight: data?.toString() ?? '',
+              totalIncome: 0,
+              totalExpenses: 0,
+              availableBalance: 0,
+              verifiedPct: 0,
+              selfReportedPct: 0,
+            ),
     );
-    return response.data ?? '';
+    return response.data ??
+        const HomeInsightModel(
+          insight: '',
+          totalIncome: 0,
+          totalExpenses: 0,
+          availableBalance: 0,
+          verifiedPct: 0,
+          selfReportedPct: 0,
+        );
   }
 
   Future<List<CategoryModel>> getCategories() async {

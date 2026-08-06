@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -9,6 +10,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../shared/icons/app_icons.dart';
+import '../../../../shared/widgets/app_attach_receipt_field.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_sheet.dart';
 import '../../../../shared/widgets/app_snackbar.dart';
@@ -49,6 +51,7 @@ class _EditExpenseContentState extends ConsumerState<_EditExpenseContent> {
   late DateTime _date;
   bool _isSaving = false;
   bool _applyCategoryToItems = false;
+  File? _receipt;
 
   @override
   void initState() {
@@ -75,6 +78,16 @@ class _EditExpenseContentState extends ConsumerState<_EditExpenseContent> {
       _amountCtrl.text.trim().isNotEmpty &&
       parseAmountInput(_amountCtrl.text) > 0 &&
       _category != null;
+
+  /// Hidden once an expense is already verified — there's nothing to prove.
+  bool get _showReceiptField =>
+      widget.expense?.verificationLevel != ExpenseVerificationLevel.verified;
+
+  String get _receiptHelper => widget.expense == null
+      ? 'Optional. Attaching one verifies the amount automatically.'
+      : widget.expense!.evidenceSuggested
+      ? 'This is a large self-reported expense — attach proof to verify it.'
+      : 'Optional. Attaching one marks this expense verified.';
 
   Future<void> _pickCategory() async {
     final result = await showExpenseCategorySheet(
@@ -103,6 +116,7 @@ class _EditExpenseContentState extends ConsumerState<_EditExpenseContent> {
           description: description.isEmpty ? null : description,
           categoryIds: [_category!.id],
           expenseDate: _date,
+          receipt: _receipt,
         );
       } else {
         // Cascading the category onto line items rides along in the same PATCH
@@ -121,6 +135,7 @@ class _EditExpenseContentState extends ConsumerState<_EditExpenseContent> {
           categoryIds: [_category!.id],
           expenseDate: _date,
           items: itemUpdates,
+          receipt: _receipt,
         );
       }
       if (mounted) Navigator.of(context).pop(result);
@@ -173,6 +188,14 @@ class _EditExpenseContentState extends ConsumerState<_EditExpenseContent> {
               value: DateFormat('MMM d, yyyy').format(_date),
               onTap: _pickDate,
             ),
+            if (_showReceiptField) ...[
+              const SizedBox(height: AppSpacing.base),
+              AppAttachReceiptField(
+                file: _receipt,
+                onChanged: (f) => setState(() => _receipt = f),
+                helperText: _receiptHelper,
+              ),
+            ],
             const SizedBox(height: AppSpacing.xl),
             AppButton(
               label: widget.expense == null ? 'Save' : 'Save changes',

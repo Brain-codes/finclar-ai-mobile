@@ -102,6 +102,21 @@
 					<string>com.googleusercontent.apps.1092747272049-rrqu8oqeh7nqnr8niculda4rcl1bn9ka</string>
 				</array>
 			</dict>
+			<!-- Invite links — finclar://invite/<username>. The https form needs
+			     an Associated Domains entitlement, which requires a paid Apple
+			     Developer account (see MEMORY.md open threads). -->
+			<dict>
+				<key>CFBundleTypeRole</key>
+				<string>Editor</string>
+				<key>CFBundleURLName</key>
+				<string>com.finclar.finclarAi</string>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>finclar</string>
+				</array>
+			</dict>
 		</array>
+		<key>FlutterDeepLinkingEnabled</key>
+		<false/>
 	</dict>
 </plist>

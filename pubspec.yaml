@@ -74,6 +74,7 @@ dependencies:
 
   # Image / receipt capture
   image_picker: ^1.1.2
+  image: ^4.8.0
   cached_network_image: ^3.4.1
 
   # Bank linking (Mono Connect)
@@ -97,6 +98,9 @@ dependencies:
   # Utilities
   equatable: ^2.0.5
   webview_flutter: ^4.14.1
+  share_plus: ^13.3.0
+  app_links: ^7.0.0
+  showcaseview: ^5.1.0
 
 dev_dependencies:
   flutter_test:
@@ -121,6 +125,7 @@ flutter:
   assets:
     - assets/images/
     - assets/images/gamification/
+    - assets/images/gamification/badges/
     - assets/images/wrapped/
     - assets/icons/
     - assets/logo/

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../app/routes/route_names.dart';
 import '../../../../core/config/ai_config.dart';
+import '../../../../core/errors/app_exceptions.dart';
 import '../../../../core/services/logger_service.dart';
 import '../../../../core/services/receipt_ai_service.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -25,6 +26,7 @@ class _ExpenseOcrScreenState extends ConsumerState<ExpenseOcrScreen> {
   _OcrStatus _status = _OcrStatus.idle;
   File? _imageFile;
   double _progress = 0.0;
+  String? _failureMessage;
 
   @override
   void initState() {
@@ -57,6 +59,7 @@ class _ExpenseOcrScreenState extends ConsumerState<ExpenseOcrScreen> {
       _imageFile = File(picked.path);
       _status = _OcrStatus.scanning;
       _progress = 0.0;
+      _failureMessage = null;
     });
 
     _startProgressAnimation();
@@ -83,7 +86,14 @@ class _ExpenseOcrScreenState extends ConsumerState<ExpenseOcrScreen> {
       }
     } catch (e) {
       Log.e('[OCR Screen] Receipt scan failed — showing failed state', error: e);
-      if (mounted) setState(() => _status = _OcrStatus.failed);
+      if (mounted) {
+        setState(() {
+          // Show the backend's own explanation when we have one — the generic
+          // line tells the user nothing and hides real failures from testers.
+          _failureMessage = e is AppException ? e.message : null;
+          _status = _OcrStatus.failed;
+        });
+      }
     }
   }
 
@@ -155,6 +165,7 @@ class _ExpenseOcrScreenState extends ConsumerState<ExpenseOcrScreen> {
         return _InlineDialog(
           child: _ScanningFailedCard(
             imageFile: _imageFile,
+            message: _failureMessage,
             onRetry: _onRetry,
             onClose: _onCancel,
           ),
@@ -230,11 +241,13 @@ class _ScanningProgressCard extends StatelessWidget {
 
 class _ScanningFailedCard extends StatelessWidget {
   final File? imageFile;
+  final String? message;
   final VoidCallback onRetry;
   final VoidCallback onClose;
 
   const _ScanningFailedCard({
     required this.imageFile,
+    required this.message,
     required this.onRetry,
     required this.onClose,
   });
@@ -256,7 +269,7 @@ class _ScanningFailedCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.xl),
           _DialogTitle(text: 'Scanning failed'),
           const SizedBox(height: AppSpacing.sm),
-          _FailedSubtitle(),
+          _FailedSubtitle(message: message),
           const SizedBox(height: AppSpacing.xl),
           _RetryButton(onRetry: onRetry),
           const SizedBox(height: AppSpacing.md),
@@ -392,12 +405,19 @@ class _ProgressRow extends StatelessWidget {
 }
 
 class _FailedSubtitle extends StatelessWidget {
+  final String? message;
+  const _FailedSubtitle({this.message});
+
   @override
   Widget build(BuildContext context) {
-    return const Text(
-      'We could not complete the scanning. Please try again',
+    final text = (message == null || message!.trim().isEmpty)
+        ? 'We could not complete the scanning. Please try again'
+        : message!.trim();
+
+    return Text(
+      text,
       textAlign: TextAlign.center,
-      style: TextStyle(
+      style: const TextStyle(
         fontFamily: 'Geist',
         fontSize: 16,
         fontVariations: [FontVariation('wght', 400)],

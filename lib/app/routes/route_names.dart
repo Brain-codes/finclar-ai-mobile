@@ -45,6 +45,7 @@ abstract class RouteNames {
   static const String groupFriends = '/group/friends';
   static const String groupChat = '/group/chat';
   static const String addFriend = '/app/group/add-friend';
+  static const String friends = '/friends';
 
   // Clara AI chat
   static const String clara = '/clara';
@@ -58,11 +59,13 @@ abstract class RouteNames {
   static const String settingsMessage         = '/settings/message';
   static const String settingsAccountDeletion = '/settings/delete-account';
   static const String settingsMyAccounts      = '/settings/my-accounts';
-
   static const String settingsAvatar          = '/settings/avatar';
+
   // Gamification
   static const String gamificationPreview = '/settings/gamify';
   static const String badges              = '/settings/badges';
+  static const String challenges          = '/settings/challenges';
+  static const String challengeDetail     = '/settings/challenges/detail';
   static const String wrapped             = '/settings/wrapped';
 
   // Legal

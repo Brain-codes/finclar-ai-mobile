@@ -83,6 +83,13 @@ abstract class AppColors {
   static const Color infoLight    = Color(0xFFB8DFF2);   // light bg
   static const Color infoDark     = Color(0xFF00193D);   // dark bg
 
+  // Text/icon colors for use ON the tinted *Light backgrounds above. The base
+  // `success`/`warning` hues only reach ~3:1 there, which fails WCAG AA for
+  // text — these darker shades clear 4.5:1. On dark backgrounds the pale
+  // *Light constants serve as the foreground instead (see context extensions).
+  static const Color successOn    = Color(0xFF166534);   // 6.49:1 on successLight
+  static const Color warningOn    = Color(0xFF854D0E);   // 6.63:1 on warningLight
+
   // ─── Category Colors ────────────────────────────────────────────────────────
   // Foreground colors are the same in both modes.
   // Background chips differ.
@@ -124,6 +131,7 @@ abstract class AppColors {
   static const Color streakGold        = Color(0xFFFE9400); // streak counter + active day
   static const Color streakGoldMuted   = Color(0xFFFFF3E0); // streak day bg light
   static const Color challengePurple   = Color(0xFF844FAE); // category budget challenge
+  static const Color challengePurpleMuted = Color(0xFFF2EAF7); // category budget wash
   static const Color onChallengePurple = Color(0xFFFFFFFF); // text on purple buttons
   static const Color onPrimaryDeep     = Color(0xFF4D1E00); // text on orange gamification buttons
   static const Color badgeTealStart    = Color(0xFF49F0BC); // badge front gradient start
