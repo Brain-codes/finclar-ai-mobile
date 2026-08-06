@@ -23,6 +23,43 @@ without re-deriving it from the code or git history. Don't wait to be asked.
 
 ---
 
+## 0b. Keep docs/FLOWS.md up to date
+
+`docs/FLOWS.md` is the **user-facing flow guide** — every flow in the app written
+for someone who has never opened it, step by step, with the exact labels, sheet
+titles and copy they will see. It is the answer to "how do I add an expense?",
+"how do I change my username?", "how do I check my badges?".
+
+It is auto-synced to a shared Google Doc by
+`.github/workflows/sync-flows-doc.yml` on every push to `main` that touches it,
+so anything stale here becomes stale for everyone reading the Doc.
+
+**Whenever a flow changes, update `docs/FLOWS.md` in the same change.** A flow
+change is any of:
+- A new screen, sheet, tab, or entry point.
+- A route added, removed, or repointed in `RouteNames` / `app_router.dart`.
+- A button, field, section, or confirmation step added, removed, or reordered.
+- **Any user-visible copy change** — button labels, sheet titles, headings,
+  empty-state text, snackbar messages, validation messages.
+- A step that used to be required becoming optional, or vice versa.
+- A destructive action gaining or losing its confirmation sheet.
+
+Rules for writing it:
+- Match the existing style exactly: short numbered walkthroughs, second person
+  ("Tap **+** → **Type expense**"), exact labels in bold, exact copy in quotes.
+- No screenshots, no emoji, no filler prose.
+- Push past "it looks right" to a real assertion where there is a derived number
+  — e.g. "check the month total actually dropped, not just that the row vanished".
+- Include the cancel / dismiss / negative path as its own step.
+- If an action is reachable from more than one place, say so.
+- Keep the error/empty-state table (§11) and the plan-limits table (§10) current.
+- Renumber sections if you insert one — the numbering is referenced elsewhere.
+
+Do not wait to be asked. If a change you just made alters what a user taps or
+reads, `docs/FLOWS.md` is part of that change.
+
+---
+
 ## 1. Architecture
 
 ### Pattern
