@@ -554,7 +554,29 @@ For simple CRUD features, skip `domain/` entirely and call the repository from p
 | `web_socket_channel` | Realtime group chat (via `GroupChatSocketService` only) |
 | `intl` | Currency and date formatting |
 
-Do not add new packages without discussing first.
+### Adding a package vs building it yourself
+
+Do not add a package silently — but do not reflexively hand-roll either. When a
+task needs functionality that a well-maintained package already solves better
+than we would, **say so, recommend it, and explain the trade-off** rather than
+quietly writing 300 lines of our own.
+
+Reach for a package when it is genuinely better:
+- The problem is well-defined, solved, and boring (date math, markdown, charts,
+  file pickers) and the package is actively maintained.
+- Doing it ourselves means owning edge cases we will get wrong (parsing,
+  timezones, platform channels, accessibility).
+
+Build it ourselves when:
+- The package is discontinued or unmaintained.
+- Our requirement is a poor fit for the package's API (e.g. we need to control
+  rendering at a granularity the package doesn't expose).
+- Wrapping it in our design system would cost more than writing it.
+- The surface we actually need is small and stable.
+
+Either way: state the recommendation and the reason before adding a dependency,
+and wrap third-party APIs behind our own abstraction so the package can be
+swapped later (same rule as `Log`, `AppIcons`, `AppSvgImage`, `ApiClient`).
 
 ---
 

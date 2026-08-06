@@ -9,10 +9,13 @@ String claraMessageModelToJson(ClaraMessageModel data) =>
 /// bubble (drives its reveal) and the chat screen (delays a following insight
 /// card so the chart appears only after the text finishes). ~32ms per glyph,
 /// clamped so short replies still feel deliberate and long ones don't drag.
-Duration claraRevealDuration(String text) {
-  final glyphs = text.runes.length;
-  return Duration(milliseconds: (glyphs * 32).clamp(600, 3400));
-}
+Duration claraRevealDuration(String text) =>
+    claraRevealDurationFor(text.runes.length);
+
+/// Same curve, for callers that already know the rendered (markdown-stripped)
+/// glyph count and must match the reveal exactly.
+Duration claraRevealDurationFor(int glyphs) =>
+    Duration(milliseconds: (glyphs * 32).clamp(600, 3400));
 
 enum ClaraRole { user, assistant }
 

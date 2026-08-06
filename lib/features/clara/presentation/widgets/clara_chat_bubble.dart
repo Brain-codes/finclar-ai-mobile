@@ -4,6 +4,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../data/models/clara_message_model.dart';
+import 'clara_markdown.dart';
 
 // User messages: white rounded pill, right-aligned.
 class ClaraUserBubble extends StatelessWidget {
@@ -71,14 +72,14 @@ class _ClaraAssistantBubbleState extends State<ClaraAssistantBubble>
     // and spin up no controllers.
     if (!widget.animate) return;
 
-    _glyphCount = widget.text.characters.length;
+    _glyphCount = claraPlainLength(widget.text);
     _blink = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 560),
     )..repeat(reverse: true);
     _reveal = AnimationController(
       vsync: this,
-      duration: claraRevealDuration(widget.text),
+      duration: claraRevealDurationFor(_glyphCount),
     );
     // Haptic the moment the bubble switches into its typewriter reveal.
     HapticFeedback.lightImpact();
@@ -103,38 +104,41 @@ class _ClaraAssistantBubbleState extends State<ClaraAssistantBubble>
           maxWidth: MediaQuery.of(context).size.width * 0.82,
         ),
         child: _reveal == null
-            ? _text(context, widget.text, showCaret: false)
+            ? _text(context, null, showCaret: false)
             : AnimatedBuilder(
                 animation: _reveal!,
                 builder: (context, _) {
-                  final shown = (_glyphCount * _reveal!.value).round();
-                  final revealed =
-                      widget.text.characters.take(shown).toString();
                   final typing = _reveal!.value < 1.0;
-                  return _text(context, revealed, showCaret: typing);
+                  return _text(
+                    context,
+                    (_glyphCount * _reveal!.value).round(),
+                    showCaret: typing,
+                  );
                 },
               ),
       ),
     );
   }
 
-  Widget _text(BuildContext context, String value, {required bool showCaret}) {
+  Widget _text(
+    BuildContext context,
+    int? visibleGlyphs, {
+    required bool showCaret,
+  }) {
     final style = AppTypography.bodySmall.copyWith(
       color: context.textSecondary,
       fontSize: 14,
       height: 1.5,
       fontVariations: const [FontVariation('wght', 500)],
     );
-    if (!showCaret) return Text(value, style: style);
 
-    return Text.rich(
-      TextSpan(
-        text: value,
-        style: style,
-        children: [
-          WidgetSpan(
-            alignment: PlaceholderAlignment.middle,
-            child: AnimatedBuilder(
+    return ClaraMarkdownText(
+      text: widget.text,
+      baseStyle: style,
+      visibleGlyphs: visibleGlyphs,
+      showCaret: showCaret,
+      caret: showCaret
+          ? AnimatedBuilder(
               animation: _blink!,
               builder: (context, _) => Opacity(
                 opacity: _blink!.value,
@@ -148,10 +152,8 @@ class _ClaraAssistantBubbleState extends State<ClaraAssistantBubble>
                   ),
                 ),
               ),
-            ),
-          ),
-        ],
-      ),
+            )
+          : null,
     );
   }
 }

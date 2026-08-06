@@ -14,6 +14,7 @@ import '../../providers/clara_chat_provider.dart';
 import '../widgets/clara_chat_bubble.dart';
 import '../widgets/clara_empty_state.dart';
 import '../widgets/clara_input_bar.dart';
+import '../widgets/clara_markdown.dart';
 import '../widgets/clara_insight_card.dart';
 import '../widgets/clara_suggestions.dart';
 import '../widgets/clara_typing_indicator.dart';
@@ -264,7 +265,7 @@ class _MessageList extends StatelessWidget {
         // (plus a small beat), then let it fade + rise in.
         final prevText = prevAssistantText;
         final delay = animate && prevText != null
-            ? claraRevealDuration(prevText) +
+            ? claraRevealDurationFor(claraPlainLength(prevText)) +
                 const Duration(milliseconds: 180)
             : Duration.zero;
         items.add(ClaraInsightCard(
