@@ -121,12 +121,49 @@ release `vX.Y.Z` so the next run knows where to start counting commits from.
   a download link; iOS testers must have their device UDID registered first.
 - The `vX.Y.Z` tags are what the bump logic reads to know "commits since last release."
   The first `beta` run with no tags yet analyses your whole history.
-- CI: set `FIREBASE_SERVICE_ACCOUNT` and the Android keystore as CI secrets and run the
-  same lanes; nothing else changes.
 
 ---
 
-## 5. In-app tester feedback (App Distribution SDK)
+## 5. CI — releasing automatically on push
+
+`.github/workflows/release.yml` runs the **same fastlane lanes** on GitHub Actions. The
+workflow is only the runner: it installs Flutter/Ruby/Java, restores the secret files
+that are gitignored locally, and calls `bundle exec fastlane beta skip_ios:true`. All
+version, build, upload, tag and push logic stays in `fastlane/Fastfile` — never
+duplicate it into the YAML.
+
+**Triggers:** every push to `main` (excluding markdown/docs-only pushes), plus a manual
+**Run workflow** button with optional `bump` and `skip_git` inputs.
+
+The lane's release commit is `chore(release): X.Y.Z+N [skip ci]`, and GitHub honours
+`[skip ci]`, so the push fastlane makes back to `main` does not retrigger the workflow.
+
+### Required repository secrets
+
+Settings → Secrets and variables → Actions:
+
+| Secret | Contents | Required? |
+| --- | --- | --- |
+| `FIREBASE_SERVICE_ACCOUNT_JSON` | Full contents of `fastlane/firebase-service-account.json` | **Yes** |
+| `ENV_JSON` | Full contents of your local `env.json` (`OPENAI_API_KEY`, `MONO_PUBLIC_KEY`, …) | Strongly recommended — without it the release ships with empty API keys |
+| `ANDROID_KEYSTORE_BASE64` | `base64 -i ~/finclar-upload.jks \| pbcopy` | Recommended — without it the APK is debug-signed |
+| `ANDROID_KEYSTORE_PASSWORD` / `ANDROID_KEY_PASSWORD` / `ANDROID_KEY_ALIAS` | Values from `android/key.properties` | With the keystore |
+
+App IDs and tester groups are **not** secrets — they already live in
+`fastlane/.env.default`, which is committed.
+
+### iOS on CI
+
+The workflow passes `skip_ios:true`. iOS needs a `macos-latest` runner plus the
+signing certificate and provisioning profile imported into a temporary keychain
+(fastlane `match` or `import_certificate` + `install_provisioning_profile`). Because the
+umbrella `beta` lane bumps the version once and then cruises both platforms, keep it as
+a **single job** on macOS when you enable iOS — do not split Android and iOS into two
+jobs, or each would compute its own version bump.
+
+---
+
+## 6. In-app tester feedback (App Distribution SDK)
 
 Testers can submit feedback + a screenshot from inside the app via a persistent
 notification (wired in `MainActivity.onCreate` → `showFeedbackNotification`). Two

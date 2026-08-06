@@ -1,0 +1,112 @@
+# This workflow is only the runner. All versioning, building, uploading, tagging
+# and pushing logic lives in fastlane/Fastfile — the exact same lanes you run
+# locally with `bundle exec fastlane beta`. Keep the logic there, not here.
+#
+# The Fastfile's release commit is tagged `[skip ci]`, which GitHub honours, so the
+# push it makes back to main does not retrigger this workflow.
+name: Release to Firebase App Distribution
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - ".github/workflows/sync-flows-doc.yml"
+      - ".github/workflows/flows-doc-guard.yml"
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump — 'auto' derives it from commit messages"
+        type: choice
+        default: auto
+        options: [auto, major, minor, patch]
+      skip_git:
+        description: "Skip the version commit / tag / push"
+        type: boolean
+        default: false
+
+concurrency:
+  group: release-firebase
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  android:
+    name: Android beta
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      # Full history: the version bump is derived from commits since the last vX.Y.Z tag.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git author for the release commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Write secret files
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ENV_JSON: ${{ secrets.ENV_JSON }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > fastlane/firebase-service-account.json
+
+          if [ -n "${ENV_JSON:-}" ]; then
+            printf '%s' "$ENV_JSON" > env.json
+          else
+            echo "::warning::ENV_JSON not set — building without --dart-define values (API keys will be empty)."
+          fi
+
+          # Without a keystore the Gradle config falls back to debug signing, which still
+          # installs via Firebase but is not a Play-shippable signature.
+          if [ -n "${ANDROID_KEYSTORE_BASE64:-}" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/upload-keystore.jks
+            {
+              printf 'storePassword=%s\n' "$ANDROID_KEYSTORE_PASSWORD"
+              printf 'keyPassword=%s\n'   "$ANDROID_KEY_PASSWORD"
+              printf 'keyAlias=%s\n'      "$ANDROID_KEY_ALIAS"
+              printf 'storeFile=%s\n'     "$GITHUB_WORKSPACE/android/upload-keystore.jks"
+            } > android/key.properties
+          else
+            echo "::warning::ANDROID_KEYSTORE_BASE64 not set — the release APK will be debug-signed."
+          fi
+
+      - name: Fastlane beta
+        env:
+          # iOS needs a macOS runner and signing certs — see docs/RELEASE_PIPELINE.md §5.
+          FASTLANE_OPTS: >-
+            skip_ios:true
+            ${{ inputs.skip_git && 'skip_git:true' || '' }}
+            ${{ (inputs.bump && inputs.bump != 'auto') && format('bump:{0}', inputs.bump) || '' }}
+        run: bundle exec fastlane beta $FASTLANE_OPTS
+
+      - name: Remove secret files
+        if: always()
+        run: rm -f fastlane/firebase-service-account.json android/key.properties android/upload-keystore.jks env.json

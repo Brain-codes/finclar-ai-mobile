@@ -36,7 +36,7 @@ flutter_form_builder.
 `app/`, `core/`, `shared/`, `features/`, `main.dart`. ~200 Dart files.
 (Full folder rules in `CLAUDE.md §1`.)
 
-**Backend:** `https://finclar-ai.onrender.com/api/v1` (Swagger at `/docs`).
+**Backend:** `https://api.finclarai.com/api/v1` (Swagger at `/docs`).
 
 ## Feature areas & rough status
 
@@ -50,12 +50,69 @@ status as approximate — confirm against the code/branch before building on it.
 | `home`         | dashboard, income_setup (AI/manual), ai_setup, recent expenses | Built; income setup modal + provider in place |
 | `expenses`     | list, add_manual, add_ocr (scan receipt), bank_integration  | Built; OCR scan + scanned-expense editing + bank linking landed |
 | `budget`       | list, create_manual, allocation, summary                    | Built + **wired to live `/budgets` API** (2026-06-19) |
-| `group`        | list, create, detail, friends, group chat, savings, friend invites | **Fully wired to live API** (2026-07-06) — friends + groups + members + savings + chat |
+| `group`        | list, create, detail, friends, group chat, savings, friend invites, **standalone friends screen + invite links** | **Fully wired to live API** (2026-07-06) — friends + groups + members + savings + chat. Friends screen + invite/deep-link flow added 2026-08-06 |
 | `subscription` | plans, upgrade, active subscription + cancellation sheets   | **Wired to live `/subscriptions` API** (2026-07-20); Paystack checkout untested against a real key |
-| `gamification` | insight slides, "wrapped" savings/insights screens          | In progress     |
-| `settings`     | main settings, account/contact tiles, edit username, delete-account sheet | Built |
+| `gamification` | insight slides, "wrapped" recap screens, daily streak card   | **Wired to live `GET /wrapped`** (2026-08-02); converted year-in-review → **monthly recap** (2026-08-03). Daily streak card wired to live `GET /expenses/streak` (2026-08-05) — fires once a day on the first expense logged. Untested on device. |
+| `challenges`   | Savings challenges (3 types), entries, badges                | **Wired end-to-end** (2026-08-04) — list/detail/create/edit/cancel/log-entry against live `/challenges/*`. Badges screen reads live `/challenges/badges/*`. All three backend types (`friday_savings`, `no_spend`, `budget_category`) startable from cards on the challenges screen or the `+` picker, each on its own cadence — Friday weekly, no-spend Fri–Sun only, category on a random ~weekly date (2026-08-05). Untested on device. |
+| `settings`     | main settings, account/contact tiles, **edit details** (name/username/currency), delete-account sheet | Built; edit-details sheet replaced the single-field name sheet (2026-08-06) |
+| `onboarding`   | first-run coachmark tour + quick-start checklist              | **New** (2026-08-06) — `showcaseview` behind `AppCoachmark`. Untested on device. |
 
 ## Open threads / known issues
+
+- **Three backend asks are blocking real product scope** (raised 2026-08-06, written up in
+  `docs/API.md` → Planned / Not Yet Live): an **income ledger** (today it's one record per
+  user, so there's no income history and no second paycheck), **invite by email/phone**
+  (`POST /friends/invite` takes only a `recipient_id`, so non-users can't be invited), and a
+  **referral field on `RegisterDto`** (without it, auto-completing a friend request after a
+  fresh install is impossible on any client). The last one also needs Branch/AppsFlyer on the
+  client — Firebase Dynamic Links is dead.
+- **Receipt scanning now defaults to the backend** (`AiConfig.receiptScanSource`). If backend
+  OCR regresses, `--dart-define=RECEIPT_SCAN_SOURCE=openai` restores on-device scanning —
+  but that path ships the OpenAI key in the binary, so it's dev-only.
+- **Budget month filter can't cross years.** `showMonthSelectionSheet` returns a month only, so
+  the Budget tab's filter is pinned to the currently selected year. Needs a year stepper in that
+  sheet (shared with the expenses month picker).
+- **`profile_icon` is still unused.** `UpdateUserDto` accepts it and `updateProfile` passes it
+  through, but the settings avatar is a hardcoded circle with no picker. Needs a design call.
+- **iOS Universal Links unconfigured** — the `finclar://` scheme works on both platforms, but
+  `https://finclarai.com/invite/...` only opens the app on Android. iOS needs an Associated
+  Domains entitlement (same paid-account blocker as Apple Sign-In / push), and Android's
+  `autoVerify` needs `/.well-known/assetlinks.json` served from finclarai.com.
+
+- **Blocked on backend:** the Clara conversation-context / "chat figures aren't saved" copy
+  issues (backend/prompt work). ✅ `POST /groups/{id}/members` **is live** as of the
+  2026-08-05 spec check — the "404s" note was stale and the stale warning comment on
+  `ApiEndpoints.groupMembers` is gone. ✅ The attach-proof-to-existing-expense blocker was
+  **resolved 2026-08-03** — `PATCH /expenses/{id}` now takes a receipt.
+
+- ✅ **Done 2026-08-03:** receipt-attach UI (create + edit), push device-token registration
+  (+ unregister on logout), and the Savings Challenges **data layer**. See that dated entry.
+
+- ✅ **Done 2026-08-04:** Savings Challenges UI for **Friday Savings only** — the user's call
+  was "work on the one the API is available for, the others when the API is available".
+  **Superseded 2026-08-05:** the backend now ships `no_spend` and `budget_category`, and the
+  data layer supports all three. What's still missing is a *trigger* — nothing in the shipping
+  UI starts one of the two new types. See CHECKLIST.md §14.1.
+
+- ✅ **Done 2026-08-04 (part 2):** badges screen wired to `GET /challenges/badges/mine`,
+  Friday prompt + real success modal, Gamify gallery gated behind a build flag. See the
+  dated entry.
+
+- **Badge/mascot artwork is still missing.** `assets/images/gamification/` is empty.
+  Badges now render a tinted-circle + `icon_name` fallback, so nothing is broken, but
+  the real art should be exported from Figma as
+  `assets/images/gamification/badge_<key>.png` for the 9 catalog keys, plus
+  `friday_savings_mascot.png` / `category_budget_mascot.png` / `no_spend_mascot.png`.
+
+- **Backend gaps for gamification (raised with Tolu 2026-08-04, re-checked 2026-08-05):**
+  - ✅ **Resolved.** `ChallengeType` is now `friday_savings | no_spend | budget_category`,
+    with `target_category_id` + `current_period_spent` on the response. All three are
+    supported in the app's data layer as of 2026-08-05.
+  - ✅ **Resolved (2026-08-05, second re-check — Tolu shipped it).** `GET /expenses/streak`
+    is live and wired. It is a *daily* streak, distinct from a challenge's `current_streak`,
+    which counts weeks. `streak_card_modal.dart` now runs on real data.
+  - No monthly badge-summary endpoint; the app groups `badges/mine` by `earned_at`
+    client-side. `earned_period` is a week label on some badges, so it isn't groupable.
 
 - **Apple sign-in is blocked on Apple Developer account access — Google is fully live.**
   Google sign-in works on **both iOS and Android** now (config done 2026-06-19). Apple is
@@ -82,8 +139,9 @@ status as approximate — confirm against the code/branch before building on it.
   enable the Apple provider in Firebase, then flip `kAppleSignInEnabled = true`.
 - **iOS push pending APNs setup:** FCM works on Android in debug; iOS needs an APNs
   `.p8` key uploaded to Firebase (Cloud Messaging) + Push/Background-Modes capabilities
-  in Xcode, and a **paid** Apple Developer account. `NotificationService._registerToken`
-  is a stub until a device-token endpoint exists in `docs/API.md`.
+  in Xcode, and a **paid** Apple Developer account. The client side is **done** as of
+  2026-08-03 — `NotificationService.registerToken()` POSTs `/notifications/device-tokens`
+  after login and logout sends `device_token`. Only the iOS APNs setup remains.
 - **Username availability race (from `TODOs.txt`):** on sign-up, typing quickly
   causes the inline "username is taken" error to conflict with the suffix-icon
   check-mark (showing "available"). The async validation result lags behind fast
@@ -105,6 +163,798 @@ status as approximate — confirm against the code/branch before building on it.
 ---
 
 ## Dated log
+
+### 2026-08-06 — Firebase distribution wired into GitHub Actions
+
+Fastlane was only ever run by hand — there was no CI workflow for releases (the only
+two workflows were the FLOWS.md doc sync/guard). Added
+`.github/workflows/release.yml`: triggers on push to `main` (docs/markdown-only pushes
+excluded) plus manual dispatch with `bump` / `skip_git` inputs, and calls
+`bundle exec fastlane beta skip_ios:true`. The workflow is deliberately a thin runner —
+all version/build/upload/tag/push logic stays in `fastlane/Fastfile`.
+
+- No infinite loop: the lane's release commit carries `[skip ci]`, which GitHub honours.
+- `fetch-depth: 0` is required — the bump is derived from commits since the last `vX.Y.Z` tag.
+- Secrets needed: `FIREBASE_SERVICE_ACCOUNT_JSON`, `ENV_JSON`, `ANDROID_KEYSTORE_BASE64`
+  + the three keystore password/alias secrets. App IDs and tester groups are *not*
+  secrets — they live in the committed `fastlane/.env.default`.
+- **Bug fixed along the way:** the Fastfile's `flutter build apk/ipa` never passed
+  `--dart-define-from-file=env.json`, so every distributed build shipped with an empty
+  `OPENAI_API_KEY` / `MONO_PUBLIC_KEY`. Added a `dart_defines_flag` helper that applies
+  it when `env.json` exists (absent on a fresh clone, so it degrades instead of failing).
+- iOS is skipped: it needs a macOS runner + signing certs. When enabling it, keep it in
+  the **same job**, not a parallel one — the umbrella `beta` lane bumps the version once
+  and cruises both platforms, so two jobs would compute two different versions.
+- Docs: new `docs/RELEASE_PIPELINE.md` §5 (old §5 renumbered to §6).
+
+### 2026-08-06 — Clara chat renders backend markdown
+
+Clara's replies come back as markdown (`**bold**`, numbered lists, `\n\n` paragraph
+breaks) and were being dumped into a single `Text`, so users saw literal asterisks
+and one run-on wall of text. New `clara_markdown.dart` parses headings, numbered and
+bulleted lists, bold, italic and inline code into styled blocks.
+
+Deliberately hand-rolled, not a package: the typewriter reveal truncates the
+*rendered* output, whereas any markdown package fed a truncated raw string shows
+`**Track Inco` until the closing fence lands, then reflows. `flutter_markdown` is
+also discontinued. If Clara ever emits tables/links/code fences, switch to
+`gpt_markdown` and drop the reveal to a fade.
+
+`claraRevealDuration(String)` now has a sibling `claraRevealDurationFor(int)` — the
+bubble and the insight-card delay both time off the markdown-stripped glyph count
+(`claraPlainLength`) so the chart still lands exactly when the text finishes.
+
+`CLAUDE.md` §11 package rule rewritten: recommend a package out loud when it's
+genuinely better instead of reflexively hand-rolling, and always wrap it.
+
+### 2026-08-06 — `docs/FLOWS.md` + auto-sync to Google Docs
+
+New user-facing flow guide at `docs/FLOWS.md` — 50 flows across 12 sections covering
+every screen, sheet and entry point in the app ("how do I add an expense / change my
+username / check my badges"). Written in the `/test-guide` house style: numbered
+walkthroughs, second person, exact labels bolded, exact copy quoted, cancel paths
+included, and real assertions where a derived number should move. Scraped from the
+code (routes, screens, sheets, snackbar/empty-state copy), not from memory.
+
+Sections 10 and 11 are lookup tables — plan limits, and every error/empty state with
+its exact copy and the way out.
+
+**Sync:** `.github/workflows/sync-flows-doc.yml` fires on any push to `main` touching
+`docs/FLOWS.md` and runs `scripts/sync_flows_to_gdoc.py`, which converts the markdown
+to HTML and overwrites the body of the shared Google Doc
+(`1-q1W4-9fvVHO_rRW-PPnGhn-8owmeXLSRO5W0RSQiic`) via a Drive `files.update` media
+upload. Drive converts the HTML back to native Docs content, so the doc keeps its ID,
+URL and comments. One-way and destructive to the Doc — edits made directly in Google
+Docs get overwritten, and the auto-appended footer says so.
+
+Needs repo secret `GOOGLE_SERVICE_ACCOUNT_JSON` and repo *variable* `GOOGLE_DOC_ID`,
+plus the Doc shared as Editor with the service account's `client_email`, plus the
+Drive API enabled on the same GCP project the key belongs to (`Finclar Ai`,
+project 1092747272049 — this was the first failure: `403 accessNotConfigured`).
+
+**Drift guard:** `.github/workflows/flows-doc-guard.yml` fails a PR (or a direct push
+to main) that touches `lib/features/**/presentation/**`, `lib/app/routes/**`,
+`lib/shared/widgets/**` or `app_strings.dart` without also touching `docs/FLOWS.md`.
+Escape hatches: the `no-flow-change` PR label, or `[skip flows]` in a commit message.
+It only catches omissions — it can't write the doc.
+
+**Rule:** `CLAUDE.md §0b` now requires updating `docs/FLOWS.md` in the same change as
+any flow change, and defines what counts as one (new screen/route/entry point, a
+button or step added/removed/reordered, any user-visible copy change, a confirmation
+gained or lost). Considered and rejected for now: `anthropic/claude-code-action` in CI
+to regenerate the doc from each diff — costs tokens per run, wants review anyway.
+
+### 2026-08-06 — Budget month roll-over: stale-month bug + previous-month summary
+
+Reported as "I'm in August with no August budget, but the Budget tab shows July" — it read as a
+data bug, it was a fallback. `BudgetNotifier._loadCurrent` did
+`firstWhere(month == now.month, orElse: () => _all.first)`, so with no budget for the current
+month it silently rendered whatever budget happened to be first in the list, fully labelled as
+if it were the current month.
+
+- **Provider reshaped.** `budgetProvider` is now `AsyncNotifierProvider<BudgetNotifier, BudgetState>`
+  (was `BudgetModel?`). `BudgetState` carries `budget` (selected month, **never** back-filled from
+  another month), `previous` (most recent budget strictly before the selected month),
+  `month`/`year`, and `hasAnyBudget`. Selection is remembered in the notifier so
+  allocate/delete/refresh no longer snap the view back.
+- **`_all` is now maintained.** `allocate`, `removeAllocation`, `updateAmount` and `delete` used to
+  mutate `state` only, leaving the cached list stale — switching months resurrected deleted
+  budgets. All mutations go through `_upsert` / an explicit `removeWhere` + `_resolve()`.
+- **`create` jumps the view** to the month the backend stamped the new budget with.
+- **New `BudgetPreviousMonthCard`** (`presentation/widgets/`) — collapsible carry-over summary
+  shown above the empty state when the selected month has none. Collapsed: remaining, progress
+  bar, spent/total, % used. Expanded: full breakdown + per-category allocations.
+- **Empty state is month-aware** — "No budget for August" when you've budgeted before, plain
+  "No budget yet" on a truly first run.
+- **Month filter is now discoverable.** A permanent funnel pill (icon + short month, e.g. `Aug`)
+  sits in the header in every state; the summary-card month chip gained a chevron. Previously the
+  only way to change month was tapping an unmarked chip that vanished with the empty state.
+- **Second `Create budget` entry point** — a labelled orange pill at the top right whenever the
+  selected month has no budget (deliberately labelled, not a bare `+`).
+- **`BudgetSummaryCard` no longer hardcodes `₦`** — takes `currencySymbol` and uses
+  `formatCurrency`. It had two private hand-rolled formatters with the symbol baked in.
+- `quick_start_card` now checks `hasAnyBudget`, so the onboarding checklist doesn't un-tick the
+  budget step when the month rolls over.
+- Month names/date labels moved into `budget_month_utils.dart` (were duplicated private helpers).
+
+**Known limitation:** `showMonthSelectionSheet` is month-only, so the filter stays within the
+selected year — you can't browse to Dec of last year. The previous-month *card* crosses years fine
+(it sorts on `year * 12 + month`). A year stepper in that sheet is the follow-up.
+
+`docs/FLOWS.md` §4.1, §4.5, new §4.6 and the §11 empty-state table updated.
+
+### 2026-08-06 — Profile avatars: a Flutter port of react-nice-avatar
+
+`profile_icon` existed end-to-end on the backend (`PATCH /user/me`, `UserResponseDto`) and on
+`UserModel`, but **nothing in the app read or wrote it** — every avatar in the UI was initials
+or a placeholder icon. The user wanted the same shape as expense categories: store a *name*,
+resolve it to artwork at render time.
+
+**There is no Flutter port of [react-nice-avatar](https://github.com/dapi-labs/react-nice-avatar)
+on pub.dev**, so one was written and now lives in its own repo:
+**https://github.com/Brain-codes/nice_avatar**. This app consumes it as a `git:` dependency
+**pinned to `ref: v1.0.0`** — deliberately, so a push to that repo's `main` cannot silently
+change every user's avatar. Bump the tag here when you want the change. Not on pub.dev.
+
+**How the port works.** Each part's original SVG is kept verbatim as a string and rendered with
+`flutter_svg`; the React components' CSS percentage positioning is reproduced by `PartBox`
+(fractional left/right/top/bottom + width/height, resolved against the parent). Nothing was
+redrawn by hand, so the artwork is pixel-faithful. `genConfig` reproduces the original's seeded
+selection exactly — same 32-bit string hash, same `avoidList`/`usually` weighting — so a given
+seed yields the same face in Flutter as on the web. Secondary shades (hoody panel, mohawk
+highlight) use the same CIE L\*a\*b\* lightening curve as chroma-js `brighten`, ported in
+`colors.dart`.
+
+**The string contract — this is the important bit.** `configFromString(value)` accepts either:
+- a **preset id** (`avatar_3`, or any string at all — a username, a user id) → used as a seed;
+- an **encoded config** (`nav1.man.F9C9B6.big.…`, from `ResolvedAvatarConfig.encode()`) → exact.
+
+So presets and fully-customised avatars share one `varchar` column and one render path, and
+you can move between them without a migration. The backend's existing `avatar_3` example
+already works unchanged.
+
+**App side.** New `AvatarPickerScreen` at `RouteNames.settingsAvatar`, reached by tapping the
+avatar in `SettingsProfileHeader` (which now shows an edit badge). Two tabs: a 24-preset grid,
+and a full customiser (`AvatarCustomiser` + `AvatarOptionRow`/`AvatarColorRow`) covering every
+part. Picking a preset stores its id; customising stores the encoded config. `AppProfileAvatar`
+is the one wrapper the rest of the app uses — it falls back to `AppAvatar` initials when
+`profile_icon` is null, so nothing regresses for existing users. Wired into the settings header
+and the home header.
+
+**Gotchas found while building**
+- **`pumpAndSettle` never quiesces on a grid or column of `SvgPicture`s** — decoding keeps
+  scheduling frames, so the test sits until its 10-minute timeout. Use a fixed number of
+  `pump()`s. Screenshot-only tests were used to verify all of this and then deleted: they
+  assert nothing, and a non-asserting 10-minute test in the suite is a liability.
+- Hair options are hidden when a hat is selected: the original hides hair entirely under a hat,
+  so those controls would change something invisible.
+
+**Follow-up, same day — the three open items closed:**
+
+1. **Server-side rendering** — package **v1.1.0** adds `avatarToSvgString()` /
+   `NiceAvatar.toSvgString()`: the whole avatar as one self-contained SVG document with no
+   dependency on the widget layer, so the backend can render the exact same face for emails,
+   OG images or a `/avatar/{id}.svg` route. Verified pixel-identical to the widget output.
+   ⚠️ **Layers are placed with `<g transform>`, not nested `<svg>` viewports.** The first cut
+   used nested `<svg preserveAspectRatio>` — correct SVG, but flutter_svg drops nested
+   viewports entirely, which rendered as coloured circles with no faces. The transform
+   resolves to exactly what `xMidYMid meet` / `BoxFit.contain` do and works everywhere.
+   Nothing on the backend uses this yet — it is the tool, not the feature.
+   (App pins **v1.1.1**; v1.1.0 shipped with a preview test that asserted nothing and hung
+   `flutter test` for its full 10-minute timeout, so it was removed.)
+2. **Friend / group / chat avatars** now render generated faces instead of initials. Because
+   `profile_icon` is returned **only by `/user/me`**, other people's faces are *seeded from
+   their username* — stable and distinct, but **not the avatar they actually chose**. Seeding
+   deliberately uses the name and not an account id: it is the one identifier every call site
+   has, so the same person looks the same in the friends list, the member list and the chat
+   thread. `FriendshipModel.friendProfileIcon` and `GroupMemberModel.profileIcon` are already
+   parsed, so the real avatars appear with **no client release** the moment the backend sends
+   them — that is now ask #4 in `docs/API.md` → "Asked for, not yet built".
+3. **Edit-details sheet picks an avatar too.** Two sections, shared with the picker screen via
+   `AvatarChoiceSections`: **Recommended for you** — eight faces seeded from the account id, so
+   they are personal and stable — and **Presets**, the shared 24. The sheet renders them as
+   compact horizontal strips; the full screen uses grids. A recommended pick is stored as an
+   encoded config (its seed is derived from the account id and would mean nothing to anyone
+   else); a preset is stored by name. `EditProfileResult` gained `profileIcon`.
+
+**Still open**: nothing on the backend consumes the SVG export yet, and other users' avatars
+stay generated until `profile_icon` ships on the friends/groups payloads.
+
+### 2026-08-06 — Trello batch: income, onboarding tour, edit details, OCR errors, friends, invites
+
+Six board items. The **live OpenAPI spec was pulled first (77 paths)** because three of them
+turned out to be capped by what the backend ships. Those caps are written up as backend asks
+in `docs/API.md` → "Planned / Not Yet Live"; read that before re-planning any of this.
+
+**The three constraints, because they explain why the work looks smaller than the cards:**
+1. **Income is one record per user.** `GET/POST/PATCH /income` all operate on a single
+   `IncomeResponseDto` — no list endpoint, no per-entry create. So "Add Income" ships as
+   *set/edit your income*, not a ledger. User's explicit call.
+2. **`POST /friends/invite` takes only `recipient_id`** (a UUID) — you can only befriend
+   someone who already has an account. No invite-by-email/phone exists.
+3. **Deferred deep-linking has no free path.** Firebase Dynamic Links is shut down. Auto-
+   completing a friend request *after a fresh install* needs Branch/AppsFlyer **and** a
+   backend referral field on `RegisterDto`. Not built — the rest of the invite flow is.
+
+| Task | What changed |
+|---|---|
+| **1 — Add income** | The only way into income was `home_screen.dart`'s listener, which fires *only when income is null* — once set, there was no route back, and `IncomeNotifier.save()` / `IncomeRepository.updateIncome()` were **dead code**. Now there are **four** ways in, because the modal is the one thing you can't rely on: an action **on the balance card itself**, top-right (a solid white "Add income" button when none exists — it *is* the next thing to do; once income is set it collapses to a bare pencil icon, since the card's job is the balance, not a standing CTA), a row in the `+` sheet (retitled `Add expense` → `Add`), the tappable income legend row on the home chart, and the quick-start card. Every label flips **Add ↔ Update** off `incomeProvider`, since the single-record backend means the second visit is always an edit. The balance-card pill is the answer to "what if the popup doesn't show" — always visible, loud only when income is missing.
+
+**The income screen was also rebuilt.** Title, amount and keypad were fighting for space via two `Flexible(SizedBox())` spacers that collapsed on shorter devices. Now: a fixed title block (with a new subtitle), the amount block getting the entire middle via `Expanded` + `Center`, then the keypad — so there is always air between the three regardless of device height. Added an **amount-in-words pill** under the figure (`core/utils/number_to_words.dart`, 9 unit tests) — reserved-height + `AnimatedOpacity` so the layout doesn't jump when the first digit lands. Also fixed **`AppKeypadController`'s hardcoded ₦** — it now takes a `symbol`, fed from `currencySymbolProvider`, so a USD user stops seeing naira on the keypad. `income_setup_screen` prefills from `incomeProvider` and titles itself "Edit income", and `income_details_sheet` branches `save()` (PATCH) vs `create()` (POST) — activating the dead path. New `AppKeypadController.setAmount()` for the prefill. Home insight + summary are invalidated after a save. |
+| **2 — Onboarding** | New `features/onboarding/`. `showcaseview` added, wrapped in `shared/widgets/app_coachmark.dart` so feature code never imports it (CLAUDE.md §3/§4 convention). 6-step tour: balance card → `+` → Expenses → Budget → Groups → Clara FAB — **all six are on screen simultaneously** (home body + shell nav bar), so it runs start-to-finish in one sitting and never navigates mid-flow. Every tooltip carries **Skip** and **Next**. Plus a `QuickStartCard` on home (set income / log first expense / create a budget) that ticks itself off from existing providers and vanishes at 3/3, and a "Start app tour" row in Settings for testing. |
+| **3 — Edit details** | `edit_username_sheet.dart` didn't exist — it had already become `edit_preferred_name_sheet.dart` (2026-08-02), editing one field. Replaced with `edit_profile_sheet.dart`: preferred name, username (debounced `GET /user/check-username`), and email rendered **read-only** — `UpdateUserDto` has no email field. Only changed fields are PATCHed. **Currency editing is deliberately off** — the app is naira-only for now (user's call). `currency_selection_sheet.dart` and `AppConfig.supportedCurrencies` are built and working but **not wired to anything**; drop the picker back into the sheet when multi-currency is turned on. |
+| **4 — OCR errors** | Two separate bugs. (a) `AiConfig.receiptScanSource` **defaulted to `openai`** — scans never hit the backend, which is why Tolu's messages were never seen. Default flipped to `backend`; `--dart-define=RECEIPT_SCAN_SOURCE=openai` goes back. (b) The exception was caught and discarded — `_FailedSubtitle` hardcoded the generic line. Message now threads through `_failureMessage` state. Also: `ReceiptAiService` no longer flattens every `DioException` into one string, and `api_client.dart`'s 413 branch prefers the backend's wording. Deleted dead `scanning_dialog.dart`. |
+| **5 — Add friends** | **Not broken — incomplete.** `GET /friends/search` is live and the repository calls it correctly; "No search result" was genuine. The real gaps: nothing said *what* it searches, and **`POST /friends/invite` was never called from any UI** — `friendsProvider`/`friendInvitesProvider` existed but were consumed only by `session_reset.dart`. Sheet rewritten onto `showAppSheet` + `AppTextField` (it was a raw `showModalBottomSheet` + raw `TextField`, against §8), with an `AddFriendMode` param so the group flow is untouched. New `friends_screen.dart` + `RouteNames.friends` off the Groups header: friends list, **pending-invite inbox with accept/decline**, invite CTA. Empty search now offers "Invite to finclar". |
+| **6 — Invites** | `share_plus` + `app_links` added. `InviteService` owns the link shape (`https://finclarai.com/invite/<username>`) and every channel — nothing else builds an invite URL. New `invite_friend_sheet.dart` (WhatsApp / SMS / Email / More), each falling back to the OS share sheet when the target app isn't installed. `DeepLinkService` parses incoming links, and **parks the invite in storage when logged out**, replayed from `AuthStateService.logIn` — the single choke point every auth path already uses. `InviteLinkListener` in the shell opens the pre-filled sheet. Also finally wired `share_group_sheet.dart`, whose share icons were **decorative with no `onTap`**. |
+
+**Decisions worth remembering**
+- ⚠️ **The tour flag is "pending", not "seen" — do not invert this.** The first cut keyed off
+  an unset `tourCompletedKey`, which meant *every existing user* got ambushed by the tour
+  mid-session on the release that introduced the key. It is now
+  `AppConstants.tourPendingKey`, written **only** by `AuthStateService.logIn(isNewUser: true)`
+  and the Settings row. Absence means *don't show it*. Any future first-run flag should follow
+  the same shape.
+- The tour also refuses to start unless home is the **current** route, and waits
+  `AppConstants.animSlow` for the push transition to settle — starting mid-transition put the
+  spotlight on the wrong screen ("sitting between two screens"). `HomeScreen.dispose` calls
+  `dismissAppCoachmarks()` so navigating away can't leave the overlay painting over the next
+  screen.
+- The queued flag is consumed **before** the tour runs, so dismissing can't make it reappear —
+  same pattern as the Friday challenge prompt.
+- Only **one** first-run interruption per session: `_maybeStartTour` waits on income (so it
+  can't stack on the income setup modal) and hands off to `maybePromptChallenge` only when
+  the tour has already been seen.
+- Logout clears the tour flag **and** any parked invite — a different account on the same
+  device must get the tour again and must never inherit someone else's friend request.
+- `income_details_sheet` re-reads `incomeProvider` after saving and rethrows: `AsyncValue.guard`
+  swallows the failure into state, so without that check a failed save navigated home as if
+  it had worked.
+- Native config added: `finclar://invite` on both platforms, an `autoVerify` App Links filter
+  for `finclarai.com/invite` on Android (needs `/.well-known/assetlinks.json` served from the
+  site), and `<queries>` entries for the share targets — without those, `launchUrl` fails on
+  Android 11+ even when the app is installed. **iOS Universal Links still need an Associated
+  Domains entitlement — blocked on the same paid Apple account as Apple Sign-In and push.**
+
+`flutter analyze` clean. `flutter test` 22/23 — the failure is `test/widget_test.dart`, which
+is **red on a clean tree** (boots the app without Firebase); verified by stashing.
+**None of this has run on a device.**
+
+### 2026-08-05 — Badges screen rebuilt from Figma (`37:6044`)
+
+The `×N` treatment moved from a small corner chip to the design's real thing: a large outlined
+number sitting on the shield's tail — white fill, badge-colour outline, Bricolage SemiBold at 19% of
+the tile. It now shows on **every** earned badge including `1x`, per the mock. Layout is a 3-per-row
+grid (was a horizontal scroller), month header switched to Geist Medium 16 / `textQuaternary` to
+match, and the per-tile name label is gone for badges that have a shield — the ribbon already names
+them.
+
+**The artwork had to be normalised first.** The three Figma exports were trimmed differently (and
+the category badge carried a long soft shadow the others didn't), so `BoxFit.contain` landed each
+shield at a different height and there was no stable place to hang the number. They're now
+regenerated onto a common 512×512 canvas — opaque art at a fixed size, bottom edge at 86% — in
+`assets/images/gamification/badges/`. The originals are untouched; the normaliser lives in the
+session scratchpad, not the repo.
+
+**Artwork now resolves by badge *category*, not key.** The live catalog is 21 badges across 7
+categories and only 3 have shields, so keying off `key` meant nearly everything fell through to the
+tinted-circle fallback — and `friday_savings_goal_reached` fell through anyway because its file had
+been saved as `Badge 3.pngbadge_friday_savings_goal_reached.png`. Fallback badges keep a small name
+caption so streak badges stay identifiable. `no_spend_weekend` also had the wrong accent (blue);
+the design is orange.
+
+### 2026-08-05 — Challenge cadence + the modal that closed itself
+
+Reworked how challenges *arrive*. The picker from earlier today stays behind the `+`, but it's no
+longer the main way in — each type now has a window and a card.
+
+**Fixed a bug reported from device:** the intro modal popped itself before running its CTA, so the
+amount sheet opened over an empty screen and dismissing it lost the flow (only route back was
+Settings → Challenges). `showChallengeModal` callbacks are now `Future<bool>`; the modal stays up,
+spins the pressed CTA, and closes only on success or ✕. Backdrop tap and system back no longer
+dismiss it.
+
+**Cadence** — `features/gamification/domain/challenge_availability.dart`, 11 unit tests:
+- `friday_savings` — always open, prompts every Friday (unchanged)
+- `no_spend` — **Fri 00:00 → Sun 23:59 only**, prompts once per weekend, created with
+  `end_date` = weekend end so the backend expires it
+- `budget_category` — always open, prompts on a **random** date 5–12 days out, rescheduled each fire
+
+`maybeShowChallengePrompts()` replaced the Friday-only call on home and shows at most one modal per
+app open. Push routing now reads `challenge_type` and sends each to its own prompt instead of
+funnelling everything to Friday.
+
+**Challenges screen** is now Ongoing → Start a challenge → Past challenges. Available types render
+as tinted `AvailableChallengeCard`s with a window pill; out-of-window ones stay visible but dimmed
+and locked ("Opens Friday"). Finished runs collapse into `PastChallengeGroup` `×N` rows that expand
+to the individual cards. Empty-state copy generalised off "Beat the Friday test".
+
+**Second bug found en route:** the Friday prompt grabbed the first active challenge of *any* type,
+so it could have recorded a savings entry against a running `no_spend` challenge. Now type-scoped.
+
+Open: no local notification fires when the weekend opens — that push has to come from the backend
+(`flutter_local_notifications` isn't a dependency). Full list in CHECKLIST.md §17.5.
+
+### 2026-08-05 — Challenge type picker (all three types now startable)
+
+Closed the last blocked row from the API audit: `no_spend` and `budget_category` had full data
+and UI support but nothing in the shipping app could start one.
+
+**Product decision made — the entry point is a type picker sheet on the challenges screen**, not
+a second scheduled prompt. A prompt has to earn its moment (the Friday one does, by being tied to
+Friday); picking a challenge is a deliberate choice made when the user goes looking. Both start
+points — the `+` in the top bar and the empty state's "Start challenge" — now open
+`showChallengeTypeSheet`. Types with an active challenge show "Already running" and can't be
+picked; the `+` only hides once all three are running.
+
+`no_spend` / `budget_category` route through their finished `showChallengeModal` intro (mascot +
+copy + single CTA) into the create form. **Friday skips its intro** — that modal *is* the weekly
+save prompt and its CTAs record an entry rather than create a challenge, so reusing it in a
+creation flow would have meant either duplicate buttons or a flag that alters its designed layout.
+
+Found and fixed while wiring: live `UpdateChallengeDto` has **no `target_category_id`** (docs
+claimed it mirrored `CreateChallengeDto`), so the edit sheet was letting the user re-pick the
+capped category and silently dropping it. The row is read-only when editing now.
+
+Detail in **CHECKLIST.md §16**. No challenge UI was redesigned — the picker is a new sheet, and
+everything it opens is existing screens.
+
+### 2026-08-05 — Daily streak wired (backend shipped it)
+
+Re-pulled the spec after Tolu said the streak was updated: **77 paths, up from 75 earlier the
+same day.** Both new ones are the daily expense-logging streak, which closes the gap logged in
+the audit below. Detail in **CHECKLIST.md §15**.
+
+`GET /expenses/streak` returns `current_streak`, `longest_streak`, `last_logged_date`,
+`logged_today` and a `days[]` window of `{ date, day_label, logged, is_today }`. It counts
+**days**; a challenge's `current_streak` counts **weeks** — they are unrelated numbers and the
+two must never be conflated in UI.
+
+New: `expense_streak_model.dart`, `streak_repository.dart`, `streak_providers.dart`. The
+provider is invalidated on both expense-create paths (manual + receipt) and added to
+`session_reset.dart`, since the streak is user-scoped.
+
+`streak_card_modal.dart` keeps its design exactly — only its inputs changed. The day-label row
+and the sparkle-pill row were hardcoded (7 fixed labels, 3 sparkles + 4 circles); both are now
+derived from `days[]`, with each unbroken run of logged days collapsing into one pill. Day
+labels are rendered verbatim from the backend so the app never disagrees with the server about
+where the week starts.
+
+**Trigger is an assumption, not a spec'd behaviour:** it fires on the first expense logged each
+day, at most once, gated on `AppConstants.streakModalDateKey`. The backend gives no "celebrate
+now" flag. Milestone-only or a home-screen tap target are both one-line changes in
+`maybeShowStreakModal`.
+
+`POST /expenses/streak/dev/simulate?days=` is in the dev tools sheet and shows the real modal
+with the returned data.
+
+⚠️ `flutter test` is red because of `test/widget_test.dart` — the scaffold smoke test boots the
+app without Firebase. It predates all current work and fails on a clean tree.
+
+### 2026-08-05 — Live API audit; all three challenge types supported
+
+Pulled the live OpenAPI spec (75 paths) and diffed it against `ApiEndpoints` **and** real call
+sites. Full findings + remaining work live in **CHECKLIST.md §14** — that's the ground truth,
+this entry is just the summary.
+
+| What | Detail |
+|---|---|
+| **Challenge types** | Backend ships `no_spend` and `budget_category` alongside `friday_savings`. `challenge_model.dart` had hardcoded `fromString` to always return `fridaySavings` and `value` to always emit `'friday_savings'`, so both new types were silently collapsed. Enum now carries all three, plus `target_category_id` and `current_period_spent`. |
+| **`ChallengeStatus.failed`** | Was missing from the enum and fell through to `active` — a lost challenge rendered as still running. Now parsed and labelled per type. |
+| **Duplicate enum** | `challenge_modal.dart` declared its own `ChallengeType` spelling it `categoryBudget` against the backend's `budget_category`. Folded into the model's enum; `friday_challenge_prompt.dart` and the preview gallery updated. |
+| **Display** | Spend-based types read "You've spent" / "Spent this period" against a **cap**, not "saved" against a goal. Detail screen hides the manual log-savings CTA for them (backend scores those from logged expenses). Start sheet swaps weekly-target for spend-cap and adds a category picker (reuses `showExpenseCategorySheet`). |
+| **Add-button gate** | Was "any active challenge hides it"; now gated on an active `friday_savings` specifically, since that's what the button starts. |
+| **Tests** | `test/challenge_model_test.dart` — 7 unit tests on type/status parsing and the spend fields. |
+
+Also: dead `/transactions` constants deleted (that path exists nowhere in the live spec), stale
+"members endpoint 404s" comment removed, `POST /notifications/test-push` wired into the challenge
+dev-tools sheet, push `NotificationCategory` maps the two new type strings, `docs/API.md` updated.
+
+**Verified clean, no drift:** every response field checked is already modelled (expense summary,
+home insight, groups, wrapped, plans, expenses, savings entries); `GET /expenses` uses all ten
+spec query params; multipart shapes match. Push-after-logout is already handled — `logout()`
+sends `device_token` in `LogoutDto`.
+
+**Left undone on purpose** (needs a product/design call, all listed in §14.2): `GET
+/income/calculate`, `PATCH /income/{id}`, `GET /banks/{id}/balance`, and a device-manager screen
+for `GET/DELETE /notifications/device-tokens`. And §14.1's last row — nothing in the shipping UI
+*starts* a `no_spend` or `budget_category` challenge yet; the creation path works, it just needs
+an entry point chosen.
+
+### 2026-08-04 — Badges wired, Friday prompt, Gamify gallery gated
+
+Follow-up to the same day's challenge work, driven by a product brief from the user and a
+note from Tolu (backend).
+
+| File | What |
+|---|---|
+| `screens/badges_screen.dart` | Rewritten off mock data. Watches `myBadgesProvider` + `badgeCatalogProvider`, groups by **month** (current month first), horizontal scroll per month, `Nx` count when a badge is earned more than once that month, tap → `showBadgeDetailSheet`. Locked catalog badges show greyed in the current month only. Skeleton + pull-to-refresh. |
+| `widgets/badge_detail_sheet.dart` | New. Big badge, name, description, and the dates it was earned that month. |
+| `widgets/badge_widget.dart` | Now keyed by backend badge **key** (`badgeKey`/`iconName`/`category`) rather than a 3-value enum. `BadgeType` kept — its values now carry the real keys — so the gallery modals still work. Missing PNG falls back to a tinted circle + `icon_name` icon. `Nx` count only renders when > 1. |
+| `widgets/friday_challenge_prompt.dart` | New. `maybeShowFridayChallengePrompt` — pops **every** Friday regardless of whether last Friday was saved (that's the streak). The once-per-ISO-week guard (`StorageService.getChallengePromptWeek`) only stops it reappearing on repeat app opens within the same Friday. Keeps the mock's two side-by-side CTAs: **Start saving** (uses the usual amount) and **Enter amount** (different amount this week). Both land on the receipt sheet. If no challenge exists, the first save creates it with that amount as the weekly target. Called from `home_screen.dart` post-frame, **after** income resolves so it can't stack on the income setup modal. |
+| `widgets/challenge_modal.dart` | Added optional `onStart` / `onEnterAmount` / `ctaLabel`. The mock's **two side-by-side buttons are the real design** — don't collapse them to one. All null = unchanged gallery behaviour. |
+| `widgets/challenge_amount_sheet.dart` | Wired for real: returns a `double`, currency prefix + `CurrencyInputFormatter`, autofocus. Fixed its hint, which read "Enter email address". |
+| `services/notification_routing.dart` | New. `NotificationService._onTap` was **never assigned** — every push tap in the app went nowhere. Registered in `main.dart`; `challenge` category opens the Friday modal, other categories log a "no route wired" line. |
+| `widgets/challenge_success_modal.dart` | Added optional `message` override. |
+| `widgets/record_challenge_entry_sheet.dart` | On success, shows the Friday success modal with the **real** amount, currency, and Fridays left in the **current** month (the hardcoded "5k … April" was gallery copy). |
+| `constants/app_constants.dart`, `settings_screen.dart` | `showGamifyGallery = bool.fromEnvironment('SHOW_GAMIFY_GALLERY')` — the Gamify row is hidden unless a build passes `--dart-define=SHOW_GAMIFY_GALLERY=true`. Release builds hide it with no code change. |
+| `widgets/challenge_dev_tools_sheet.dart` | New. Wraps the backend's two `/dev/` helpers — `simulate-streak?weeks=N` (jumps the streak and fires real badge + push logic) and `send-test-reminder`. Reached from a gear icon on the challenge detail top bar, gated by `showGamifyGallery`. Simulating invalidates challenges, entries and badges, so the badges screen can be tested without waiting real Fridays. |
+
+Decisions worth remembering:
+- Badges group by `earned_at`, **not** `earned_period` — that field is a week label
+  (`2026-W31`) on streak badges, so it can't key a monthly section.
+- Artwork resolves by badge key (`badge_<key>.png`) with a graceful fallback, so dropping
+  the real PNGs in later needs zero code change.
+- The Friday prompt marks the week as prompted **before** showing, so dismissing it does
+  not make it reappear on the next app open.
+
+### 2026-08-04 — Friday Savings challenge wired end-to-end
+
+Built the UI on top of the 2026-08-03 data layer. Scope was the user's call: **only the
+challenge type the backend actually ships** (`friday_savings`); the other two mock types
+wait for their endpoints.
+
+**New — `features/gamification/presentation/`**
+
+| File | What it does |
+| --- | --- |
+| `screens/challenges_screen.dart` | List of the user's challenges. Skeleton → empty → filled, pull-to-refresh, active/past split. The header **+** button only appears when there's no active challenge. |
+| `screens/challenge_detail_screen.dart` | Summary card (total saved, goal progress, current/longest streak, weekly target), log-savings CTA, entries list with its own skeleton. Edit + cancel actions in the top bar, active challenges only. |
+| `widgets/challenge_card.dart` | Streak pill + progress bar + target pill. Progress bar and pill are **hidden when there's no overall target** — the API allows a streak-only challenge. |
+| `widgets/challenge_empty_state.dart` | "Beat the Friday test" intro + start CTA. |
+| `widgets/start_challenge_sheet.dart` | Create **and** edit (same form). Weekly target required, overall goal optional. |
+| `widgets/record_challenge_entry_sheet.dart` | Amount (prefilled with the weekly target), note, and `AppAttachReceiptField` for proof. |
+| `widgets/challenge_entry_tile.dart` | Amount + note/verification + date. |
+| `widgets/cancel_challenge_sheet.dart` | Confirmation; warns about losing the streak. |
+| `widgets/challenge_utils.dart` | `isoWeekLabel` / `hasSavedThisWeek` / `challengeStatusLabel`. |
+
+**Decisions worth remembering**
+
+- `last_entry_week` comes back as an **ISO week label** (`2026-W31`), so `challenge_utils`
+  computes the same label locally to answer "have I saved this week?" — that drives both the
+  card's status text ("Saved this week" vs "Due this Friday") and whether the detail CTA reads
+  "Log this week's savings" or "Log another entry". Any change to that format breaks silently,
+  so it's a single helper, not inline logic.
+- The detail screen takes the challenge via `extra` but **re-reads the live copy** from
+  `challengesProvider` each build, falling back to the passed value. Recording an entry
+  refreshes the list, so the streak updates in place without a re-navigation.
+- Progress prefers the backend's `progress_percent` and only falls back to
+  `totalSaved / overallTarget` when it's null.
+- **`challenge_modal.dart` / `challenge_success_modal.dart` were deliberately left untouched.**
+  They're the design gallery for all three types and are still wired to
+  `gamification_preview_screen.dart`. The real flow uses its own empty state + sheets instead
+  of reusing them, partly because their `ChallengeType` enum collides with the model's.
+- Routes `RouteNames.challenges` / `.challengeDetail` sit outside the shell (no bottom nav),
+  reached from a new "Challenges" row in Settings.
+
+**Also:** migrated `record_savings_sheet.dart` (group savings) onto the shared
+`AppAttachReceiptField` — it had a hand-rolled copy of the same row and was **gallery-only**,
+so recording group savings now offers the camera too.
+
+`flutter analyze` clean. **Nothing here has run on a device.**
+
+### 2026-08-03 (3rd) — Receipt attach UI, push device tokens, Challenges data layer
+
+Worked the first four items off the post-sync checklist.
+
+**Receipt attach — create *and* edit (checklist items 1 + 4).** New shared
+`AppAttachReceiptField` (`lib/shared/widgets/app_attach_receipt_field.dart`): owns its own
+camera/gallery source sheet and the picker, parent just holds the `File?`. Extracted as a
+shared widget rather than inlined because `record_savings_sheet.dart` has the same row and
+should be migrated onto it next (it currently duplicates the markup, gallery-only).
+Wired into `edit_expense_sheet.dart` for both paths — so a new expense can be created
+already-verified, **and** an existing one can have proof attached, which is what
+`evidence_suggested` was always pointing at. Field hides itself once an expense is already
+`verified` (nothing left to prove), and its helper text changes to a nudge when
+`evidenceSuggested` is true. Stale "display-only" comment on `ExpenseModel.evidenceSuggested`
+corrected.
+
+**Push device tokens (item 2).** `NotificationService._registerToken` was a stub; it now
+POSTs `/notifications/device-tokens`. Two ordering problems handled:
+- `init()` runs in `main()` *before* login, and the endpoint is 🔒 — so `_registerToken`
+  no-ops when there's no access token and just caches, and `AuthStateService.logIn` (the
+  single choke point for every auth path incl. social) fires `registerToken()` afterwards.
+  Not awaited — push must never delay landing on home.
+- Registration failure is caught and logged, never surfaced. A push problem must not break
+  login.
+- `AuthRepository.logout` now sends `{device_token}` so a logged-out device stops receiving
+  the previous user's alerts. Chose this over `DELETE /device-tokens/{token_id}` because we
+  never persist the returned token id, and the logout body is exactly the intended path.
+
+**Savings Challenges — data layer only (item 3).** Placed in `features/gamification/`, not a
+new `features/challenges/`: the existing challenge/badge widgets already live there and
+Wrapped/badges are the same surface, so a split would fragment one concept.
+- `data/models/challenge_model.dart` — `ChallengeModel`, `ChallengeEntryModel`, `BadgeModel`,
+  `UserBadgeModel` + `ChallengeStatus`/`EntryVerificationLevel` enums. `EntryVerificationLevel`
+  is **deliberately separate** from `ExpenseVerificationLevel` (values differ:
+  `evidence_backed`, not `verified`).
+- `data/repositories/challenge_repository.dart` — full CRUD, multipart entry recording,
+  badge catalog + mine.
+- `providers/challenge_providers.dart` — `challengesProvider` (AsyncNotifier),
+  `challengeEntriesProvider`, `badgeCatalogProvider`, `myBadgesProvider`. Recording an entry
+  invalidates badges too, since an entry can earn one.
+- Added the user-scoped ones to `session_reset.dart`. `badgeCatalogProvider` is deliberately
+  **excluded** — the catalog is a public, non-user-scoped endpoint.
+
+⚠️ **No Challenges UI, and the existing mock UI contradicts the backend.**
+`challenge_modal.dart` / `challenge_success_modal.dart` offer three types (`fridaySavings`,
+`categoryBudget`, `noSpend`/`weekendChallenge`); the API ships exactly one, `friday_savings`.
+Those modals are static, unwired, and reachable only via the routed
+`GamificationPreviewScreen`. Two of the three types have nothing behind them, so the mock
+can't be wired up as-is — needs a product call before building screens.
+
+Whole-project `flutter analyze` clean. **None of this has been run on a device.**
+
+### 2026-08-03 (2nd sync) — Three silent API breakages fixed; Wrapped is now monthly
+
+Re-diffed the live spec after the backend dev shipped another batch. **Zero path changes** —
+everything was in schemas/query params, the kind that breaks at runtime with no compile error.
+Three live breakages found and fixed:
+
+1. **`PATCH /expenses/{id}` became multipart** (same `dto` + optional `receipt` shape as
+   `POST /expenses`). The client was sending plain JSON → 422 on every expense edit.
+   `ExpenseRepository.updateExpense` now sends `FormData` and takes `File? receipt`;
+   `ExpenseListNotifier.edit` threads it through. **This also closes the oldest open thread
+   in this file** — attaching proof to an *existing* expense is now possible, so
+   `evidence_suggested` finally has an action behind it.
+   - `ApiClient.uploadFile` gained a `method` param (defaults `POST`) and now uses
+     `_dio.request` — needed because this is a multipart **PATCH**. It also logs its response
+     now, which it silently wasn't doing before.
+2. **Wrapped is a MONTHLY recap, not a year-in-review.** `GET /wrapped` takes `year` **and
+   `month`**; `WrappedDto`/`WrappedCoverDto`/`SharePassportDto` gained required `month`,
+   `MonthlySavingsDto` gained `year`. Updated the models, `WrappedRepository.getWrapped`,
+   and the provider — `wrappedProvider`'s family key changed from `int?` to a
+   `WrappedPeriod` record (`({int? year, int? month})`). `WrappedScreen` takes `month` too.
+   Fixed two bits of now-wrong copy: slide 4's "biggest category this **year**" → "this
+   month", and slide 1's fallback headline now names the month.
+3. **`GET /groups/{id}/messages` pages with `page_size`, not `limit`.** The client was sending
+   `limit: 50`, which the backend now ignores — chat silently capped at the 20 default.
+   Fixed in `GroupRepository.getMessages` (param renamed `limit` → `pageSize`).
+
+Also noted, no client change needed: `POST /auth/logout` now takes an optional
+`{device_token}` to unregister push on logout (wire up with the device-token work);
+`CategoryDto` gained `user_id`/`icon`/`is_default` (client `CategoryModel` maps `icon` only —
+fine until a "delete custom category" flow exists); `cumulative_at_time` and
+`MessageResponseDto.sender_id`/`sender_username`/`content` became nullable, which the client
+models already handled defensively.
+
+Whole-project `flutter analyze` clean. **Nothing here has been run on a device** — the
+Wrapped monthly change in particular deserves a real test, since it changes what the whole
+feature means.
+
+### 2026-08-03 — API re-sync: Savings Challenges + device-token push + expense receipt upload
+
+Diffed the live OpenAPI spec (`https://api.finclarai.com/openapi.json`) against
+`docs/API.md` again.
+
+**Fixed a live-breaking bug** (same pattern as the 2026-08-02 redistribution fix): `POST
+/expenses` (manual create) changed from a plain JSON body to `multipart/form-data` — the
+DTO now rides as a JSON-encoded `dto` form field, with an optional `receipt` image alongside
+it (attaching one AI-verifies the amount and returns the expense already `verified`). The old
+JSON-body call would have started failing once this shipped. Fixed:
+- `ExpenseRepository.createExpense` (`lib/features/expenses/data/repositories/expense_repository.dart`)
+  now builds `FormData` (`dto` + optional `receipt` `MultipartFile`) and calls
+  `ApiClient.uploadFile` instead of `post`. Added an optional `File? receipt` param.
+- `ExpenseListNotifier.create` (`expense_providers.dart`) passes `receipt` through; analytics
+  method tag becomes `'manual_with_receipt'` when a receipt is attached.
+- **Not done:** the manual add-expense sheet (`edit_expense_sheet.dart`) has no UI yet to
+  pick/attach a receipt image — the repo/provider plumbing exists but nothing calls it with
+  a non-null `receipt`. This only closes the gap for **new** expenses; attaching proof to an
+  **existing** expense is still impossible (see `docs/API.md` "Known gap").
+
+**Documentation + `ApiEndpoints` constants only for the rest — no repositories,
+providers, or UI built yet.** Next session should treat these as new checklist items, one
+slice at a time, same as the 2026-08-02 batch.
+
+- **New: Savings Challenges** (`/challenges/*`) — a weekly savings-streak feature (only
+  `friday_savings` type today). Full CRUD + entries (multipart, optional receipt) + a badge
+  catalog + "my badges". Entries carry their own `EntryVerificationLevel`
+  (`self_reported`/`evidence_backed`) — **deliberately separate** from
+  `ExpenseVerificationLevel`, don't reuse that enum/model. Two `dev/*` sub-routes
+  (`send-test-reminder`, `simulate-streak`) exist for the backend team only — never wire
+  these into the app.
+- **New: push device-token registration is live** — `/notifications/device-tokens` (list/
+  register/unregister) + `/notifications/test-push`. This closes the gap that's been
+  blocking `NotificationService._registerToken` (a stub since 2026-06-15, see the
+  2026-06-15 entry below) — implementing it is now unblocked.
+- Confirmed **`POST /groups/{group_id}/members` is still not live** (still absent from the
+  spec) and no breaking changes to any previously-documented schema (`UserResponseDto`,
+  `ExpenseResponseDto`, `WrappedDto`, etc. all unchanged).
+- Added `ApiEndpoints.challenges`/`challenge()`/`challengeEntries()`/
+  `challengeBadgeCatalog`/`challengeBadgesMine` and `ApiEndpoints.deviceTokens`/
+  `deviceToken()`/`testPush`, mirroring the new `docs/API.md` sections.
+
+**Not done yet (flagging so next session doesn't re-derive from scratch):**
+- No `ChallengeModel`/`BadgeModel`/`DeviceTokenModel`, no repositories, no providers, no
+  screens for Savings Challenges — this is a brand-new feature area, not on
+  `CLAUDE.md`'s feature list yet. Needs a product decision on where it lives (own feature
+  folder vs. folded into `gamification`) before building.
+- `NotificationService._registerToken` still just logs — the endpoint existing doesn't
+  mean it's wired up. This is now a straightforward client task (was backend-blocked,
+  isn't anymore).
+
+### 2026-08-02 — API re-sync: verification levels, remove-member fix (part 1 of 4)
+
+Diffed the live OpenAPI spec against `docs/API.md` after the backend dev shipped a batch of
+changes. **This entry covers the first slice only** — the rest is queued (see below).
+
+**What the spec diff turned up** (all now documented in `docs/API.md`):
+- **Expense verification levels are live** — the WhatsApp product suggestion shipped.
+  `verification_level` (`verified` | `self_reported`) + `evidence_suggested` on every
+  `ExpenseResponseDto`; aggregate `verified_pct`/`self_reported_pct` on the home insight.
+- ⚠️ **BREAKING: `GET /insights/home` returns an object** (`HomeInsightDto`), not a string.
+  Not actually broken in the app — `ExpenseRepository.getHomeInsight` already read
+  `data['insight']` defensively — but we discard 7 new fields (`available_balance`,
+  `verified_pct`, …).
+- ⚠️ **BREAKING: `DELETE /groups/{id}/members/{id}` requires `?redistribution=self|split`.**
+  Our call sent nothing → 422. **Fixed in this session.**
+- **New:** `GET /wrapped?year=` (full year-in-review payload, backend-written `headline`
+  per section), `PATCH /user/me`.
+- `UserResponseDto` gained `preferred_name`, `profile_icon`, `display_name` (read-only,
+  resolves preferred→username). Answers the tester complaint about Clara using usernames.
+- `clara_insight` now inline on `ExpenseResponseDto` **and** `BudgetResponseDto`.
+- `POST /groups/{id}/members` is **still not live** — `GroupRepository.addMember` still 404s.
+
+**Done in this session:**
+- `docs/API.md` rewritten against the live spec; `api_endpoints.dart` synced (`wrapped`
+  added, `groupMembers` annotated as not-live, `me` noted as GET+PATCH).
+- **Remove-member fixed.** New `RedistributionChoice` enum; `removeMember` takes it and
+  passes `?redistribution=`. `ApiClient.delete` gained `queryParams` (it had none).
+  The provider now **refetches** instead of dropping the row locally — redistribution
+  rewrites the *remaining* members' targets server-side, so local trimming left them stale.
+  New `remove_member_sheet.dart` asks "split between everyone else" (default) vs "I'll cover
+  it", shows the outstanding amount, and skips the question when the member owes nothing.
+  Replaced `delete_friend_sheet.dart` (deleted — it was only ever used for this).
+- **Verification levels surfaced (display-only).** `ExpenseVerificationLevel` enum +
+  `verificationLevel`/`evidenceSuggested`/`claraInsight` on `ExpenseModel`. New
+  `expense_verification_badge.dart` — `ExpenseVerificationBadge` (icon+label pill on a
+  tinted background, used as a "Source" row on the expense detail card) and
+  `ExpenseVerificationLabel` (compact icon+text, no fill, rendered as
+  `Category · ✓ Verified` on both the expenses-list tile and home's recent-expenses tile).
+- **Two UI corrections after review** (first pass was a 6px colored dot + tooltip):
+  - A dot conveyed meaning by **colour alone** (WCAG `color-not-only`) and hid the
+    explanation behind a long-press tooltip nobody would discover. Replaced with an
+    icon **and** a text label; deliberately non-interactive so it reads at a glance.
+  - **The tint colours failed WCAG AA as text.** `AppColors.success` on `successLight`
+    is only 3.0:1 and `warning` on `warningLight` 4.4:1. Added `AppColors.successOn`
+    (#166534, 6.5:1) / `warningOn` (#854D0E, 6.6:1) plus `context.successOn`/`warningOn`
+    extensions, which flip to the pale `*Light` constants in dark mode (13–15:1). Use
+    these anywhere text sits on `successBg`/`warningBg` — the base hues are fill/icon
+    colours, not text colours.
+- **Overflow hardening on long text** (pre-existing bugs, found while fitting the label in):
+  - Expense name / merchant now `maxLines: 1` + ellipsis in both tiles — it used to **wrap
+    to a second line**, making row heights uneven. Amount is never truncated (the name
+    column is the `Expanded` one, so it yields first — money must always stay readable).
+  - Category text is `Flexible` + ellipsis so it shrinks before pushing the label out.
+  - `ExpenseDetailCard._DetailRow` used `Spacer()` (an `Expanded`) which ate all free space
+    and left the value **completely unconstrained** — a long name or note would have thrown
+    a render overflow. Now a fixed gap + `Expanded` + right-aligned, `maxLines: 2` ellipsis.
+
+**⚠️ Deliberately NOT built — `evidence_suggested` has no action behind it.** The obvious
+move is a "want to attach a receipt?" prompt, but **no endpoint accepts a file for an
+existing expense**: `POST /expenses/receipt` *creates a new* expense from an image, and
+`PATCH /expenses/{id}` takes no file. Building the prompt would give the user a button that
+either does nothing or silently duplicates the expense. Requested from the backend dev —
+until it lands, both fields stay display-only.
+
+**Queued next:** nothing — the 2026-08-02 API re-sync checklist is fully worked through
+(parts 1–3). Remaining items are all blocked on the backend (see Open threads).
+
+### 2026-08-02 — Preferred name + Wrapped wired to live API (part 3 of 4, final slice)
+
+- **Preferred name.** `UserModel` gained `preferredName`, `profileIcon`, `displayName`.
+  `displayName` is backend-computed but the model **also derives it locally** when the field
+  is missing (preferred → username), so a stale cached user can never render an empty name.
+  New `AuthRepository.updateProfile` (`PATCH /user/me`) + `UserProfileNotifier.updateProfile`,
+  which folds the response straight into state and the cache — no refetch, the PATCH returns
+  the full user.
+  - **Onboarding**: `PreferenceScreen` is now two phases in one screen (`_askingName`) rather
+    than a new gated route — the auth-state gate stays a single `_needsGoalsPrompt` flag, so
+    the login flow was left untouched. Phase 1 is the new `PreferredNameStep`
+    (skippable — backend falls back to `username`, so it costs nothing and keeps signup
+    friction low). A failed save keeps the user on the step instead of advancing.
+  - **Settings**: `edit_username_sheet.dart` **never saved anything** — it returned a value
+    and the screen just called `setState`. Replaced with `edit_preferred_name_sheet.dart`,
+    which persists via `updateProfile`. Old file deleted.
+  - Home greeting + settings header now read `displayName`. Left `username` in
+    `bank_selection_screen` (Mono customer payload — an integration field, not UI).
+- **Wrapped.** `WrappedModel` + 9 section models (`features/gamification/data/models/`),
+  `WrappedRepository`, `wrappedProvider` (family on nullable year). Added to `session_reset`.
+  - `WrappedScreen` is now a `ConsumerWidget` that fetches and handles loading/error+retry;
+    the story itself moved to `WrappedStory`, which **only ever renders with real data** —
+    no half-populated slides.
+  - **The slide list is dynamic.** `top_category` is null for a year with no expenses, so
+    that slide is skipped. That made two hardcoded indices wrong, both fixed:
+    `WrappedProgressBar` hardcoded **8 pills** (now `totalSteps`), and the footer button
+    switched on literal pages `0`/`7` (now first / `_totalSlides - 2`).
+  - All 9 slides were **fully hardcoded mock data** and now take typed section models.
+    Backend `headline` strings render verbatim per the API contract.
+  - **Removed two fabricated claims** that had no backing field: the savings slide's
+    "24% faster compared to March" badge, and slide 7's second paragraph + "Recommendation"
+    card (`WrappedTip` only carries `title` + `body`). Better a smaller slide than an
+    invented number in a shareable artifact.
+  - Category bars are sized relative to the **largest** category (0.35–1.0), not to 100%,
+    so the chart still reads when one category dominates. Colors cycle a fixed palette —
+    the backend sends no per-category color.
+  - Percentages that divide by income are guarded against a zero-income year.
+  - **Overflow: slides are fixed-height and must NEVER scroll** (explicit user call). A long
+    backend headline caused a 40px RenderFlex overflow on slide 5. Fixed by **bounding the
+    variable-length content**, not by making it scrollable:
+    - New **`WrappedAutoText`** — measures with `TextPainter` and binary-searches the
+      largest font size (to within 0.5pt) that fits the given `maxLines` at the available
+      width. Respects `MediaQuery.textScalerOf` so system text scaling still works.
+      **Long copy shrinks rather than truncating**; ellipsis only applies if it still
+      doesn't fit at the minimum. No package added (`auto_size_text` not needed).
+    - `WrappedHeadline` 48→28pt over 2 lines; `WrappedSubtitle` and slide 2's backend
+      subtitle 20→14pt over 3. **Every** backend-driven `Text` in the slides now uses it
+      (4, 6, 7, 8, 9) — there is no `TextOverflow.ellipsis` left in any slide file, only
+      the fallback inside `WrappedAutoText`.
+    - ⚠️ `WrappedAutoText` needs a **bounded width** to measure (it no-ops on infinite
+      width). The passport's two `Row`s had unbounded `Column`s, so their names are now
+      wrapped in `Expanded`. Anything new put inside a `Row` needs the same.
+    - Per-slide `Text`s that don't use those shared widgets (slide 2 subtitle, 4, 6, 7, 8, 9)
+      got explicit `maxLines` + ellipsis.
+    - Slide 3 now **sorts categories by amount and takes the top 5** — the list was
+      unbounded and the backend can return more than the design fits.
+    - A scroll-when-overflowing helper was tried first and **removed** — do not reintroduce
+      scrolling here. (The `SingleChildScrollView` inside slide 9's passport card is
+      pre-existing and uses `NeverScrollableScrollPhysics` — it clips, it doesn't scroll.)
+  - **Passport slot mapping corrected.** The passport has two name-ish slots and they were
+    mis-wired on the first pass: `_UserRow` (beside the photo) is designed as *name over
+    handle*, and got `personalityName` by mistake, while the actual personality row further
+    down stayed hardcoded as "The pragmatic planner". Now: `_UserRow` = profile
+    `displayName` (falling back to `username`) over `data.username`, and the personality row
+    = `data.personalityName`. `displayName` is threaded from `WrappedScreen` →
+    `WrappedStory` → the slide, since `SharePassportDto` carries only a username.
+  - **Unused on the passport:** `year`, `top_category`, `badge_name` — no slot in the Figma
+    design. Top category and the badge do appear on slides 4 and 8, so nothing is lost in
+    the story; they'd only matter if the shared passport image should restate them.
+  - **Hold-to-pause** on the story (`onLongPressStart`/`End`/`Cancel` around the `PageView`).
+    Resumes from where it paused rather than restarting the slide. Horizontal swipe still
+    wins the gesture arena, so paging between slides is unaffected.
+  - **Settings → "Money passport" had `onTap: () {}`** — the row was never wired, so the
+    only way into Wrapped was Settings → Gamify → the preview screen. Now pushes
+    `RouteNames.wrapped`. (Settings → "Rate Finclar AI" is still an empty `onTap` — needs a
+    store-review link, not done here.)
+
+### 2026-08-02 — Rich home insight + inline Clara notes (part 2 of 4)
+
+Second slice of the same API re-sync. Consumes the fields the 2026-08-02 backend changes
+added but that we were discarding.
+
+- **`HomeInsightModel`** (`features/home/data/models/`) replaces the bare `String` from
+  `ExpenseRepository.getHomeInsight()`; `homeInsightProvider` is now
+  `FutureProvider<HomeInsightModel>`. The repository still **tolerates a bare string**
+  response so a backend rollback can't blank the home card.
+- **Verification transparency on the home Clara card.** New private `_VerificationSplit` —
+  a 4px green/amber proportion bar plus "Based on X% verified · Y% self-reported", with a
+  `Semantics` label. Hidden entirely when both percentages are 0 (a period with no
+  expenses), where the split would be meaningless. This is what makes the per-expense
+  badges from part 1 add up to something.
+  - `selfReportedPctRounded` is derived as `100 - verifiedPctRounded` rather than rounded
+    independently, otherwise the pair can read as 99% or 101%.
+  - ⚠️ `_GradientBorderCard` paints a **fixed light background in both themes**, so the
+    split deliberately uses `AppColors.successOn`/`warningOn` directly, **not** the
+    theme-aware `context.*On` getters — the dark-mode variants are pale and would vanish
+    on that light card. Same trap applies to anything else added to this card.
+- **Balance card now uses backend `available_balance`** instead of
+  `ExpenseSummaryModel.balance` (`monthlyIncome - totalExpense`), so client and server
+  can't drift. It reads `homeInsightProvider` now; verified every existing invalidation
+  site refreshes both providers together, so no staleness regression. (Adding an expense
+  invalidates *neither* — pre-existing, unchanged, still needs pull-to-refresh.)
+- **New shared `ClaraNote`** (`shared/widgets/clara_note.dart`) — renders an inline
+  `clara_insight`; returns `SizedBox.shrink()` on null/blank so callers pass the raw field
+  without guarding. Shown on the expense detail screen.
+- **Budget screen's Clara card was showing fake AI text** — a locally composed
+  "You've used X% of your ₦Y budget." It now prefers `BudgetModel.claraInsight` from the
+  backend and keeps the composed sentence only as a fallback. `BudgetModel` gained
+  `claraInsight`. (`GET /budgets/{id}/insight` was never wired and is now unnecessary for
+  the common case.)
+- **Not done:** the balance card's loading state is still a `CupertinoActivityIndicator`
+  rather than a skeleton (CLAUDE.md §8). `AppSkeleton` has no color overrides and renders
+  grey-on-orange there; giving it themeable colors is a separate change.
+
+Also outstanding for the backend dev: Clara losing conversation context, and Clara not
+saying plainly that figures typed into the chat aren't saved to the account.
 
 ### 2026-07-23 — Centralized category picker (with create-your-own) across expenses + budget
 - Problem: the category picker in the **add-manual-expense** sheet (`+` bottom-nav →

@@ -97,6 +97,13 @@ def service_account_path
   path
 end
 
+# env.json holds the --dart-define values (API keys) and is gitignored, so it is absent
+# on a fresh clone. Build without it rather than failing — the app falls back to its
+# String.fromEnvironment defaults.
+def dart_defines_flag
+  File.exist?(File.join(PROJECT_ROOT, "env.json")) ? " --dart-define-from-file=env.json" : ""
+end
+
 # Computes the next version, optionally writes it to pubspec.yaml, and returns a hash
 # describing the decision. Stashed on lane_context so a build lane reuses one bump.
 def resolve_version(options)
@@ -147,7 +154,7 @@ platform :android do
   desc "Build a release APK and distribute it via Firebase App Distribution."
   lane :beta do |options|
     v = resolve_version(options)
-    sh("cd #{PROJECT_ROOT.shellescape} && flutter build apk --release")
+    sh("cd #{PROJECT_ROOT.shellescape} && flutter build apk --release#{dart_defines_flag}")
     firebase_app_distribution(
       app: ENV["FIREBASE_ANDROID_APP_ID"],
       service_credentials_file: service_account_path,
@@ -164,7 +171,7 @@ platform :ios do
   desc "Build a release IPA (ad-hoc) and distribute it via Firebase App Distribution."
   lane :beta do |options|
     v = resolve_version(options)
-    sh("cd #{PROJECT_ROOT.shellescape} && flutter build ipa --export-options-plist=ios/ExportOptions.plist")
+    sh("cd #{PROJECT_ROOT.shellescape} && flutter build ipa --export-options-plist=ios/ExportOptions.plist#{dart_defines_flag}")
     ipa = Dir[File.join(PROJECT_ROOT, "build/ios/ipa/*.ipa")].first
     UI.user_error!("No IPA produced — check iOS signing (see docs/RELEASE_PIPELINE.md).") unless ipa
     firebase_app_distribution(
