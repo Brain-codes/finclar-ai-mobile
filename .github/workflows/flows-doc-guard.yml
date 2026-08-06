@@ -1,0 +1,85 @@
+name: Flow guide drift check
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check FLOWS.md tracks UI changes
+        env:
+          # Anything here can change what a user taps or reads.
+          WATCHED: |
+            lib/features/.*/presentation/
+            lib/app/routes/
+            lib/shared/widgets/
+            lib/core/constants/app_strings.dart
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+            HEAD="${{ github.event.pull_request.head.sha }}"
+            SKIP_LABEL='${{ contains(github.event.pull_request.labels.*.name, 'no-flow-change') }}'
+          else
+            BASE="${{ github.event.before }}"
+            HEAD="${{ github.sha }}"
+            SKIP_LABEL=false
+          fi
+
+          # First push to a new branch, or a force-push, leaves no usable base.
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            echo "No comparable base commit — skipping."
+            exit 0
+          fi
+
+          CHANGED=$(git diff --name-only "$BASE" "$HEAD")
+
+          if [ "$SKIP_LABEL" = "true" ]; then
+            echo "Skipped via the 'no-flow-change' label."
+            exit 0
+          fi
+
+          if git log --format=%B "$BASE".."$HEAD" | grep -qF '[skip flows]'; then
+            echo "Skipped via [skip flows] in a commit message."
+            exit 0
+          fi
+
+          UI_HITS=$(echo "$CHANGED" | grep -E "$(echo "$WATCHED" | grep . | paste -sd'|' -)" || true)
+
+          if [ -z "$UI_HITS" ]; then
+            echo "No user-facing files touched — nothing to check."
+            exit 0
+          fi
+
+          if echo "$CHANGED" | grep -qx 'docs/FLOWS.md'; then
+            echo "UI changed and docs/FLOWS.md was updated alongside it."
+            exit 0
+          fi
+
+          {
+            echo "### Flow guide is out of date"
+            echo
+            echo "These user-facing files changed, but \`docs/FLOWS.md\` was not touched:"
+            echo
+            echo '```'
+            echo "$UI_HITS"
+            echo '```'
+            echo
+            echo "\`docs/FLOWS.md\` is the walkthrough people actually read, and it auto-syncs to the shared Google Doc — stale entries go straight to everyone."
+            echo
+            echo "**Update it** if this change alters a screen, a route, a button, a confirmation step, or any user-visible copy. See section 0b of \`CLAUDE.md\`."
+            echo
+            echo "**Or skip the check** if it genuinely changes nothing a user sees — add the \`no-flow-change\` label to the PR, or put \`[skip flows]\` in the commit message."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "::error::UI files changed without a docs/FLOWS.md update — see the job summary."
+          exit 1
