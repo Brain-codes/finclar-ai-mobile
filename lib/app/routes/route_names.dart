@@ -59,6 +59,7 @@ abstract class RouteNames {
   static const String settingsAccountDeletion = '/settings/delete-account';
   static const String settingsMyAccounts      = '/settings/my-accounts';
 
+  static const String settingsAvatar          = '/settings/avatar';
   // Gamification
   static const String gamificationPreview = '/settings/gamify';
   static const String badges              = '/settings/badges';

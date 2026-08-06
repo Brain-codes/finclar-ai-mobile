@@ -5,6 +5,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../shared/icons/app_icons.dart';
 import '../../../../shared/widgets/app_avatar.dart';
+import '../../../../shared/widgets/app_profile_avatar.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 
 class HomeHeader extends StatelessWidget {
@@ -12,6 +13,7 @@ class HomeHeader extends StatelessWidget {
   final String greeting;
   final VoidCallback? onNotificationTap;
   final VoidCallback? onAvatarTap;
+  final String? profileIcon;
   final bool isLoading;
   final bool hasUnreadNotifications;
 
@@ -21,6 +23,7 @@ class HomeHeader extends StatelessWidget {
     this.greeting = 'Good evening',
     this.onNotificationTap,
     this.onAvatarTap,
+    this.profileIcon,
     this.isLoading = false,
     this.hasUnreadNotifications = false,
   });
@@ -31,12 +34,18 @@ class HomeHeader extends StatelessWidget {
       children: [
         GestureDetector(
           onTap: onAvatarTap,
-          child: AppAvatar(
-            initials: userName,
-            size: 40,
-            icon: AppIcons.userFill,
-            color: AppColors.primary,
-          ),
+          child: profileIcon != null && profileIcon!.trim().isNotEmpty
+              ? AppProfileAvatar(
+                  profileIcon: profileIcon,
+                  name: userName,
+                  size: 40,
+                )
+              : AppAvatar(
+                  initials: userName,
+                  size: 40,
+                  icon: AppIcons.userFill,
+                  color: AppColors.primary,
+                ),
         ),
         const SizedBox(width: AppSpacing.md),
         Expanded(

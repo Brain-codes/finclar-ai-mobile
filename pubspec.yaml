@@ -41,6 +41,13 @@ dependencies:
   # SVG
   flutter_svg: ^2.0.10+1
 
+  # Generated profile avatars — our own Flutter port of react-nice-avatar.
+  # Pinned to a tag so a push to main can't change avatars under us.
+  nice_avatar:
+    git:
+      url: https://github.com/Brain-codes/nice_avatar.git
+      ref: v1.1.1
+
   # Data Classes
   freezed_annotation: ^2.4.4
   json_annotation: ^4.9.0

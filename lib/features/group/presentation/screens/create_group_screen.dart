@@ -10,7 +10,6 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../shared/icons/app_icons.dart';
-import '../../../../shared/widgets/app_avatar.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_date_sheet.dart';
 import '../../../../shared/widgets/app_snackbar.dart';
@@ -18,6 +17,8 @@ import '../../../../shared/widgets/app_text_field.dart';
 import '../../data/models/friendship_model.dart';
 import '../../providers/group_providers.dart';
 import '../widgets/add_friend_sheet.dart';
+import '../../../../shared/widgets/app_profile_avatar.dart';
+import '../../../auth/providers/user_profile_provider.dart';
 
 final _dateFormat = DateFormat('dd/MM/yyyy');
 final _numberFormat = NumberFormat('#,##0', 'en');
@@ -164,7 +165,14 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                       onTap: _pickDate,
                     ),
                     const SizedBox(height: AppSpacing.xl),
-                    _AddFriendsSection(friends: _friends, onAddTap: _addFriend),
+                    _AddFriendsSection(
+                      friends: _friends,
+                      onAddTap: _addFriend,
+                      myProfileIcon: ref
+                          .watch(userProfileProvider)
+                          .valueOrNull
+                          ?.profileIcon,
+                    ),
                     const SizedBox(height: AppSpacing.xl),
                   ],
                 ),
@@ -259,8 +267,13 @@ class _DateField extends StatelessWidget {
 class _AddFriendsSection extends StatelessWidget {
   final List<UserSearchResultModel> friends;
   final VoidCallback onAddTap;
+  final String? myProfileIcon;
 
-  const _AddFriendsSection({required this.friends, required this.onAddTap});
+  const _AddFriendsSection({
+    required this.friends,
+    required this.onAddTap,
+    this.myProfileIcon,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -286,7 +299,11 @@ class _AddFriendsSection extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                _MemberSlot(label: 'You', isYou: true),
+                _MemberSlot(
+                  label: 'You',
+                  isYou: true,
+                  profileIcon: myProfileIcon,
+                ),
                 ...friends.map((f) {
                   return Padding(
                     padding: const EdgeInsets.only(left: AppSpacing.sm),
@@ -308,24 +325,37 @@ class _MemberSlot extends StatelessWidget {
   final String label;
   final bool isYou;
 
-  const _MemberSlot({required this.label, this.isYou = false});
+  /// The current user's own `profile_icon` for the "You" slot. Friends have
+  /// none yet, so their faces are generated from [label].
+  final String? profileIcon;
+
+  const _MemberSlot({
+    required this.label,
+    this.isYou = false,
+    this.profileIcon,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        isYou
-            ? Container(
-                width: 56,
-                height: 56,
-                decoration: const BoxDecoration(
-                  color: AppColors.primaryMuted,
-                  shape: BoxShape.circle,
-                ),
-                child:
-                    const Icon(AppIcons.user, size: 24, color: AppColors.primary),
-              )
-            : AppAvatar(initials: label, size: 56),
+        if (isYou && (profileIcon == null || profileIcon!.isEmpty))
+          Container(
+            width: 56,
+            height: 56,
+            decoration: const BoxDecoration(
+              color: AppColors.primaryMuted,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(AppIcons.user, size: 24, color: AppColors.primary),
+          )
+        else
+          AppProfileAvatar(
+            profileIcon: isYou ? profileIcon : null,
+            name: label,
+            size: 56,
+            seedWhenEmpty: !isYou,
+          ),
         const SizedBox(height: 4),
         SizedBox(
           width: 56,

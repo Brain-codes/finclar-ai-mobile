@@ -1101,6 +1101,15 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.0"
+  nice_avatar:
+    dependency: "direct main"
+    description:
+      path: "."
+      ref: "v1.1.1"
+      resolved-ref: c112b988e4ef927d1968cd2d4c4b692894166408
+      url: "https://github.com/Brain-codes/nice_avatar.git"
+    source: git
+    version: "1.1.1"
   path_provider:
     dependency: "direct main"
     description:

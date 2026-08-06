@@ -5,13 +5,17 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../shared/icons/app_icons.dart';
-import '../../../../shared/widgets/app_avatar.dart';
+import '../../../../shared/widgets/app_profile_avatar.dart';
 import '../../data/models/group_member_model.dart';
 
 enum FriendStatus { complete, accepted, pending }
 
 class GroupFriendTile extends StatelessWidget {
   final String name;
+
+  /// Null until the backend returns `profile_icon` on group members — the tile
+  /// falls back to a face generated from [name].
+  final String? profileIcon;
 
   /// Total amount this friend is expected to contribute.
   final double targetAmount;
@@ -37,6 +41,7 @@ class GroupFriendTile extends StatelessWidget {
   const GroupFriendTile({
     super.key,
     required this.name,
+    this.profileIcon,
     required this.targetAmount,
     required this.contributedAmount,
     required this.symbol,
@@ -81,7 +86,12 @@ class GroupFriendTile extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       child: Row(
         children: [
-          AppAvatar(initials: name, size: 40),
+          AppProfileAvatar(
+            profileIcon: profileIcon,
+            name: name,
+            size: 40,
+            seedWhenEmpty: true,
+          ),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Column(

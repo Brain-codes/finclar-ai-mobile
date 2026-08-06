@@ -4,7 +4,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../shared/icons/app_icons.dart';
-import '../../../../shared/widgets/app_avatar.dart';
+import '../../../../shared/widgets/app_profile_avatar.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 
@@ -134,7 +134,12 @@ class _EditFriendSheetState extends State<_EditFriendSheet> {
           Center(
             child: Column(
               children: [
-                AppAvatar(initials: widget.name, size: 56),
+                AppProfileAvatar(
+                  profileIcon: null,
+                  name: widget.name,
+                  size: 56,
+                  seedWhenEmpty: true,
+                ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   widget.name,

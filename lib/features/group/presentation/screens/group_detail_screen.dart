@@ -331,6 +331,7 @@ class _FriendsCard extends ConsumerWidget {
                 padding: EdgeInsets.only(top: i == 0 ? 0 : AppSpacing.lg),
                 child: GroupFriendTile(
                   name: m.username,
+                  profileIcon: m.profileIcon,
                   targetAmount: target,
                   contributedAmount: m.contributedAmount,
                   symbol: symbol,

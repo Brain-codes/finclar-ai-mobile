@@ -32,6 +32,10 @@ class FriendshipModel {
   final String friendUsername;
   final String friendEmail;
 
+  /// Not returned by `/friends` yet — see docs/API.md. Null means the UI falls
+  /// back to a face generated from [friendUsername].
+  final String? friendProfileIcon;
+
   FriendshipModel({
     required this.id,
     required this.requesterId,
@@ -41,6 +45,7 @@ class FriendshipModel {
     required this.friendId,
     required this.friendUsername,
     required this.friendEmail,
+    this.friendProfileIcon,
   });
 
   factory FriendshipModel.fromJson(Map<String, dynamic> json) =>
@@ -53,6 +58,7 @@ class FriendshipModel {
         friendId: json["friend_id"] ?? '',
         friendUsername: json["friend_username"] ?? '',
         friendEmail: json["friend_email"] ?? '',
+        friendProfileIcon: json["friend_profile_icon"] as String?,
       );
 
   Map<String, dynamic> toJson() => {
@@ -63,6 +69,7 @@ class FriendshipModel {
         "created_at": createdAt,
         "friend_id": friendId,
         "friend_username": friendUsername,
+        "friend_profile_icon": friendProfileIcon,
         "friend_email": friendEmail,
       };
 

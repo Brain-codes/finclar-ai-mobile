@@ -134,3 +134,4 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 }
+                profileIcon: ref.watch(userProfileProvider).valueOrNull?.profileIcon,

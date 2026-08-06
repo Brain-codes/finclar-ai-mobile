@@ -6,7 +6,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../shared/icons/app_icons.dart';
-import '../../../../shared/widgets/app_avatar.dart';
+import '../../../../shared/widgets/app_profile_avatar.dart';
 
 // ─── User bubbles ─────────────────────────────────────────────────────────────
 
@@ -91,7 +91,7 @@ class GroupChatOtherBubble extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (showAvatar)
-          AppAvatar(initials: name, size: 24, shape: BoxShape.circle)
+          AppProfileAvatar(name: name, profileIcon: null, size: 24, seedWhenEmpty: true)
         else
           const SizedBox(width: 24),
         const SizedBox(width: AppSpacing.xs + 2),
@@ -179,10 +179,11 @@ class GroupChatOtherImageBubble extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             if (showAvatar)
-              AppAvatar(
-                initials: name,
+              AppProfileAvatar(
+                profileIcon: null,
+                name: name,
                 size: avatarWidth,
-                shape: BoxShape.circle,
+                seedWhenEmpty: true,
               )
             else
               const SizedBox(width: avatarWidth),
@@ -316,7 +317,12 @@ class GroupChatOtherNetworkImageBubble extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             if (showAvatar)
-              AppAvatar(initials: name, size: avatarWidth, shape: BoxShape.circle)
+              AppProfileAvatar(
+                profileIcon: null,
+                name: name,
+                size: avatarWidth,
+                seedWhenEmpty: true,
+              )
             else
               const SizedBox(width: avatarWidth),
             const SizedBox(width: gap),
@@ -455,7 +461,12 @@ class _GroupChatTypingBubbleState extends State<GroupChatTypingBubble>
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        AppAvatar(initials: widget.name, size: 24, shape: BoxShape.circle),
+        AppProfileAvatar(
+          profileIcon: null,
+          name: widget.name,
+          size: 24,
+          seedWhenEmpty: true,
+        ),
         const SizedBox(width: AppSpacing.xs + 2),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),

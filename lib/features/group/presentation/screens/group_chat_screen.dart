@@ -12,7 +12,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../features/auth/providers/user_profile_provider.dart';
 import '../../../../shared/icons/app_icons.dart';
-import '../../../../shared/widgets/app_avatar.dart';
+import '../../../../shared/widgets/app_profile_avatar.dart';
 import '../../../../shared/widgets/app_sheet.dart';
 import '../../../../shared/widgets/app_skeleton.dart';
 import '../../../../shared/widgets/app_snackbar.dart';
@@ -282,9 +282,11 @@ class _ChatTopBar extends ConsumerWidget {
                         for (int i = 0; i < members.take(2).length; i++)
                           Positioned(
                             left: i * 16.0,
-                            child: AppAvatar(
-                              initials: members[i].username,
+                            child: AppProfileAvatar(
+                              profileIcon: members[i].profileIcon,
+                              name: members[i].username,
                               size: 32,
+                              seedWhenEmpty: true,
                               border: Border.all(
                                   color: AppColors.white, width: 1.5),
                             ),

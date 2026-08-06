@@ -51,6 +51,11 @@ class GroupMemberModel {
     required this.username,
     required this.status,
     required this.inviteStatus,
+
+  /// Not returned by `/groups/{id}/members` yet — see docs/API.md. Null means
+  /// the UI falls back to a face generated from [username].
+  final String? profileIcon;
+
     required this.targetAmount,
     required this.contributedAmount,
     required this.joinedAt,
@@ -61,6 +66,7 @@ class GroupMemberModel {
         id: json["id"] ?? '',
         userId: json["user_id"] ?? '',
         username: json["username"] ?? '',
+    this.profileIcon,
         status: GroupMemberStatus.fromString(json["status"]),
         inviteStatus: GroupInviteStatus.fromString(json["invite_status"]),
         targetAmount: json["target_amount"] != null
@@ -73,6 +79,7 @@ class GroupMemberModel {
 
   Map<String, dynamic> toJson() => {
         "id": id,
+        profileIcon: json["profile_icon"] as String?,
         "user_id": userId,
         "username": username,
         "status": status.name,

@@ -101,6 +101,7 @@ class GroupFriendsScreen extends ConsumerWidget {
                                       top: i == 0 ? 0 : AppSpacing.base),
                                   child: GroupFriendTile(
                                     name: m.username,
+                                    profileIcon: m.profileIcon,
                                     targetAmount:
                                         m.targetAmount ?? detail.targetAmount,
                                     contributedAmount: m.contributedAmount,

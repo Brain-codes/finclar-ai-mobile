@@ -7,7 +7,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../shared/icons/app_icons.dart';
-import '../../../../shared/widgets/app_avatar.dart';
+import '../../../../shared/widgets/app_profile_avatar.dart';
 import '../../../../shared/widgets/app_skeleton.dart';
 import '../../data/models/friendship_model.dart';
 import '../../providers/friend_providers.dart';
@@ -239,7 +239,12 @@ class _FriendResultTile extends StatelessWidget {
       ),
       child: Row(
         children: [
-          AppAvatar(initials: user.username, size: 40),
+          AppProfileAvatar(
+            profileIcon: null,
+            name: user.username,
+            size: 40,
+            seedWhenEmpty: true,
+          ),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Column(

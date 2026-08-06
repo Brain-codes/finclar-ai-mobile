@@ -33,6 +33,7 @@ import '../../features/group/presentation/screens/group_friends_screen.dart';
 import '../../features/group/presentation/screens/group_chat_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/settings/presentation/screens/change_passcode_screen.dart';
+import '../../features/settings/presentation/screens/avatar_picker_screen.dart';
 import '../../features/settings/presentation/screens/contact_us_screen.dart';
 import '../../features/settings/presentation/screens/faq_screen.dart';
 import '../../features/settings/presentation/screens/message_screen.dart';
@@ -298,6 +299,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: RouteNames.settingsFaq,
       pageBuilder: (context, state) => _page(state, const FaqScreen()),
+    ),
+    GoRoute(
+      path: RouteNames.settingsAvatar,
+      pageBuilder: (context, state) => _page(state, const AvatarPickerScreen()),
     ),
     GoRoute(
       path: RouteNames.settingsMessage,
