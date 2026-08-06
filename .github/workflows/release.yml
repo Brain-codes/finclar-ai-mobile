@@ -66,6 +66,22 @@ jobs:
 
       - run: flutter pub get
 
+      # android/gradle.properties asks for -Xmx8G + 4G metaspace, which is fine on a dev
+      # machine but leaves no headroom on a 16GB runner once the Kotlin daemon and the
+      # Dart frontend are also resident — the job gets OOM-killed mid-compile and reports
+      # itself as "The operation was canceled". GRADLE_USER_HOME/gradle.properties takes
+      # precedence over the project file, so this caps CI without changing local builds.
+      - name: Cap Gradle memory for the runner
+        run: |
+          mkdir -p ~/.gradle
+          {
+            echo "org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError"
+            echo "kotlin.daemon.jvmargs=-Xmx2g"
+            echo "org.gradle.workers.max=2"
+            echo "org.gradle.daemon=false"
+            echo "org.gradle.vfs.watch=false"
+          } > ~/.gradle/gradle.properties
+
       - name: Write secret files
         env:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
