@@ -22,15 +22,17 @@ import '../widgets/budget_summary_card.dart';
 import '../widgets/budget_category_tile.dart';
 import '../widgets/budget_allocation_sheet.dart';
 import '../widgets/budget_delete_sheet.dart';
+import '../widgets/budget_month_utils.dart';
 import '../widgets/budget_no_allocation_sheet.dart';
 import '../widgets/budget_details_sheet.dart';
+import '../widgets/budget_previous_month_card.dart';
 import '../../../expenses/presentation/widgets/month_selection_sheet.dart';
 
 class BudgetScreen extends ConsumerWidget {
   const BudgetScreen({super.key});
 
   Future<void> _onAllocate(BuildContext context, WidgetRef ref) async {
-    final budget = ref.read(budgetProvider).valueOrNull;
+    final budget = ref.read(budgetProvider).valueOrNull?.budget;
     if (budget == null) return;
     final amountLeft = budget.unallocated;
     if (amountLeft <= 0) {
@@ -75,7 +77,7 @@ class BudgetScreen extends ConsumerWidget {
     WidgetRef ref,
     AllocationModel allocation,
   ) async {
-    final budget = ref.read(budgetProvider).valueOrNull;
+    final budget = ref.read(budgetProvider).valueOrNull?.budget;
     if (budget == null) return;
     final symbol = ref.read(currencySymbolProvider);
     await showBudgetAllocationSheet(
@@ -96,6 +98,18 @@ class BudgetScreen extends ConsumerWidget {
   void _onCreateBudget(BuildContext context) =>
       context.push(RouteNames.createBudget);
 
+  Future<void> _onPickMonth(BuildContext context, WidgetRef ref) async {
+    final state = ref.read(budgetProvider).valueOrNull;
+    if (state == null) return;
+    final picked = await showMonthSelectionSheet(
+      context,
+      selected: state.month,
+    );
+    if (picked != null) {
+      ref.read(budgetProvider.notifier).selectMonth(picked, state.year);
+    }
+  }
+
   void _onBudgetCardTap(
     BuildContext context,
     WidgetRef ref,
@@ -112,8 +126,8 @@ class BudgetScreen extends ConsumerWidget {
       unallocated: fmt(budget.unallocated),
       allocatedSpent: fmt(budget.spent),
       allocatedRemaining: fmt(budget.remaining),
-      startDate: _formatDate(budget.startDate),
-      endDate: _formatDate(budget.endDate),
+      startDate: budgetDateLabel(budget.startDate),
+      endDate: budgetDateLabel(budget.endDate),
       onDeleted: () => _deleteBudget(context, ref),
     );
   }
@@ -121,6 +135,9 @@ class BudgetScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(budgetProvider);
+    final value = state.valueOrNull;
+    final hasBudget = value?.budget != null;
+    final symbol = ref.watch(currencySymbolProvider);
 
     return Scaffold(
       backgroundColor: context.scaffoldColor,
@@ -128,11 +145,12 @@ class BudgetScreen extends ConsumerWidget {
         child: Column(
           children: [
             _BudgetHeader(
-              onAllocate: state.valueOrNull != null
-                  ? () => _onAllocate(context, ref)
-                  : null,
-              onDelete: state.valueOrNull != null
-                  ? () => _onDeleteBudget(context, ref)
+              monthLabel: value != null ? budgetMonthShort(value.month) : null,
+              onPickMonth: value != null ? () => _onPickMonth(context, ref) : null,
+              onAllocate: hasBudget ? () => _onAllocate(context, ref) : null,
+              onDelete: hasBudget ? () => _onDeleteBudget(context, ref) : null,
+              onCreate: value != null && !hasBudget
+                  ? () => _onCreateBudget(context)
                   : null,
             ),
             Expanded(
@@ -144,16 +162,21 @@ class BudgetScreen extends ConsumerWidget {
                     onRetry: () =>
                         ref.read(budgetProvider.notifier).refresh(),
                   ),
-                  data: (budget) => budget == null
+                  data: (s) => s.budget == null
                       ? _EmptyBudget(
+                          monthLabel: budgetMonthLabel(s.month),
+                          previous: s.previous,
+                          currencySymbol: symbol,
                           onCreate: () => _onCreateBudget(context),
                         )
                       : _FilledBudget(
-                          budget: budget,
+                          budget: s.budget!,
+                          monthLabel: budgetMonthLabel(s.month),
                           onAllocTap: (a) =>
                               _onEditAllocation(context, ref, a),
+                          onMonthTap: () => _onPickMonth(context, ref),
                           onBudgetCardTap: () =>
-                              _onBudgetCardTap(context, ref, budget),
+                              _onBudgetCardTap(context, ref, s.budget!),
                         ),
                 ),
               ),
@@ -165,32 +188,22 @@ class BudgetScreen extends ConsumerWidget {
   }
 }
 
-String _formatDate(DateTime? d) {
-  if (d == null) return '—';
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  return '${months[d.month - 1]} ${d.day}, ${d.year}';
-}
-
 // ─── Header ──────────────────────────────────────────────────────────────────
 
 class _BudgetHeader extends StatelessWidget {
+  final String? monthLabel;
+  final VoidCallback? onPickMonth;
   final VoidCallback? onAllocate;
   final VoidCallback? onDelete;
+  final VoidCallback? onCreate;
 
-  const _BudgetHeader({this.onAllocate, this.onDelete});
+  const _BudgetHeader({
+    this.monthLabel,
+    this.onPickMonth,
+    this.onAllocate,
+    this.onDelete,
+    this.onCreate,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -210,6 +223,73 @@ class _BudgetHeader extends StatelessWidget {
             ),
           ),
           const Spacer(),
+          // Month filter is always visible — otherwise browsing past months is
+          // an invisible feature buried in the summary card.
+          if (monthLabel != null) ...[
+            GestureDetector(
+              onTap: onPickMonth,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.sm,
+                ),
+                decoration: BoxDecoration(
+                  color: context.surfaceColor,
+                  borderRadius: AppRadius.radiusFull,
+                  border: Border.all(color: context.borderColor),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      AppIcons.filter,
+                      size: 12,
+                      color: context.textQuaternary,
+                    ),
+                    const SizedBox(width: AppSpacing.xs),
+                    Text(
+                      monthLabel!,
+                      style: AppTypography.bodySmall.copyWith(
+                        color: context.textQuaternary,
+                        fontSize: 14,
+                        fontVariations: const [FontVariation('wght', 500)],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+          ],
+          if (onCreate != null)
+            GestureDetector(
+              onTap: onCreate,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.sm,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: AppRadius.radiusFull,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(AppIcons.add, size: 12, color: AppColors.white),
+                    const SizedBox(width: AppSpacing.xs),
+                    Text(
+                      'Create budget',
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.white,
+                        fontSize: 14,
+                        fontVariations: const [FontVariation('wght', 500)],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           // Allocate/Delete only make sense once a budget exists.
           if (onAllocate != null || onDelete != null)
             Container(
@@ -279,13 +359,91 @@ class _BudgetHeader extends StatelessWidget {
 // ─── Empty state ──────────────────────────────────────────────────────────────
 
 class _EmptyBudget extends StatelessWidget {
+  final String monthLabel;
+  final BudgetModel? previous;
+  final String currencySymbol;
   final VoidCallback? onCreate;
-  const _EmptyBudget({this.onCreate});
+
+  const _EmptyBudget({
+    required this.monthLabel,
+    required this.currencySymbol,
+    this.previous,
+    this.onCreate,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final hasPrevious = previous != null;
+
     return LayoutBuilder(
       builder: (context, constraints) {
+        final card = Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: context.surfaceColor,
+            borderRadius: AppRadius.radiusSheet,
+          ),
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  'assets/images/empty-budget.png',
+                  width: hasPrevious ? 140 : 200,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                Text(
+                  hasPrevious ? 'No budget for $monthLabel' : 'No budget yet',
+                  style: AppTypography.headingMedium.copyWith(
+                    color: context.textPrimary,
+                    fontSize: 20,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                  child: Text(
+                    hasPrevious
+                        ? "You haven't set a budget for $monthLabel yet. Tap the button below or chat with Clara AI to set your budget and allocation"
+                        : 'Tap the button below or chat with Clara AI to set your budget and allocation',
+                    style: AppTypography.bodyMedium.copyWith(
+                      color: context.textSecondary,
+                      fontSize: 14,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                GestureDetector(
+                  onTap: onCreate,
+                  child: Container(
+                    width: 156,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: AppRadius.radiusFull,
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      'Create budget',
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: AppColors.white,
+                        fontSize: 16,
+                        fontVariations: const [FontVariation('wght', 500)],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+
         return SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(
@@ -295,72 +453,22 @@ class _EmptyBudget extends StatelessWidget {
             AppSpacing.base,
           ),
           child: ConstrainedBox(
-            constraints:
-                BoxConstraints(minHeight: constraints.maxHeight - AppSpacing.base),
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: context.surfaceColor,
-                borderRadius: AppRadius.radiusSheet,
-              ),
-              padding: const EdgeInsets.all(AppSpacing.xl),
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset(
-                      'assets/images/empty-budget.png',
-                      width: 200,
-                      fit: BoxFit.contain,
-                    ),
-                    const SizedBox(height: AppSpacing.xl),
-                    Text(
-                      'No budget yet',
-                      style: AppTypography.headingMedium.copyWith(
-                        color: context.textPrimary,
-                        fontSize: 20,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Padding(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                      child: Text(
-                        'Tap the button below or chat with Clara AI to set your budget and allocation',
-                        style: AppTypography.bodyMedium.copyWith(
-                          color: context.textSecondary,
-                          fontSize: 14,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.xl),
-                    GestureDetector(
-                      onTap: onCreate,
-                      child: Container(
-                        width: 156,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: AppRadius.radiusFull,
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          'Create budget',
-                          style: AppTypography.bodyMedium.copyWith(
-                            color: AppColors.white,
-                            fontSize: 16,
-                            fontVariations: const [FontVariation('wght', 500)],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+            constraints: BoxConstraints(
+              minHeight: constraints.maxHeight - AppSpacing.base,
             ),
+            child: hasPrevious
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      BudgetPreviousMonthCard(
+                        budget: previous!,
+                        currencySymbol: currencySymbol,
+                      ),
+                      const SizedBox(height: AppSpacing.base),
+                      card,
+                    ],
+                  )
+                : card,
           ),
         );
       },
@@ -372,12 +480,16 @@ class _EmptyBudget extends StatelessWidget {
 
 class _FilledBudget extends ConsumerWidget {
   final BudgetModel budget;
+  final String monthLabel;
   final void Function(AllocationModel) onAllocTap;
+  final VoidCallback? onMonthTap;
   final VoidCallback? onBudgetCardTap;
 
   const _FilledBudget({
     required this.budget,
+    required this.monthLabel,
     required this.onAllocTap,
+    this.onMonthTap,
     this.onBudgetCardTap,
   });
 
@@ -385,9 +497,13 @@ class _FilledBudget extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final symbol = ref.watch(currencySymbolProvider);
     final categories = budget.allocations.map(_toItem).toList();
-    final insight =
-        "You've used ${budget.pctUsed.toStringAsFixed(0)}% of your "
-        "${formatCurrency(budget.amountAllocated, symbol)} budget.";
+    // Prefer the backend's AI line; the locally composed sentence is only a
+    // fallback for older responses where clara_insight is absent or empty.
+    final backendInsight = budget.claraInsight?.trim() ?? '';
+    final insight = backendInsight.isNotEmpty
+        ? backendInsight
+        : "You've used ${budget.pctUsed.toStringAsFixed(0)}% of your "
+            "${formatCurrency(budget.amountAllocated, symbol)} budget.";
 
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -407,18 +523,9 @@ class _FilledBudget extends ConsumerWidget {
               spentAmount: budget.spent,
               totalBudget: budget.amountAllocated,
               daysLeft: budget.daysLeft,
-              month: _monthLabel(budget.startDate),
-              onMonthTap: () async {
-                final currentMonth = budget.startDate?.month ?? DateTime.now().month;
-                final currentYear = budget.startDate?.year ?? DateTime.now().year;
-                final picked = await showMonthSelectionSheet(
-                  context,
-                  selected: currentMonth,
-                );
-                if (picked != null) {
-                  ref.read(budgetProvider.notifier).selectMonth(picked, currentYear);
-                }
-              },
+              month: monthLabel,
+              currencySymbol: symbol,
+              onMonthTap: onMonthTap,
             ),
           ),
           const SizedBox(height: AppSpacing.base),
@@ -472,25 +579,6 @@ class _FilledBudget extends ConsumerWidget {
     color: expenseCategoryColor(a.categoryName),
     bgColor: expenseCategoryBgColor(a.categoryName),
   );
-
-  String _monthLabel(DateTime? d) {
-    if (d == null) return '';
-    const months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
-    return months[d.month - 1];
-  }
 }
 
 class _NoAllocations extends StatelessWidget {

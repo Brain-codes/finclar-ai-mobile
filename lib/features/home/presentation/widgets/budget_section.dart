@@ -61,10 +61,10 @@ class BudgetSection extends ConsumerWidget {
           budget.when(
             loading: () => const _BudgetSkeleton(),
             error: (_, _) => _empty(context),
-            data: (b) => (b == null || b.allocations.isEmpty)
+            data: (s) => (s.budget == null || s.budget!.allocations.isEmpty)
                 ? _empty(context)
                 : _BudgetContent(
-                    categories: _toCategories(b),
+                    categories: _toCategories(s.budget!),
                     symbol: symbol,
                     onBreakdownTap: onBreakdownTap,
                   ),

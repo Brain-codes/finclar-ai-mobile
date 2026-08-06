@@ -4,6 +4,8 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
+import '../../../../core/utils/number_formatter.dart';
+import '../../../../shared/icons/app_icons.dart';
 import '../../../../shared/widgets/app_stripe_painter.dart';
 
 class BudgetSummaryCard extends StatelessWidget {
@@ -12,6 +14,7 @@ class BudgetSummaryCard extends StatelessWidget {
   final double totalBudget;
   final int daysLeft;
   final String month;
+  final String currencySymbol;
   final VoidCallback? onMonthTap;
 
   const BudgetSummaryCard({
@@ -21,6 +24,7 @@ class BudgetSummaryCard extends StatelessWidget {
     required this.totalBudget,
     required this.daysLeft,
     required this.month,
+    required this.currencySymbol,
     this.onMonthTap,
   });
 
@@ -77,13 +81,26 @@ class BudgetSummaryCard extends StatelessWidget {
                     color: context.surfaceVariant,
                     borderRadius: AppRadius.radiusFull,
                   ),
-                  child: Text(
-                    month,
-                    style: AppTypography.bodySmall.copyWith(
-                      color: context.textQuaternary,
-                      fontSize: 12,
-                      fontVariations: const [FontVariation('wght', 500)],
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        month,
+                        style: AppTypography.bodySmall.copyWith(
+                          color: context.textQuaternary,
+                          fontSize: 12,
+                          fontVariations: const [FontVariation('wght', 500)],
+                        ),
+                      ),
+                      if (onMonthTap != null) ...[
+                        const SizedBox(width: AppSpacing.xs),
+                        Icon(
+                          AppIcons.chevronDown,
+                          size: 14,
+                          color: context.textQuaternary,
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ),
@@ -117,24 +134,11 @@ class BudgetSummaryCard extends StatelessWidget {
     );
   }
 
-  /// e.g. 500000.0 → "₦500,000.00"
-  String _formatCurrency(double v) {
-    final parts = v.toStringAsFixed(2).split('.');
-    final whole = parts[0].replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (m) => '${m[1]},',
-    );
-    return '₦$whole.${parts[1]}';
-  }
+  String _formatCurrency(double v) =>
+      formatCurrency(v, currencySymbol, abbreviate: false, withCommas: true);
 
-  /// e.g. 250000 → "₦250,000", 5000000 → "₦5,000,000"
-  String _fmtShort(double v) {
-    final s = v.toStringAsFixed(0).replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (m) => '${m[1]},',
-    );
-    return '₦$s';
-  }
+  String _fmtShort(double v) =>
+      formatCurrency(v, currencySymbol, abbreviate: false, withCommas: true);
 }
 
 class _StackedProgressBar extends StatelessWidget {
