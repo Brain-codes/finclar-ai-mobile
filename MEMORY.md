@@ -59,6 +59,19 @@ status as approximate — confirm against the code/branch before building on it.
 
 ## Open threads / known issues
 
+- **Sign In with Apple cannot provision on the free personal team.** Xcode:
+  "Personal development teams do not support the Sign In with Apple capability."
+  `com.apple.developer.applesignin` has been in `Runner.entitlements` since
+  2026-07-27 (`25f3229`), so **every device build since then fails to create a
+  provisioning profile** until it is temporarily removed. This is unrelated to the
+  widget — the widget merely surfaced it. Unverified: whether Apple Sign-In has
+  ever actually worked in a Firebase-distributed build, which signs with the same
+  personal team. Worth checking.
+- **iOS widget verified on device 2026-08-07** (iPhone 12, iOS 26.5.2, release
+  build) — App Group sharing and deep links both confirmed working. Still open:
+  the Fastlane/CI release lane has never built an app extension, so expect work
+  there before this ships. Android has no equivalent yet. Note free-team builds
+  expire after 7 days and the widget goes stale with the host app.
 - **Three backend asks are blocking real product scope** (raised 2026-08-06, written up in
   `docs/API.md` → Planned / Not Yet Live): an **income ledger** (today it's one record per
   user, so there's no income history and no second paycheck), **invite by email/phone**
@@ -164,6 +177,83 @@ status as approximate — confirm against the code/branch before building on it.
 
 ## Dated log
 
+### 2026-08-07 — Social sign-in: real errors surfaced, Apple button gated by platform
+
+Google sign-in was failing with an opaque message. Cause: `SocialAuthService`
+caught every exception and returned a hardcoded `'Could not sign in with Google'`,
+so the actual `PlatformException` / `FirebaseAuthException` code — the only part
+that identifies the failure — was logged and thrown away.
+
+`SocialAuthResult` / `SocialAuthFailure` now carry a `details` string built by
+`describeAuthError()`, which unpacks code + message + details rather than relying
+on `toString()`. The backend-exchange path names the exception type and HTTP
+status. `SocialAuthErrorSheet` shows the friendly message with the raw error
+behind a **Technical details** disclosure plus **Copy details** — the snackbar
+was replaced because it could not carry this much text.
+
+**Root cause still unconfirmed.** The plumbing now reports the error; nobody has
+yet read what it says. If it's `sign_in_failed` code **10**, that is an
+Android SHA-1 certificate mismatch — the release keystore's fingerprint is
+missing from the Firebase console. That is the most common cause of this exact
+symptom, but it is a hypothesis, not a diagnosis.
+
+Apple's button was behind `kAppleSignInEnabled = false`; it is now
+`Platform.isIOS`. Apple requires Sign in with Apple to be offered wherever
+another social login is, on their platforms only. Note this makes the button
+visible in builds signed with the free personal team, where the capability
+cannot provision — it will appear and fail there.
+
+**Social sign-in added to Login too.** It previously existed only on Sign up, so
+a returning Google user had no way back in. The button row and "or" divider were
+extracted to `auth/presentation/widgets/social_auth_buttons.dart` as
+`SocialAuthButtons` / `OrDivider` — `SocialAuthButtons` is a `ConsumerWidget`
+that owns its own loading state and failure sheet, so both screens get identical
+behaviour and neither needs to wire the listener.
+
+### 2026-08-07 — iOS home screen widget (WidgetKit) — experimental
+
+First native extension in the repo. A WidgetKit target `FinclarWidget`
+(`ios/FinclarWidget/`, bundle id `com.finclar.finclarAi.FinclarWidget`, iOS 17+)
+rendering this month's spending in small / medium / lock-screen-circular sizes.
+iOS only for now — Android was explicitly deferred.
+
+**How data gets there.** WidgetKit cannot call our API, so the app pushes numbers
+into a shared App Group (`group.com.finclar.finclarAi`) and the widget renders the
+last thing written. `HomeWidgetService` (`core/services/`) is the only place that
+touches the `home_widget` package; `homeWidgetSyncProvider` in
+`home_dashboard_provider.dart` watches `homeSummaryProvider` and pushes on every
+change, and the home screen watches that provider once. `clearUserScopedData*`
+wipes the widget on logout.
+
+**Taps.** The widget deep-links via the existing `finclar://` scheme —
+`finclar://widget/spending` and `finclar://widget/add-expense`. `DeepLinkService`
+grew a `widgetStream` + `pendingWidgetRoute` (cold-start parking, mirroring the
+invite flow), consumed by `WidgetLinkListener` mounted in `AppShell`.
+
+**Deliberate duplication.** `ios/FinclarWidget/FinclarTheme.swift` re-declares the
+brand colours as Swift literals because SwiftUI cannot read `AppColors`. This is
+the one sanctioned exception to the no-hardcoded-colours rule — keep it in sync by
+hand when the Dart tokens change.
+
+**Xcode project.** The target was added programmatically via the `xcodeproj` ruby
+gem rather than the Xcode GUI, so `project.pbxproj` is a machine-generated diff.
+The App Group entitlement was added to both `Runner.entitlements` and
+`FinclarWidget.entitlements`.
+
+Two non-obvious build settings came out of this, both load-bearing:
+
+- **`Embed Foundation Extensions` must sit right after `Resources`** (index 5), not
+  at the end of Runner's build phases. Appending it last creates a dependency cycle
+  with the CocoaPods script phases and the build fails with "Cycle inside Runner".
+- **Simulator builds are ad-hoc signed** via `[sdk=iphonesimulator*]` conditionals
+  on `CODE_SIGN_IDENTITY` / `CODE_SIGN_STYLE` / `DEVELOPMENT_TEAM` for both targets.
+  Without this, `-allowProvisioningUpdates` hangs indefinitely (0% CPU, no timeout)
+  trying to register the App Group. Device build settings are untouched.
+
+**App Groups do work on a free personal team** — Apple issued a widget profile
+containing `com.apple.security.application-groups`. No paid account needed for this
+part. See the Sign In with Apple entry under open threads for what *is* blocked.
+
 ### 2026-08-06 — Firebase distribution wired into GitHub Actions
 
 Fastlane was only ever run by hand — there was no CI workflow for releases (the only
@@ -186,6 +276,21 @@ all version/build/upload/tag/push logic stays in `fastlane/Fastfile`.
   the **same job**, not a parallel one — the umbrella `beta` lane bumps the version once
   and cruises both platforms, so two jobs would compute two different versions.
 - Docs: new `docs/RELEASE_PIPELINE.md` §5 (old §5 renumbered to §6).
+
+**Verified end-to-end** on run `31136339285` (11m49s): built and distributed
+`1.1.0+2` to the `android-testers` group. Run with `skip_git:true`, so no tag/commit
+was pushed — `main` stayed at `1.0.0+1`.
+
+Two dead ends worth not re-debugging:
+- The first four runs failed with `The job was not acquired by Runner of type hosted`
+  (15m02s = the runner-acquisition timeout, zero steps executed) and one cancel
+  mid-build. That was the **GitHub Actions outage of 2026-08-06 15:22 UTC**, not our
+  config — success rates were 30–40% during it. Nothing to fix; retry.
+- `Caught exception: Already watching path: .../android` in the Gradle output is a
+  benign file-watcher warning, not the failure. Silenced now via `org.gradle.vfs.watch=false`.
+
+Still open: no Android upload keystore exists, so CI APKs are **debug-signed** (fine
+for Firebase, blocks Play). Generate one per §2c and add the four `ANDROID_*` secrets.
 
 ### 2026-08-06 — Clara chat renders backend markdown
 
