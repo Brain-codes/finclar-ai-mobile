@@ -148,6 +148,14 @@ abstract class AppStrings {
       'Something went wrong on our end. We\'re already on it. Please check back in a few moments.';
   static const String goHome = 'Go home';
 
+  // Social sign-in errors
+  static const String socialSignInFailedTitle = 'Sign-in failed';
+  static const String socialTechnicalDetails = 'Technical details';
+  static const String socialCopyDetails = 'Copy details';
+  static const String socialDetailsCopied = 'Details copied';
+  static const String socialNoDetails =
+      'No further detail was reported by the provider.';
+
   // Common Actions
   static const String save = 'Save';
   static const String cancel = 'Cancel';

@@ -8,6 +8,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../shared/icons/app_icons.dart';
+import '../../../../shared/widgets/add_options_sheet.dart';
 import '../../../../shared/widgets/app_skeleton.dart';
 import '../../../budget/providers/budget_providers.dart';
 import '../../../expenses/providers/expense_providers.dart';
@@ -78,7 +79,8 @@ class QuickStartCard extends ConsumerWidget {
           _QuickStartRow(
             label: 'Log your first expense',
             done: hasExpense,
-            onTap: () => context.push(RouteNames.addExpenseOcr),
+            onTap: () =>
+                showAddOptionsSheet(context, ref, showIncomeOption: false),
           ),
           _QuickStartRow(
             label: 'Create a budget',

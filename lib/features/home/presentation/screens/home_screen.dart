@@ -116,6 +116,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final incomeAsync = ref.watch(incomeProvider);
     Log.d('[HomeScreen] incomeProvider state: $incomeAsync');
 
+    ref.watch(homeWidgetSyncProvider);
+
+    // Settings sits on top of the shell, so returning to home via
+    // "Replay app tour" never remounts HomeScreen and initState's
+    // _maybeStartTour never re-fires. Watch the flag directly so a tour
+    // queued while home is already alive still starts.
+    ref.listen(tourProvider, (prev, next) {
+      if (next && !(prev ?? false)) _maybeStartTour();
+    });
+
     ref.listen(incomeProvider, (prev, next) {
       Log.d('[HomeScreen] incomeProvider changed: $prev → $next');
       if (!_modalShown && next is AsyncData && next.value == null && mounted) {

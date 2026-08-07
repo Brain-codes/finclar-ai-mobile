@@ -18,6 +18,7 @@ import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/app_text_link.dart';
 import '../../../../shared/widgets/app_top_bar.dart';
 import '../../providers/login_provider.dart';
+import '../widgets/social_auth_buttons.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -306,7 +307,11 @@ class _EmailPhase extends StatelessWidget {
                 onTap: onContinue,
                 isLoading: state.isLoading,
               ),
+              const SizedBox(height: AppSpacing.xl),
+              const OrDivider(),
               const SizedBox(height: AppSpacing.base),
+              const SocialAuthButtons(),
+              const SizedBox(height: AppSpacing.xl),
               AppTextLink(
                 prompt: AppStrings.dontHaveAccount,
                 actionLabel: AppStrings.signUp,

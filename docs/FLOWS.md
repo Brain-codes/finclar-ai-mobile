@@ -28,24 +28,28 @@ You only see the splash once. On later launches the app goes straight to a brief
 2. The top bar shows a back arrow and **Step 1 of 3**.
 3. Fill in **Email address** ("Enter email address") and **Username** ("Enter username").
 4. Tap **Continue**. If the email is already taken or invalid, a red snackbar tells you — the field itself won't turn red for backend errors.
-5. Alternatively tap **Google** or **Apple** below the "or" divider to sign up with a social account.
-6. The small print at the bottom links to **Terms of Service** and **Privacy Policy** — both open as full screens with a back arrow.
-7. After **Continue** you land on **Create passcode** (Step 2 of 3). Enter a 6-digit passcode.
-8. The screen immediately becomes **Confirm passcode** — enter the same 6 digits again. A mismatch clears the boxes and shows the error inline.
-9. You're taken to **Verification** (Step 3 of 3) — a 6-digit code has been emailed to you.
-10. Enter the code and tap **Continue**. If it doesn't arrive, wait for the "Resend in mm:ss" countdown to finish, then tap **Resend code**.
-11. On success you go to the Preference screens — see 1.4.
+5. Alternatively tap **Google** below the "or" divider to sign up with a social account. On iPhone/iPad an **Apple** button sits beside it; on Android only **Google** is shown.
+6. If a social sign-in fails, a **Sign-in failed** sheet opens: "[Google/Apple] sign-in didn't go through", the reason, and a **Technical details** row. Tap it to expand the exact provider error, **Copy details** to put it on the clipboard, **Done** to dismiss. Dismissing changes nothing — you stay on Sign up and can retry.
+7. The small print at the bottom links to **Terms of Service** and **Privacy Policy** — both open as full screens with a back arrow.
+8. After **Continue** you land on **Create passcode** (Step 2 of 3). Enter a 6-digit passcode.
+9. The screen immediately becomes **Confirm passcode** — enter the same 6 digits again. A mismatch clears the boxes and shows the error inline.
+10. You're taken to **Verification** (Step 3 of 3) — a 6-digit code has been emailed to you.
+11. Enter the code and tap **Continue**. If it doesn't arrive, wait for the "Resend in mm:ss" countdown to finish, then tap **Resend code**.
+12. On success you go to the Preference screens — see 1.4.
+
+The same **Google** / **Apple** buttons appear on Login (1.3), so a social account can be used from either screen.
 
 ### 1.3 Log in
 
 1. Open Login. Enter your **Email address**, tap **Continue**.
-2. The screen slides to the passcode phase, headed **Welcome back** with your email underneath. The back arrow returns you to the email step.
-3. Enter your 6-digit passcode. There is no Continue button — it submits as soon as the sixth digit lands, with a full-screen blur loader.
-4. If you're a returning user on this device, the top right shows **Not my account** — tap it to wipe the remembered email and start from the email step.
-5. If biometrics are enrolled and you've logged in before, the Face ID / fingerprint prompt fires automatically. You can also tap **Use biometrics** under the passcode boxes to trigger it manually.
-6. Forgot it? Tap **Forgot passcode** — see 1.5.
-7. If your email was never verified, a sheet appears: **Email not verified**, "Your email address hasn't been verified yet." with **Resend verification code**. Tapping it sends a fresh code and drops you on the verification screen.
-8. On success you land on Home.
+2. Or, below the "or" divider, tap **Google** (and **Apple** on iPhone/iPad) to sign in with a social account — the same buttons and the same **Sign-in failed** sheet as on Sign up (1.2). This skips the passcode step entirely and drops you on Home.
+3. The screen slides to the passcode phase, headed **Welcome back** with your email underneath. The back arrow returns you to the email step.
+4. Enter your 6-digit passcode. There is no Continue button — it submits as soon as the sixth digit lands, with a full-screen blur loader.
+5. If you're a returning user on this device, the top right shows **Not my account** — tap it to wipe the remembered email and start from the email step.
+6. If biometrics are enrolled and you've logged in before, the Face ID / fingerprint prompt fires automatically. You can also tap **Use biometrics** under the passcode boxes to trigger it manually.
+7. Forgot it? Tap **Forgot passcode** — see 1.5.
+8. If your email was never verified, a sheet appears: **Email not verified**, "Your email address hasn't been verified yet." with **Resend verification code**. Tapping it sends a fresh code and drops you on the verification screen.
+9. On success you land on Home.
 
 ### 1.4 Set your preferences (one-time, after sign up)
 
@@ -77,7 +81,7 @@ Top to bottom:
 5. **Budget section** — your budget summary. Tap **See breakdown** → the Budget tab.
 6. **Clara card** — the latest AI insight, with a "Based on X% verified · Y% self-reported" line. Tap **Chat with Clara** → Clara chat.
 7. **Recent expenses** — the last few expenses. Tap **View all** → the Expense tab. Tap any row → that expense's detail screen.
-8. **Get set up** card (new accounts only) — three shortcuts: **Set your income**, **Log your first expense**, **Create a budget**.
+8. **Get set up** card (new accounts only) — three shortcuts: **Set your income**, **Log your first expense**, **Create a budget**. **Log your first expense** opens the same **Add** sheet as the tab bar **+** (see §3), not straight to the camera — minus the **Add/Update income** row, since that's already this card's own shortcut.
 
 Every one of these sections shows a shimmer placeholder while its data loads — not a spinner, not blank space.
 
@@ -487,7 +491,54 @@ Settings → **Start app tour**. You're dropped on Home and the coachmarks walk 
 
 ---
 
-## 10. Plan limits you can hit
+## 10. iOS home screen widget
+
+iPhone only. Nothing to turn on in the app — the widget reads whatever your
+Home screen last showed.
+
+### 10.1 Add the widget
+
+1. Long-press an empty area of your iPhone Home screen until the icons wiggle.
+2. Tap **Edit** → **Add Widget** (top-left on iOS 18+; the **+** on earlier versions).
+3. Search **Finclar** → pick **Monthly spending**.
+4. Swipe between the sizes:
+   - **Small** — "Spent · [month]", the amount, a progress bar, and "[amount] left".
+   - **Medium** — the same plus **Top category** and an **Add expense** button.
+   - **Lock Screen (circular)** — a ring showing the percentage of income spent.
+5. Tap **Add Widget** → **Done**.
+
+### 10.2 What it shows
+
+- The numbers match the **Spent this month** figure on Home (2.1).
+- The bar fills as you spend against your monthly income. Once you go over, the
+  bar turns red and the caption becomes "Over budget by [amount]".
+- If you have no income set, the bar and caption are hidden — only the spent
+  amount shows.
+- Before you have ever opened the app while signed in, the widget reads
+  "Open the app to see this month's spending here."
+
+### 10.3 Tapping it
+
+1. Tap anywhere on the widget → the app opens on **Spending** (5.1).
+2. On the medium widget, tap **Add expense** → the app opens straight on the
+   **Add expense** screen (3.2).
+3. If you are signed out, a tap just opens the app on the login screen — it does
+   not jump to either screen.
+
+### 10.4 When it refreshes
+
+The widget updates whenever the Home screen loads or you pull-to-refresh it, and
+iOS re-reads it about once an hour on its own. It does **not** update the instant
+you add an expense from another screen — pull down on Home to push the new total.
+After logging out the widget resets to its empty state.
+
+To check it is really live: note the amount on the widget, add an expense, pull
+down on Home, then background the app — the widget total should have gone up by
+that amount, not just changed month label.
+
+---
+
+## 11. Plan limits you can hit
 
 | Limit | What you see | Way out |
 |---|---|---|
@@ -499,7 +550,7 @@ All three drop you on the Subscription screen (9.1).
 
 ---
 
-## 11. Error and empty states you'll run into
+## 12. Error and empty states you'll run into
 
 | Where | Copy | What to do |
 |---|---|---|
@@ -527,7 +578,7 @@ Everywhere data is being fetched you should see a shimmer skeleton in the shape 
 
 ---
 
-## 12. Navigation rules that apply everywhere
+## 13. Navigation rules that apply everywhere
 
 - **Back arrow / swipe from the left edge** works on every screen pushed on top of a tab — expense detail, settings, group detail, challenges, and so on.
 - **You cannot swipe back** out of Home into Login, or out of Login into the splash. Those transitions deliberately clear the stack.

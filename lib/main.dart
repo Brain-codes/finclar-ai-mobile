@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app/app.dart';
 import 'core/services/analytics_service.dart';
 import 'core/services/deep_link_service.dart';
+import 'core/services/home_widget_service.dart';
 import 'core/services/logger_service.dart';
 import 'core/services/notification_routing.dart';
 import 'core/services/notification_service.dart';
@@ -23,6 +24,8 @@ void main() async {
   } catch (e, st) {
     Log.e('Firebase init failed', error: e, stackTrace: st);
   }
+
+  await HomeWidgetService.init();
 
   // Outside the Firebase try — a Firebase failure must not disable invites.
   await DeepLinkService.init();

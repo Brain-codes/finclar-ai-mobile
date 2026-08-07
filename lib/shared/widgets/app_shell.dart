@@ -7,16 +7,13 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/constants/app_strings.dart';
 import '../../core/utils/extensions/context_extensions.dart';
-import '../../features/expenses/presentation/widgets/bank_integration_modal.dart';
-import '../../features/expenses/presentation/widgets/edit_expense_sheet.dart';
-import '../../features/gamification/presentation/widgets/streak_card_modal.dart';
 import '../../features/group/presentation/widgets/invite_link_listener.dart';
 import '../../features/onboarding/providers/tour_provider.dart';
 import 'app_coachmark.dart';
 import '../../features/group/providers/group_chat_hub_provider.dart';
-import '../../features/home/providers/income_setup_provider.dart';
-import 'app_sheet.dart';
+import 'add_options_sheet.dart';
 import 'clara_fab.dart';
+import 'widget_link_listener.dart';
 
 class AppShell extends ConsumerWidget {
   final Widget child;
@@ -44,65 +41,8 @@ class AppShell extends ConsumerWidget {
     }
   }
 
-  Future<void> _onTypeExpense(BuildContext context, WidgetRef ref) async {
-    final created = await showEditExpenseSheet(context);
-    if (created == null || !context.mounted) return;
-    await maybeShowStreakModal(context, ref);
-  }
-
   void _onAddTap(BuildContext context, WidgetRef ref) {
-    // The backend keeps one income record per user, so once it exists this
-    // row edits rather than adds — the label has to say so.
-    final hasIncome = ref.read(incomeProvider).valueOrNull != null;
-
-    showAppSheet(
-      context,
-      title: 'Add',
-      children: [
-        _AddOption(
-          icon: AppIcons.income,
-          iconColor: AppColors.success,
-          title: hasIncome ? 'Update income' : 'Add income',
-          subtitle: hasIncome
-              ? 'Change what you earn'
-              : 'Tell Clara what you earn',
-          onTap: () {
-            Navigator.of(context, rootNavigator: true).pop();
-            context.push(RouteNames.incomeSetup);
-          },
-        ),
-        _AddOption(
-          icon: AppIcons.cameraFill,
-          iconColor: AppColors.categoryPurple,
-          title: 'Scan receipt',
-          subtitle: 'Snap and categorize your expense',
-          onTap: () {
-            Navigator.of(context, rootNavigator: true).pop();
-            context.push(RouteNames.addExpenseOcr);
-          },
-        ),
-        _AddOption(
-          icon: AppIcons.editFill,
-          iconColor: AppColors.primary,
-          title: 'Type expense',
-          subtitle: 'Manually type in expense',
-          onTap: () {
-            Navigator.of(context, rootNavigator: true).pop();
-            _onTypeExpense(context, ref);
-          },
-        ),
-        _AddOption(
-          icon: AppIcons.wallet,
-          iconColor: AppColors.categoryTransport,
-          title: 'Account integration',
-          subtitle: 'Integrate your account to Finclar',
-          onTap: () {
-            Navigator.of(context, rootNavigator: true).pop();
-            showBankIntegrationModal(context);
-          },
-        ),
-      ],
-    );
+    showAddOptionsSheet(context, ref);
   }
 
   @override
@@ -125,7 +65,11 @@ class AppShell extends ConsumerWidget {
       child: Scaffold(
         body: Stack(
           children: [
-            Positioned.fill(child: InviteLinkListener(child: child)),
+            Positioned.fill(
+              child: WidgetLinkListener(
+                child: InviteLinkListener(child: child),
+              ),
+            ),
             Positioned(
               right: 16,
               bottom: 16,
@@ -313,78 +257,6 @@ class _AddButton extends StatelessWidget {
               child: const Icon(AppIcons.add, color: AppColors.white, size: 24),
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _AddOption extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-  final Color? iconColor;
-
-  const _AddOption({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-    this.iconColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        height: 72,
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: context.surfaceVariant,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                icon,
-                size: 20,
-                color: iconColor ?? context.textSecondary,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontFamily: AppFonts.body,
-                    fontSize: 14,
-                    fontVariations: const [FontVariation('wght', 500)],
-                    color: context.textPrimary,
-                    height: 1.43,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontFamily: AppFonts.body,
-                    fontSize: 12,
-                    fontVariations: const [FontVariation('wght', 400)],
-                    color: context.textSecondary,
-                    height: 1.33,
-                  ),
-                ),
-              ],
-            ),
-          ],
         ),
       ),
     );

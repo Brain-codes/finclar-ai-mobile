@@ -102,6 +102,9 @@ dependencies:
   app_links: ^7.0.0
   showcaseview: ^5.1.0
 
+  # Home screen widgets (via HomeWidgetService wrapper only)
+  home_widget: ^0.7.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

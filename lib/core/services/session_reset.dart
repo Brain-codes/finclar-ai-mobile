@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../config/app_config_notifier.dart' hide categoriesProvider;
+import 'home_widget_service.dart';
 import '../../features/home/providers/home_dashboard_provider.dart';
 import '../../features/home/providers/income_setup_provider.dart';
 import '../../features/expenses/providers/expense_providers.dart';
@@ -55,6 +56,7 @@ void clearUserScopedData(WidgetRef ref) {
     ref.invalidate(provider);
   }
   ref.read(appConfigProvider.notifier).reset();
+  HomeWidgetService.clear();
 }
 
 /// Clears user-scoped data from a provider/notifier (e.g. on login success),
@@ -64,4 +66,5 @@ void clearUserScopedDataRef(Ref ref) {
     ref.invalidate(provider);
   }
   ref.read(appConfigProvider.notifier).reset();
+  HomeWidgetService.clear();
 }

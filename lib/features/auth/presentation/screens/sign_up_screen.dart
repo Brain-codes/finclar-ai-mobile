@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/routes/route_names.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../../shared/svg/app_svg.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../shared/widgets/app_button.dart';
@@ -14,15 +13,9 @@ import '../../../../shared/widgets/app_screen_header.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/app_text_link.dart';
 import '../../../../shared/icons/app_icons.dart';
-import '../../../../shared/widgets/app_snackbar.dart';
 import '../../../../shared/widgets/app_top_bar.dart';
 import '../../providers/sign_up_provider.dart';
-import '../../providers/social_auth_provider.dart';
-
-/// Apple sign-in stays hidden until the "Sign in with Apple" capability is
-/// registered on a paid Apple Developer account we control (see MEMORY.md).
-/// The full Apple flow is already wired — flip to `true` once that's done.
-const bool kAppleSignInEnabled = false;
+import '../widgets/social_auth_buttons.dart';
 
 class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
@@ -59,15 +52,6 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     final formState = ref.watch(signUpProvider);
-    final socialState = ref.watch(socialAuthProvider);
-
-    ref.listen(socialAuthProvider, (prev, next) {
-      if (next.snackbarError != null &&
-          next.snackbarError != prev?.snackbarError) {
-        AppSnackbar.error(context, next.snackbarError!);
-        ref.read(socialAuthProvider.notifier).clearSnackbarError();
-      }
-    });
 
     return Scaffold(
       backgroundColor: context.scaffoldColor,
@@ -167,52 +151,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                                   ),
                                   const SizedBox(height: AppSpacing.xl),
 
-                                  // Or divider
-                                  _OrDivider(),
+                                  const OrDivider(),
                                   const SizedBox(height: AppSpacing.base),
-
-                                  // Social buttons
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: AppButton(
-                                          label: AppStrings.google,
-                                          onTap: socialState.isLoading
-                                              ? null
-                                              : () => ref
-                                                  .read(socialAuthProvider
-                                                      .notifier)
-                                                  .signInWithGoogle(),
-                                          isLoading: socialState.loading ==
-                                              SocialProvider.google,
-                                          variant: AppButtonVariant.secondary,
-                                          svgIcon: AppSvg.google,
-                                        ),
-                                      ),
-                                      // Apple sign-in is hidden until the "Sign in with
-                                      // Apple" capability is registered on a paid Apple
-                                      // Developer account (see MEMORY.md). All code is
-                                      // wired — flip this flag to re-enable.
-                                      if (kAppleSignInEnabled) ...[
-                                        const SizedBox(width: AppSpacing.sm),
-                                        Expanded(
-                                          child: AppButton(
-                                            label: AppStrings.apple,
-                                            onTap: socialState.isLoading
-                                                ? null
-                                                : () => ref
-                                                    .read(socialAuthProvider
-                                                        .notifier)
-                                                    .signInWithApple(),
-                                            isLoading: socialState.loading ==
-                                                SocialProvider.apple,
-                                            variant: AppButtonVariant.secondary,
-                                            svgIcon: AppSvg.apple,
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
+                                  const SocialAuthButtons(),
                                   const SizedBox(height: AppSpacing.xxl),
                                 ],
                               ),
@@ -230,30 +171,6 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
           ),
         ],
       ),
-    );
-  }
-}
-
-// ─── Or divider ───────────────────────────────────────────────────────────────
-
-class _OrDivider extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(child: Container(height: 1, color: context.borderColor)),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-          child: Text(
-            AppStrings.orDivider,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              fontSize: 12,
-              color: context.textSecondary,
-            ),
-          ),
-        ),
-        Expanded(child: Container(height: 1, color: context.borderColor)),
-      ],
     );
   }
 }
