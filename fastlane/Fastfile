@@ -78,12 +78,14 @@ def apply_bump(base, bump)
   end
 end
 
-# Build number increments by 1 on each release. The value in pubspec.yaml is the
-# last released build; the next release ships current + 1, and the umbrella `beta`
-# lane commits the new pubspec so the counter persists. Must always increase — never
-# lower it once a build has been distributed (Google Play rejects a lower versionCode).
+# Build number is the commit count, not pubspec+1: pubspec+1 only advances if the
+# release commit lands back on main, so a failed push — or two runs from the same base —
+# ships a duplicate versionCode, which Android silently refuses to install over the
+# installed build. The commit count always moves forward on its own.
 def build_number
-  current_pubspec_version[:build] + 1
+  count = `git -C #{PROJECT_ROOT.shellescape} rev-list --count HEAD`.strip.to_i
+  UI.user_error!("Could not derive a build number from git history") if count.zero?
+  [count, current_pubspec_version[:build] + 1].max
 end
 
 def release_notes(commits)
