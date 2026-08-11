@@ -80,8 +80,8 @@ class GroupDetailNotifier
     ref.invalidate(groupsProvider);
   }
 
-  Future<GroupMemberModel> addMember(String recipientId) async {
-    final added = await _repo.addMember(arg, recipientId);
+  Future<GroupMemberModel> addMember(String userId) async {
+    final added = await _repo.addMember(arg, userId);
     await refresh();
     return added;
   }

@@ -446,13 +446,17 @@ Settings → the currency row → the **Default currency** sheet → pick one. E
 4. Rows also carry a right-hand action that opens the screen the notification is
    about. The label depends on the type:
 
-   | Notification | Action | Goes to |
-   |---|---|---|
-   | New friend request | **View request** | Friends |
-   | Group invite / Group activity | **View group** | Group tab |
-   | Approaching your budget limit | **View budget** | Budget tab |
-   | Bank sync complete | **View transactions** | Expense tab |
-   | Subscription activated | **View plan** | Subscription |
+   | Notification | Action | Goes to | Back behaviour |
+   |---|---|---|---|
+   | New friend request | **View request** | Friends | Back returns to Notifications |
+   | Group invite / Group activity | **View group** | Group tab | Lands on the tab; back does not return to Notifications |
+   | Approaching your budget limit | **View budget** | Budget tab | Lands on the tab; back does not return to Notifications |
+   | Bank sync complete | **View transactions** | Expense tab | Lands on the tab; back does not return to Notifications |
+   | Subscription activated | **View plan** | Subscription | Back returns to Notifications |
+
+   The four tab destinations switch tabs rather than stacking a screen, so you
+   stay in the tab bar and the bell is one tap away again. **View request** and
+   **View plan** open on top and swipe back to Notifications.
 
    Tapping the action marks the row read on the way out, so coming back the dot
    is already gone. An unrecognised notification type shows no action.

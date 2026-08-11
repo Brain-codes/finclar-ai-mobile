@@ -10,7 +10,7 @@ import 'friends_limit_sheet.dart';
 
 /// Owner-only flow to add an existing finclar user to a group. Enforces the
 /// [AppConstants.maxGroupMembers] cap, opens the user-search picker excluding
-/// current members, then calls the (planned) add-member endpoint.
+/// current members, then calls the add-member endpoint.
 Future<void> addFriendsToGroup(
   BuildContext context,
   WidgetRef ref,

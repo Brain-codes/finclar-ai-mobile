@@ -6,7 +6,13 @@ class NotificationAction {
   final String label;
   final String route;
 
-  const NotificationAction(this.label, this.route);
+  /// True for the four ShellRoute branches (home/expenses/budget/group). They
+  /// are already mounted in the shell's navigator, so pushing one stacks a
+  /// second page carrying the same `state.pageKey` and trips Navigator's
+  /// duplicate-key assertion. These must switch tabs with `go` instead.
+  final bool isShellTab;
+
+  const NotificationAction(this.label, this.route, {this.isShellTab = false});
 }
 
 /// Where a notification row can send the user. Returns null for types with
@@ -28,16 +34,19 @@ NotificationAction? notificationActionFor(NotificationType type) {
       return const NotificationAction(
         AppStrings.notificationViewGroup,
         RouteNames.group,
+        isShellTab: true,
       );
     case NotificationType.budgetNearLimit:
       return const NotificationAction(
         AppStrings.notificationViewBudget,
         RouteNames.budget,
+        isShellTab: true,
       );
     case NotificationType.bankSyncCompleted:
       return const NotificationAction(
         AppStrings.notificationViewTransactions,
         RouteNames.expenses,
+        isShellTab: true,
       );
     case NotificationType.subscriptionActivated:
       return const NotificationAction(

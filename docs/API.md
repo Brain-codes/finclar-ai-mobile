@@ -28,6 +28,10 @@
 >   `group_invite`, `group_activity`, `bank_sync_completed`, `subscription_activated`) and does
 >   **not** match the app's old ad-hoc `transaction`/`budget`/`group`/`insight`/`system` set.
 >   The client maps unrecognised values to `unknown` rather than throwing.
+> - ✅ **`POST /groups/{group_id}/members` is finally live** (was "planned" since 2026-07).
+>   ⚠️ The body is `AddMemberDto` = `{ "user_id": "<uuid>" }` — **not** the `recipient_id` we
+>   had guessed, so the client was 422-ing rather than 404-ing. Fixed client-side
+>   (`GroupRepository.addMember`).
 >
 > ✅ **2026-08-03:** Diffed against the live spec again. Changes since 2026-08-02:
 > - **New:** Savings Challenges (`/challenges/*`) — weekly savings-streak challenges with
@@ -1069,12 +1073,12 @@ Get a shareable invite link for the group.
 
 ---
 
-#### `POST /groups/{group_id}/members` 🔒 — ⚠️ PLANNED, NOT YET LIVE
-Add an existing finclar user to an existing group (owner only). The added user lands as `invite_status: pending` and must accept via `POST /groups/{group_id}/invite`. Needed so the owner can add friends after group creation — currently members can only be set via `member_ids` at creation. **The mobile client already calls this (`GroupRepository.addMember`); it will 404 until the backend ships it.**
+#### `POST /groups/{group_id}/members` 🔒
+Add an existing finclar user to an existing group (owner only). The added user lands as `invite_status: pending` and must accept via `POST /groups/{group_id}/invite`. This is how the owner adds friends *after* group creation — at creation, members are set via `member_ids`.
 
-**Request body**
+**Request body** (`AddMemberDto`)
 ```json
-{ "recipient_id": "uuid" }
+{ "user_id": "uuid" }
 ```
 
 **Response** `ApiResponse<GroupMemberResponseDto>`
@@ -2021,7 +2025,6 @@ These endpoints are referenced in `ApiEndpoints` but have **not been added to th
 | Endpoint | Feature |
 |---|---|
 | `GET /transactions` | Transaction history |
-| `POST /groups/{group_id}/members` | Add a member to an existing group. **Still not live as of 2026-08-02** — `GroupRepository.addMember` 404s. |
 
 **Asked for, not yet built** (raised 2026-08-06 while working the Trello batch — each one
 caps what the client can ship today):

@@ -106,10 +106,10 @@ class GroupRepository {
 
   // ─── Members ─────────────────────────────────────────────────────────────
 
-  // NOTE: endpoint is planned, not yet live — see docs/API.md. The owner adds
-  // an existing finclar user to the group; they land as invite_status: pending.
-  Future<GroupMemberModel> addMember(String groupId, String recipientId) async {
-    final body = {'recipient_id': recipientId};
+  // The owner adds an existing finclar user to the group; they land as
+  // invite_status: pending until they accept.
+  Future<GroupMemberModel> addMember(String groupId, String userId) async {
+    final body = {'user_id': userId};
     Log.api('POST', ApiEndpoints.groupMembers(groupId), body: body);
     final response = await _api.post<GroupMemberModel>(
       ApiEndpoints.groupMembers(groupId),

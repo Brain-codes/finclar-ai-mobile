@@ -177,6 +177,17 @@ status as approximate — confirm against the code/branch before building on it.
 
 ## Dated log
 
+### 2026-08-11 — Add-friend-to-group was 422-ing (wrong request field)
+
+`POST /groups/{group_id}/members` has been live for a while, but `GroupRepository.addMember`
+was sending `{"recipient_id": ...}` — a guess made back when the endpoint was only planned.
+The live `AddMemberDto` is `{"user_id": "<uuid>"}`, so every add-friend-to-an-existing-group
+attempt failed validation. Fixed the body, renamed the params to `userId`, and dropped the
+stale "planned, not yet live" comments in the repository and `group_add_friends_action.dart`.
+`docs/API.md` was still marking the endpoint PLANNED with the wrong body — corrected, and the
+"not yet built" table entry removed. The UI flow itself was already complete (member-cap
+check → search picker excluding current members → success snackbar), so no flow change.
+
 ### 2026-08-11 — Contact us screen wired up
 
 All Contact us tiles now do something. **Chat with Clara** pushes `RouteNames.clara`;

@@ -201,7 +201,11 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     // Acting on a notification implies reading it — the optimistic update means
     // the badge is already right by the time the next screen paints.
     ref.read(notificationsProvider.notifier).markRead(n.id);
-    context.push(action.route);
+    if (action.isShellTab) {
+      context.go(action.route);
+    } else {
+      context.push(action.route);
+    }
   }
 }
 
