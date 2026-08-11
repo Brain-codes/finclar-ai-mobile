@@ -94,16 +94,33 @@ jobs:
           set -euo pipefail
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > fastlane/firebase-service-account.json
 
-          if [ -n "${ENV_JSON:-}" ]; then
-            printf '%s' "$ENV_JSON" > env.json
-          else
-            echo "::warning::ENV_JSON not set — building without --dart-define values (API keys will be empty)."
+          # env: always defines these, so `-n "${VAR:-}"` only tests definedness —
+          # test the value itself or the empty-secret case slips through silently.
+          if [ -z "$ENV_JSON" ]; then
+            echo "::error::ENV_JSON secret is empty or unset — every --dart-define value (Mono, OpenAI, API base URL) would be blank."
+            exit 1
           fi
+          printf '%s' "$ENV_JSON" > env.json
+
+          # A build that ships without these is installable but broken at runtime:
+          # BankConnectService returns notConfigured and bank linking silently dies.
+          for key in MONO_PUBLIC_KEY OPENAI_API_KEY; do
+            value=$(python3 -c "import json,sys;print(json.load(open('env.json')).get('$key',''))")
+            if [ -z "$value" ]; then
+              echo "::error::env.json is missing a value for $key — update the ENV_JSON secret (gh secret set ENV_JSON < env.json)."
+              exit 1
+            fi
+          done
 
           # Without a keystore the Gradle config falls back to debug signing, which still
           # installs via Firebase but is not a Play-shippable signature.
-          if [ -n "${ANDROID_KEYSTORE_BASE64:-}" ]; then
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
             echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/upload-keystore.jks
+            # The keystore alone is not enough — without the passwords Gradle cannot
+            # open it and quietly falls back to debug signing.
+            if [ -z "$ANDROID_KEYSTORE_PASSWORD" ] || [ -z "$ANDROID_KEY_PASSWORD" ] || [ -z "$ANDROID_KEY_ALIAS" ]; then
+              echo "::warning::Keystore present but ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_PASSWORD / ANDROID_KEY_ALIAS are not all set — this APK will be debug-signed and is not Play-shippable."
+            fi
             {
               printf 'storePassword=%s\n' "$ANDROID_KEYSTORE_PASSWORD"
               printf 'keyPassword=%s\n'   "$ANDROID_KEY_PASSWORD"
