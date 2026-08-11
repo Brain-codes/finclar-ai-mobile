@@ -19,6 +19,7 @@ abstract class AppConstants {
   static const String aiSetupKey = 'ai_setup_complete';
   static const String currencyCodeKey = 'currency_code';
   static const String categoriesKey = 'categories_cache';
+  static const String categoryColorSyncKey = 'category_color_sync_v1';
   static const String goalsSkippedKey = 'goals_skipped';
   static const String goalsCompletedKey = 'goals_completed';
   static const String challengePromptWeekKey = 'challenge_prompt_week';
@@ -70,4 +71,11 @@ abstract class AppConstants {
 
   // Passcode
   static const int passcodeLength = 6;
+
+  // Contact
+  static const String supportEmail = 'Hello@finclarai.com';
+  static const String supportWhatsappNumber = '08118120111';
+  static const String supportWhatsappUrl = 'https://wa.me/2348118120111';
+  static const String websiteUrl = 'https://finclarai.com';
+  static const String instagramUrl = 'https://www.instagram.com/finclarai/';
 }

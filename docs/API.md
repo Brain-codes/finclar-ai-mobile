@@ -20,6 +20,15 @@
 > - `clara_insight` added to `ExpenseResponseDto` and `BudgetResponseDto`.
 > - `POST /groups/{group_id}/members` is **still not live** (client still 404s on it).
 >
+> ✅ **2026-08-11:** Diffed against the live spec again (81 paths, was 77). Changes since 2026-08-03:
+> - **New:** In-app notification feed — `GET /notifications`, `GET /notifications/unread-count`,
+>   `PUT /notifications/read-all`, `PUT /notifications/{id}/read`. Wired into the app; the
+>   notifications screen no longer serves mock data.
+> - ⚠️ `NotificationType` is a **fixed server enum** (`budget_near_limit`, `friend_invite`,
+>   `group_invite`, `group_activity`, `bank_sync_completed`, `subscription_activated`) and does
+>   **not** match the app's old ad-hoc `transaction`/`budget`/`group`/`insight`/`system` set.
+>   The client maps unrecognised values to `unknown` rather than throwing.
+>
 > ✅ **2026-08-03:** Diffed against the live spec again. Changes since 2026-08-02:
 > - **New:** Savings Challenges (`/challenges/*`) — weekly savings-streak challenges with
 >   entries, badges, and a badge catalog. Not wired into the app yet.
@@ -441,9 +450,20 @@ Create a custom category.
 {
   "name": "Gym",
   "description": "Fitness and gym memberships",  // optional
-  "icon": "health"                                // optional — use keys from categoryPickerIcons
+  "icon": "health_line::#E63946"                  // optional — "iconKey" or "iconKey::#RRGGBB"
 }
 ```
+
+`icon` is a single opaque string column with no enum/format enforced by the
+client beyond what it sends. The app now packs an icon key from
+`categoryPickerIcons` together with a user-picked color as
+`iconKey::#RRGGBB` (mirrors the `profile_icon` encoding used for avatars) so
+each custom category gets a distinct color instead of colliding with others.
+Older rows that only ever stored a bare icon key (or nothing) still decode
+fine — see `decodeCategoryIcon` in `expense_category_utils.dart`. ⚠️ Not
+verified against backend validation — if `icon` is whitelisted server-side to
+exactly the `categoryPickerIcons` keys, the `::#RRGGBB` suffix will be
+rejected on create; confirm with backend before relying on this.
 
 **Response** `ApiResponse<CategoryDto>`
 
@@ -1420,10 +1440,64 @@ List badges the current user has earned.
 
 ---
 
+### Notifications (In-App Feed)
+
+> **New — live as of 2026-08-11.** Backs the notifications screen.
+
+#### `GET /notifications` 🔒
+Paginated notification feed, newest first.
+
+**Query params:** `unread_only` (bool, default `false`), `page` (default `1`),
+`page_size` (default `20`).
+
+**Response** `PaginatedResponse<NotificationResponseDto>`
+
+---
+
+#### `GET /notifications/unread-count` 🔒
+Unread badge count.
+
+**Response** `ApiResponse<{ "count": int }>`
+
+---
+
+#### `PUT /notifications/{notification_id}/read` 🔒
+Mark one notification read.
+
+**Response** `ApiResponse<NotificationResponseDto>`
+
+---
+
+#### `PUT /notifications/read-all` 🔒
+Mark every unread notification read.
+
+**Response** `ApiResponse<null>`
+
+---
+
+#### `NotificationResponseDto`
+```json
+{
+  "id": "uuid",
+  "type": "budget_near_limit",
+  "title": "...",
+  "body": "...",
+  "data": { },
+  "is_read": false,
+  "read_at": null,
+  "created_at": "2026-08-11T09:00:00Z"
+}
+```
+`type` (`NotificationType` enum): `budget_near_limit` | `friend_invite` | `group_invite` |
+`group_activity` | `bank_sync_completed` | `subscription_activated`.
+`data` is a freeform deep-link payload whose shape varies per `type`.
+
+---
+
 ### Push Notifications (Device Tokens)
 
-> **New — live as of 2026-08-03.** This is what `NotificationService._registerToken` (marked
-> as a stub in earlier sessions) should now call.
+> **Live as of 2026-08-03.** Fully wired — `NotificationService._registerToken` calls this on
+> startup and again after login; `POST /auth/logout` carries the `device_token` to unregister.
 
 #### `GET /notifications/device-tokens` 🔒
 List the current user's registered device tokens.
@@ -1970,8 +2044,10 @@ Both previously-blocking requests shipped on 2026-08-03 — see below.
 > takes an optional `receipt` in its multipart body. `evidence_suggested` is no longer
 > display-only.
 
-> ✅ **Device-token registration is now live** (2026-08-03) — `/notifications/device-tokens`.
-> `NotificationService._registerToken` can be wired up; no longer a blocker.
+> ✅ **Device-token registration is live and wired** (2026-08-03) — `/notifications/device-tokens`.
+
+> ✅ **The in-app notification feed is live and wired** (2026-08-11) — `GET /notifications`
+> and friends. The notifications screen no longer serves mock data.
 
 > ✅ **Subscriptions are live** (2026-07-20) — under `/subscriptions/*`, not the
 > previously guessed `/subscription/*`. See the Subscriptions section above.

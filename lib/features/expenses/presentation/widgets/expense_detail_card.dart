@@ -1,21 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../data/models/expense_model.dart';
+import '../../providers/category_color_sync_provider.dart';
 import 'expense_category_utils.dart';
 import 'expense_verification_badge.dart';
 
-class ExpenseDetailCard extends StatelessWidget {
+class ExpenseDetailCard extends ConsumerWidget {
   final ExpenseModel expense;
   const ExpenseDetailCard({super.key, required this.expense});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final formatted = NumberFormat('#,##0.00').format(expense.amount);
-    final categoryColor = expenseCategoryColor(expense.category);
+    final categoryColor = categoryVisualFor(
+      name: expense.category,
+      categoryId: expense.categoryId,
+      categoriesById: ref.watch(categoriesByIdProvider),
+      syncedColors: ref.watch(categoryColorSyncProvider).valueOrNull,
+    ).color;
 
     return Container(
       decoration: BoxDecoration(

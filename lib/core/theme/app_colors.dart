@@ -114,6 +114,47 @@ abstract class AppColors {
   static const Color categoryUtilitiesBg     = Color(0xFFE6F4F4);   // light
   static const Color categoryUtilitiesBgDark = Color(0xFF002B2B);   // dark
 
+  /// Fallback palette for categories with no dedicated brand color above
+  /// (i.e. every user-created category, and any default beyond the 5 named
+  /// ones). 30 hues spread around the color wheel, deliberately clear of the
+  /// 5 branded colors above so a custom category never visually collides with
+  /// Food/Transport/Health/Shopping/Utilities. Assignment is deterministic
+  /// per category name — see `expenseCategoryColor` in expense_category_utils.
+  /// Background chips are derived from these at 12% alpha rather than hand
+  /// picked, so this list is the only thing to extend if more are needed.
+  static const List<Color> categoryPalette = [
+    Color(0xFFE63946), // red
+    Color(0xFF2A9D8F), // jade
+    Color(0xFFE9A319), // gold
+    Color(0xFF6D597A), // plum
+    Color(0xFF1D8A99), // deep cyan
+    Color(0xFFB56576), // dusty rose
+    Color(0xFF43AA8B), // sea green
+    Color(0xFFC44536), // rust
+    Color(0xFF5E60CE), // indigo
+    Color(0xFFF3722C), // tangerine
+    Color(0xFF277DA1), // steel blue
+    Color(0xFF9C6644), // walnut
+    Color(0xFF90BE6D), // moss
+    Color(0xFFD62828), // crimson
+    Color(0xFF4D908E), // slate teal
+    Color(0xFFCB997E), // clay
+    Color(0xFF577590), // denim
+    Color(0xFFF9844A), // coral orange
+    Color(0xFF7209B7), // violet
+    Color(0xFF06A77D), // emerald
+    Color(0xFFB5838D), // mauve
+    Color(0xFF3A86FF), // azure
+    Color(0xFF8D6A9F), // heather
+    Color(0xFF457B9D), // ocean blue
+    Color(0xFFE85D75), // watermelon
+    Color(0xFF386641), // forest
+    Color(0xFFBC6C25), // amber brown
+    Color(0xFF6A4C93), // grape
+    Color(0xFF2B9348), // pine
+    Color(0xFFAE2012), // brick
+  ];
+
   // ─── Settings icon circle colors (same in both modes) ───────────────────────
   static const Color settingsRed   = Color(0xFF9A2329);
   static const Color settingsCoral = Color(0xFFE55959);

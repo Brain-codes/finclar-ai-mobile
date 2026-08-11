@@ -44,7 +44,10 @@ class ClaraMessageModel {
   /// Converts one backend `ClaraMessageDto` (`{role, content, data, created_at}`)
   /// into 1–2 UI messages: a text bubble for `content`, plus an insight card when
   /// an assistant message carries a structured `data` (expense summary) payload.
-  static List<ClaraMessageModel> listFromBackend(Map<String, dynamic> json) {
+  static List<ClaraMessageModel> listFromBackend(
+    Map<String, dynamic> json, {
+    String? precedingUserText,
+  }) {
     final role =
         json["role"] == "user" ? ClaraRole.user : ClaraRole.assistant;
     final content = (json["content"] as String?)?.trim() ?? '';
@@ -65,7 +68,11 @@ class ClaraMessageModel {
 
     final data = json["data"];
     if (role == ClaraRole.assistant && data is Map<String, dynamic>) {
-      final insight = ClaraInsightModel.fromSummary(data);
+      final insight = ClaraInsightModel.fromSummary(
+        data,
+        questionText: precedingUserText,
+        replyText: content,
+      );
       if (insight != null) {
         result.add(ClaraMessageModel(
           id: '${baseId}_i',
@@ -105,8 +112,20 @@ class ClaraMessageModel {
       };
 }
 
+enum ClaraInsightKind { incomeExpense, categoryBreakdown }
+
+/// Keywords that signal the user asked for a per-category spending breakdown
+/// rather than the default income vs expense trend. Checked against both the
+/// user's question and Clara's own reply, since history rows only carry the
+/// latter.
+final _categoryBreakdownPattern = RegExp(
+  r'categor|breakdown|where.*(money|spending).*(going|go)|which.*(category|categories)',
+  caseSensitive: false,
+);
+
 class ClaraInsightModel {
   final String title;
+  final ClaraInsightKind kind;
   final double income;
   final double expense;
 
@@ -114,33 +133,74 @@ class ClaraInsightModel {
   /// the home screen's Income & Expense section.
   final List<ClaraTrendPoint> trend;
 
+  /// Per-category spend breakdown — rendered as a horizontal bar list when
+  /// [kind] is [ClaraInsightKind.categoryBreakdown].
+  final List<ClaraCategorySlice> categories;
+
   ClaraInsightModel({
     required this.title,
-    required this.income,
-    required this.expense,
-    required this.trend,
+    this.kind = ClaraInsightKind.incomeExpense,
+    this.income = 0,
+    this.expense = 0,
+    this.trend = const [],
+    this.categories = const [],
   });
 
   factory ClaraInsightModel.fromJson(Map<String, dynamic> json) =>
       ClaraInsightModel(
         title: json["title"] ?? "Income and expense",
+        kind: json["kind"] == "categoryBreakdown"
+            ? ClaraInsightKind.categoryBreakdown
+            : ClaraInsightKind.incomeExpense,
         income: (json["income"] ?? 0).toDouble(),
         expense: (json["expense"] ?? 0).toDouble(),
         trend: json["trend"] != null
             ? List<ClaraTrendPoint>.from(
                 json["trend"].map((x) => ClaraTrendPoint.fromJson(x)))
             : [],
+        categories: json["categories"] != null
+            ? List<ClaraCategorySlice>.from(
+                json["categories"].map((x) => ClaraCategorySlice.fromJson(x)))
+            : [],
       );
 
   /// Builds the chart card from the backend's `ExpenseSummaryDto` payload
   /// (the `data` field on an assistant message). Returns null when the payload
-  /// isn't a usable summary. Uses the `income_expense_trend` (month → income,
-  /// expense) so the chart matches the home dashboard.
-  static ClaraInsightModel? fromSummary(Map<String, dynamic> summary) {
+  /// isn't a usable summary.
+  ///
+  /// The payload always carries both `categories` and `income_expense_trend` —
+  /// the backend doesn't say which the user wanted, so we infer it from what
+  /// was actually asked ([questionText], falling back to Clara's own
+  /// [replyText] for history rows where the question isn't in scope).
+  static ClaraInsightModel? fromSummary(
+    Map<String, dynamic> summary, {
+    String? questionText,
+    String? replyText,
+  }) {
     if (!summary.containsKey("total_expense") &&
         !summary.containsKey("monthly_income")) {
       return null;
     }
+
+    final categoriesRaw = (summary["categories"] as List?) ?? const [];
+    final categories = categoriesRaw
+        .whereType<Map<String, dynamic>>()
+        .map((c) => ClaraCategorySlice.fromJson(c))
+        .toList();
+
+    final wantsBreakdown = categories.isNotEmpty &&
+        (_categoryBreakdownPattern.hasMatch(questionText ?? '') ||
+            _categoryBreakdownPattern.hasMatch(replyText ?? ''));
+
+    if (wantsBreakdown) {
+      return ClaraInsightModel(
+        title: (summary["month_label"] ?? "Spending by category").toString(),
+        kind: ClaraInsightKind.categoryBreakdown,
+        expense: _num(summary["total_expense"]),
+        categories: categories,
+      );
+    }
+
     final raw = (summary["income_expense_trend"] as List?) ?? const [];
     final trend = raw
         .whereType<Map<String, dynamic>>()
@@ -152,6 +212,7 @@ class ClaraInsightModel {
         .toList();
     return ClaraInsightModel(
       title: (summary["month_label"] ?? "Income and expense").toString(),
+      kind: ClaraInsightKind.incomeExpense,
       income: _num(summary["monthly_income"]),
       expense: _num(summary["total_expense"]),
       trend: trend,
@@ -166,9 +227,44 @@ class ClaraInsightModel {
 
   Map<String, dynamic> toJson() => {
         "title": title,
+        "kind": kind == ClaraInsightKind.categoryBreakdown
+            ? "categoryBreakdown"
+            : "incomeExpense",
         "income": income,
         "expense": expense,
         "trend": List<dynamic>.from(trend.map((x) => x.toJson())),
+        "categories": List<dynamic>.from(categories.map((x) => x.toJson())),
+      };
+}
+
+class ClaraCategorySlice {
+  final String name;
+  final double amount;
+  final double pctOfTotal;
+  final int transactionCount;
+
+  const ClaraCategorySlice({
+    required this.name,
+    required this.amount,
+    required this.pctOfTotal,
+    this.transactionCount = 0,
+  });
+
+  factory ClaraCategorySlice.fromJson(Map<String, dynamic> json) =>
+      ClaraCategorySlice(
+        name: (json["name"] ?? '').toString(),
+        amount: ClaraInsightModel._num(json["amount"]),
+        pctOfTotal: ClaraInsightModel._num(json["pct_of_total"]),
+        transactionCount: (json["transaction_count"] ?? 0) is int
+            ? json["transaction_count"] ?? 0
+            : int.tryParse(json["transaction_count"].toString()) ?? 0,
+      );
+
+  Map<String, dynamic> toJson() => {
+        "name": name,
+        "amount": amount,
+        "pct_of_total": pctOfTotal,
+        "transaction_count": transactionCount,
       };
 }
 
