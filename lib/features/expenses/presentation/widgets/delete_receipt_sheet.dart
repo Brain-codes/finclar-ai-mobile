@@ -43,7 +43,7 @@ class _DeleteReceiptContent extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.sm),
         Text(
-          'Your receipt details will be cleared. The data can not be recovered',
+          'This expense and all its items will be cleared. The data can not be recovered',
           textAlign: TextAlign.center,
           style: AppTypography.bodyMedium.copyWith(
             color: context.textTertiary,

@@ -18,10 +18,21 @@ enum NotificationCategory {
   unknown;
 
   static NotificationCategory fromData(Map<String, dynamic> data) {
+    // The first group in each arm is the canonical `NotificationType` the
+    // backend now sends; the rest are legacy payload spellings kept alive so
+    // pushes queued before the enum landed still classify.
     return switch (data['category'] ?? data['type']) {
-      'transaction' || 'transaction_alert' => transaction,
-      'budget' || 'budget_limit' || 'budget_warning' => budget,
-      'group' || 'group_activity' => group,
+      'bank_sync_completed' ||
+      'transaction' ||
+      'transaction_alert' => transaction,
+      'budget_near_limit' ||
+      'budget' ||
+      'budget_limit' ||
+      'budget_warning' => budget,
+      'group_invite' ||
+      'friend_invite' ||
+      'group' ||
+      'group_activity' => group,
       'ai' || 'ai_insight' || 'insight' => aiInsight,
       'challenge' ||
       'challenge_reminder' ||

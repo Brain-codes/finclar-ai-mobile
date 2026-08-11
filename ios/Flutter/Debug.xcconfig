@@ -1,2 +1,11 @@
 #include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"
 #include "Generated.xcconfig"
+
+// Which entitlements file the Runner target signs with. The default is the real
+// one. A developer on a free personal Apple team can point this at the reduced
+// file by creating ios/Flutter/LocalOverrides.xcconfig (untracked) containing:
+//   RUNNER_ENTITLEMENTS = Runner/RunnerPersonalTeam.entitlements
+// Later assignment wins, so the optional include below overrides this default.
+RUNNER_ENTITLEMENTS = Runner/Runner.entitlements
+
+#include? "LocalOverrides.xcconfig"

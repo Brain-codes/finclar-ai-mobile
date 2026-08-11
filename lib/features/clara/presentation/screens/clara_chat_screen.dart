@@ -219,12 +219,16 @@ class _ClaraTopBar extends StatelessWidget {
               Container(
                 width: 28,
                 height: 28,
-                decoration: const BoxDecoration(
-                  gradient: AppColors.claraGradient,
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  color: AppColors.white,
                   shape: BoxShape.circle,
+                  border: Border.all(color: context.borderColor),
                 ),
-                child:
-                    const Icon(AppIcons.aiFill, size: 15, color: AppColors.white),
+                child: Image.asset(
+                  'assets/images/clara-chat-dp.png',
+                  fit: BoxFit.cover,
+                ),
               ),
               const SizedBox(width: AppSpacing.sm),
               Text(

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../app/routes/route_names.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -8,6 +10,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../shared/icons/app_icons.dart';
 import '../widgets/contact_option_tile.dart';
+import '../../../../shared/widgets/app_snackbar.dart';
 import '../../../../shared/widgets/app_top_bar.dart';
 
 class ContactUsScreen extends StatelessWidget {
@@ -33,10 +36,31 @@ class ContactUsScreen extends StatelessWidget {
                     _HelpCard(),
                     const SizedBox(height: AppSpacing.base),
                     _ContactOptionsCard(
+                      onClara: () => context.push(RouteNames.clara),
+                      onEmail: () => _launch(
+                        context,
+                        Uri(
+                          scheme: 'mailto',
+                          path: AppConstants.supportEmail,
+                        ),
+                      ),
+                      onWhatsapp: () => _launch(
+                        context,
+                        Uri.parse(AppConstants.supportWhatsappUrl),
+                      ),
+                      onWebsite: () => _launch(
+                        context,
+                        Uri.parse(AppConstants.websiteUrl),
+                      ),
                       onMessage: () => context.push(RouteNames.settingsMessage),
                     ),
                     const SizedBox(height: AppSpacing.base),
-                    _FindUsOnlineCard(),
+                    _FindUsOnlineCard(
+                      onInstagram: () => _launch(
+                        context,
+                        Uri.parse(AppConstants.instagramUrl),
+                      ),
+                    ),
                     const SizedBox(height: AppSpacing.xxl),
                   ],
                 ),
@@ -46,6 +70,13 @@ class ContactUsScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _launch(BuildContext context, Uri uri) async {
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened && context.mounted) {
+      AppSnackbar.error(context, "Couldn't open ${uri.toString()}");
+    }
   }
 }
 
@@ -105,8 +136,18 @@ class _HelpCard extends StatelessWidget {
 }
 
 class _ContactOptionsCard extends StatelessWidget {
+  final VoidCallback onClara;
+  final VoidCallback onEmail;
+  final VoidCallback onWhatsapp;
+  final VoidCallback onWebsite;
   final VoidCallback onMessage;
-  const _ContactOptionsCard({required this.onMessage});
+  const _ContactOptionsCard({
+    required this.onClara,
+    required this.onEmail,
+    required this.onWhatsapp,
+    required this.onWebsite,
+    required this.onMessage,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -124,23 +165,31 @@ class _ContactOptionsCard extends StatelessWidget {
             iconBg: AppColors.primary,
             title: 'Chat with Clara',
             subtitle: 'Get instant help from our AI assistant',
-            onTap: () {},
+            onTap: onClara,
           ),
           Divider(height: 1, thickness: 1, color: context.borderColor),
           ContactOptionTile(
             icon: AppIcons.email,
             iconBg: AppColors.categoryTransport,
             title: 'Email',
-            subtitle: "We'll respond within 24 hours",
-            onTap: () {},
+            subtitle: AppConstants.supportEmail,
+            onTap: onEmail,
           ),
           Divider(height: 1, thickness: 1, color: context.borderColor),
           ContactOptionTile(
             icon: AppIcons.whatsapp,
             iconBg: AppColors.success,
             title: 'Whatsapp',
-            subtitle: 'Get help from our team on Whatsapp',
-            onTap: () {},
+            subtitle: AppConstants.supportWhatsappNumber,
+            onTap: onWhatsapp,
+          ),
+          Divider(height: 1, thickness: 1, color: context.borderColor),
+          ContactOptionTile(
+            icon: AppIcons.link,
+            iconBg: AppColors.categoryShopping,
+            title: 'Website',
+            subtitle: 'finclarai.com',
+            onTap: onWebsite,
           ),
           Divider(height: 1, thickness: 1, color: context.borderColor),
           ContactOptionTile(
@@ -157,6 +206,9 @@ class _ContactOptionsCard extends StatelessWidget {
 }
 
 class _FindUsOnlineCard extends StatelessWidget {
+  final VoidCallback onInstagram;
+  const _FindUsOnlineCard({required this.onInstagram});
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -183,18 +235,9 @@ class _FindUsOnlineCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _SocialIcon(
-                icon: AppIcons.youtube,
-                bg: const Color.fromARGB(0, 255, 0, 0),
-              ),
-              const SizedBox(width: AppSpacing.xl),
-              _SocialIcon(
                 icon: AppIcons.instagram,
                 bg: const Color.fromARGB(0, 229, 89, 89),
-              ),
-              const SizedBox(width: AppSpacing.xl),
-              _SocialIcon(
-                icon: AppIcons.twitter,
-                bg: const Color.fromARGB(0, 0, 0, 0),
+                onTap: onInstagram,
               ),
             ],
           ),
@@ -207,15 +250,20 @@ class _FindUsOnlineCard extends StatelessWidget {
 class _SocialIcon extends StatelessWidget {
   final IconData icon;
   final Color bg;
-  const _SocialIcon({required this.icon, required this.bg});
+  final VoidCallback onTap;
+  const _SocialIcon({required this.icon, required this.bg, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 44,
-      height: 44,
-      decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
-      child: Icon(icon, size: 20, color: context.textPrimary),
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
+        child: Icon(icon, size: 20, color: context.textPrimary),
+      ),
     );
   }
 }

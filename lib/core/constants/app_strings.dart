@@ -181,6 +181,12 @@ abstract class AppStrings {
       "You're all caught up. We'll let you know when there's something new.";
   static const String notificationsToday = 'Today';
   static const String notificationsEarlier = 'Earlier';
+  static const String notificationMarkRead = 'Mark as read';
+  static const String notificationViewRequest = 'View request';
+  static const String notificationViewGroup = 'View group';
+  static const String notificationViewBudget = 'View budget';
+  static const String notificationViewTransactions = 'View transactions';
+  static const String notificationViewPlan = 'View plan';
   static const String security = 'Security';
   static const String appearance = 'Appearance';
   static const String darkMode = 'Dark Mode';

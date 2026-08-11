@@ -18,6 +18,9 @@ Future<T?> showAppSheet<T>(
   bool showClose = true,
   // Fraction of screen height, e.g. 0.7 = 70%. Null = wrap content.
   double? heightFactor,
+  // Pinned below the scrollable content — for action rows that must stay
+  // reachable without scrolling to the bottom of a long sheet.
+  Widget? footer,
 }) {
   return showModalBottomSheet<T>(
     context: context,
@@ -32,6 +35,7 @@ Future<T?> showAppSheet<T>(
       avoidKeyboard: avoidKeyboard,
       heightFactor: heightFactor,
       showClose: showClose,
+      footer: footer,
       children: children,
     ),
   );
@@ -43,6 +47,7 @@ class AppSheet extends StatelessWidget {
   final bool avoidKeyboard;
   final bool showClose;
   final double? heightFactor;
+  final Widget? footer;
 
   const AppSheet({
     super.key,
@@ -51,6 +56,7 @@ class AppSheet extends StatelessWidget {
     this.avoidKeyboard = false,
     this.showClose = true,
     this.heightFactor,
+    this.footer,
   });
 
   @override
@@ -73,54 +79,38 @@ class AppSheet extends StatelessWidget {
       AppSpacing.xxxl + keyboardHeight,
     );
 
+    final body = Column(
+      mainAxisSize: heightFactor != null ? MainAxisSize.max : MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        header,
+        const SizedBox(height: AppSpacing.xl),
+        Flexible(
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: children,
+            ),
+          ),
+        ),
+        if (footer != null) ...[
+          const SizedBox(height: AppSpacing.base),
+          footer!,
+        ],
+      ],
+    );
+
     if (heightFactor != null) {
       return SizedBox(
         height: screenHeight * heightFactor!,
-        child: Padding(
-          padding: basePadding,
-          child: Column(
-            mainAxisSize: MainAxisSize.max,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              header,
-              const SizedBox(height: AppSpacing.xl),
-              Flexible(
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: children,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+        child: Padding(padding: basePadding, child: body),
       );
     }
 
     return ConstrainedBox(
       constraints: BoxConstraints(maxHeight: screenHeight * 0.9),
-      child: Padding(
-        padding: basePadding,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            header,
-            const SizedBox(height: AppSpacing.xl),
-            Flexible(
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: children,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+      child: Padding(padding: basePadding, child: body),
     );
   }
 }

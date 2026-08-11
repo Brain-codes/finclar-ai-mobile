@@ -3,7 +3,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
-import '../../../../shared/icons/app_icons.dart';
 
 class ClaraEmptyState extends StatelessWidget {
   const ClaraEmptyState({super.key});
@@ -15,13 +14,18 @@ class ClaraEmptyState extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 56,
-            height: 56,
-            decoration: const BoxDecoration(
-              gradient: AppColors.claraGradient,
+            width: 96,
+            height: 96,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: AppColors.white,
               shape: BoxShape.circle,
+              border: Border.all(color: context.borderColor),
             ),
-            child: const Icon(AppIcons.aiFill, color: AppColors.white, size: 26),
+            child: Image.asset(
+              'assets/images/clara-chat-dp.png',
+              fit: BoxFit.cover,
+            ),
           ),
           const SizedBox(height: AppSpacing.base),
           Text(

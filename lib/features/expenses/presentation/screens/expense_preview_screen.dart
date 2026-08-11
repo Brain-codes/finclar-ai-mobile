@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/errors/app_exceptions.dart';
+import '../../../../core/services/logger_service.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../shared/widgets/app_loading_overlay.dart';
@@ -48,10 +49,14 @@ class _ExpensePreviewScreenState extends ConsumerState<ExpensePreviewScreen> {
         AppSnackbar.success(context, 'Expense deleted');
         context.pop();
       }
-    } on AppException catch (e) {
+    } catch (e, st) {
+      Log.e('[ExpensePreview] Failed to delete expense', error: e, stackTrace: st);
       if (mounted) {
         setState(() => _isDeleting = false);
-        AppSnackbar.error(context, e.message);
+        AppSnackbar.error(
+          context,
+          e is AppException ? e.message : 'Could not delete expense',
+        );
       }
     }
   }

@@ -6,8 +6,11 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../shared/icons/app_icons.dart';
 import '../../../../shared/widgets/app_skeleton.dart';
+import '../../data/models/expense_filter.dart';
 import '../../providers/expense_providers.dart';
+import '../widgets/expense_active_filters.dart';
 import '../widgets/expense_empty_state.dart';
+import '../widgets/expense_filter_sheet.dart';
 import '../widgets/expense_header.dart';
 import '../widgets/expense_list.dart';
 import '../widgets/expense_summary_card.dart';
@@ -50,9 +53,19 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
     }
   }
 
+  Future<void> _openFilters(ExpenseFilter current) async {
+    final result = await showExpenseFilterSheet(context, current: current);
+    if (result != null) _applyFilter(result);
+  }
+
+  void _applyFilter(ExpenseFilter filter) {
+    ref.read(expenseListProvider.notifier).setFilter(filter);
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(expenseListProvider);
+    final filter = ref.watch(expenseFilterProvider);
 
     return Scaffold(
       backgroundColor: context.scaffoldColor,
@@ -63,7 +76,20 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
             controller: _scrollController,
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
-              SliverToBoxAdapter(child: ExpenseHeader(onFilter: () {})),
+              SliverToBoxAdapter(
+                child: ExpenseHeader(
+                  onFilter: () => _openFilters(filter),
+                  activeFilterCount: filter.activeCount,
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: ExpenseActiveFilters(
+                  filter: filter,
+                  onChanged: _applyFilter,
+                  onClearAll: () =>
+                      ref.read(expenseListProvider.notifier).clearFilter(),
+                ),
+              ),
               ...state.when(
                 loading: () => [
                   const SliverToBoxAdapter(child: _ExpensesSkeleton()),
@@ -77,7 +103,7 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                     ),
                   ),
                 ],
-                data: (data) => _buildContent(data),
+                data: (data) => _buildContent(data, filter),
               ),
               const SliverToBoxAdapter(child: SizedBox(height: 100)),
             ],
@@ -87,12 +113,29 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
     );
   }
 
-  List<Widget> _buildContent(ExpenseListState data) {
+  List<Widget> _buildContent(ExpenseListState data, ExpenseFilter filter) {
     if (data.isEmpty) {
       return [
-        const SliverFillRemaining(
+        // The month picker lives on the summary card, so it has to stay
+        // reachable when a filter empties the list — otherwise the only way
+        // out is clearing the filter.
+        if (filter.isActive)
+          SliverToBoxAdapter(
+            child: ExpenseSummaryCard(
+              total: 0,
+              expenses: const [],
+              selectedMonth: data.month,
+              periodLabel: filter.hasDateRange ? filter.dateLabel : null,
+              onMonthTap: () => _pickMonth(data.month),
+            ),
+          ),
+        SliverFillRemaining(
           hasScrollBody: false,
-          child: ExpenseEmptyState(),
+          child: ExpenseEmptyState(
+            onClearFilters: filter.isActive
+                ? () => ref.read(expenseListProvider.notifier).clearFilter()
+                : null,
+          ),
         ),
       ];
     }
@@ -102,6 +145,7 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
           total: data.total,
           expenses: data.items,
           selectedMonth: data.month,
+          periodLabel: filter.hasDateRange ? filter.dateLabel : null,
           onMonthTap: () => _pickMonth(data.month),
         ),
       ),

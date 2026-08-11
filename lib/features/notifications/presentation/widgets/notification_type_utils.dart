@@ -6,45 +6,52 @@ import '../../data/models/notification_model.dart';
 
 IconData notificationIcon(NotificationType type) {
   switch (type) {
-    case NotificationType.transaction:
-      return AppIcons.transfer;
-    case NotificationType.budget:
+    case NotificationType.budgetNearLimit:
       return AppIcons.budget;
-    case NotificationType.group:
+    case NotificationType.friendInvite:
+      return AppIcons.addUser;
+    case NotificationType.groupInvite:
+    case NotificationType.groupActivity:
       return AppIcons.group;
-    case NotificationType.insight:
-      return AppIcons.ai;
-    case NotificationType.system:
+    case NotificationType.bankSyncCompleted:
+      return AppIcons.bank;
+    case NotificationType.subscriptionActivated:
+      return AppIcons.crown;
+    case NotificationType.unknown:
       return AppIcons.info;
   }
 }
 
 Color notificationColor(NotificationType type) {
   switch (type) {
-    case NotificationType.transaction:
-      return AppColors.primary;
-    case NotificationType.budget:
+    case NotificationType.budgetNearLimit:
       return AppColors.warning;
-    case NotificationType.group:
+    case NotificationType.friendInvite:
+    case NotificationType.groupInvite:
+    case NotificationType.groupActivity:
       return AppColors.info;
-    case NotificationType.insight:
+    case NotificationType.bankSyncCompleted:
       return AppColors.success;
-    case NotificationType.system:
+    case NotificationType.subscriptionActivated:
+      return AppColors.primary;
+    case NotificationType.unknown:
       return AppColors.info;
   }
 }
 
 Color notificationBgColor(BuildContext context, NotificationType type) {
   switch (type) {
-    case NotificationType.transaction:
-      return context.primaryMuted;
-    case NotificationType.budget:
+    case NotificationType.budgetNearLimit:
       return context.warningBg;
-    case NotificationType.group:
+    case NotificationType.friendInvite:
+    case NotificationType.groupInvite:
+    case NotificationType.groupActivity:
       return context.infoBg;
-    case NotificationType.insight:
+    case NotificationType.bankSyncCompleted:
       return context.successBg;
-    case NotificationType.system:
+    case NotificationType.subscriptionActivated:
+      return context.primaryMuted;
+    case NotificationType.unknown:
       return context.infoBg;
   }
 }

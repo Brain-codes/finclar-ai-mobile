@@ -129,6 +129,11 @@ abstract class AppIcons {
   static const IconData categoryTravel = Remix.plane_line;
   static const IconData categoryOther = Remix.more_2_line;
   static const IconData categoryUtilities = Remix.flashlight_line;
+  static const IconData categoryEducation = Remix.book_line;
+  static const IconData categoryInvestment = Remix.line_chart_line;
+  static const IconData categorySavings = Remix.safe_2_line;
+  static const IconData categoryRent = Remix.home_line;
+  static const IconData categoryGrid = Remix.grid_line;
 
   // Gamification
   static const IconData flame   = Remix.fire_line;

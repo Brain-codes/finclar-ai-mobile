@@ -13,17 +13,23 @@ class ExpenseSummaryCard extends StatelessWidget {
   final int selectedMonth;
   final VoidCallback onMonthTap;
 
+  /// Set when a custom date range is filtering the list — the pill would
+  /// otherwise name a month the totals below it don't belong to.
+  final String? periodLabel;
+
   const ExpenseSummaryCard({
     super.key,
     required this.total,
     required this.expenses,
     required this.selectedMonth,
     required this.onMonthTap,
+    this.periodLabel,
   });
 
   @override
   Widget build(BuildContext context) {
-    final monthName = DateFormat('MMMM').format(DateTime(0, selectedMonth));
+    final monthName =
+        periodLabel ?? DateFormat('MMMM').format(DateTime(0, selectedMonth));
     final formatted = NumberFormat('#,##0.00').format(total);
 
     return Padding(

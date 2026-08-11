@@ -3,6 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/errors/app_exceptions.dart';
 import '../../../../core/services/logger_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_radius.dart';
@@ -12,6 +13,7 @@ import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../shared/icons/app_icons.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_image_preview.dart';
+import '../../../../shared/widgets/app_loading_overlay.dart';
 import '../../../../shared/widgets/app_skeleton.dart';
 import '../../../../shared/widgets/app_snackbar.dart';
 import '../../../gamification/presentation/widgets/streak_card_modal.dart';
@@ -38,6 +40,7 @@ class _ScannedExpenseScreenState extends ConsumerState<ScannedExpenseScreen> {
   late double _originalTotal;
   late Map<String, ScannedItemModel> _originalItems;
   bool _isSaving = false;
+  bool _isDeleting = false;
 
   @override
   void initState() {
@@ -131,7 +134,29 @@ class _ScannedExpenseScreenState extends ConsumerState<ScannedExpenseScreen> {
 
   Future<void> _onDelete() async {
     final confirmed = await showDeleteReceiptSheet(context);
-    if (confirmed == true && mounted) context.pop();
+    if (confirmed != true || !mounted) return;
+
+    final expenseId = _receipt.expenseId;
+    if (expenseId == null) {
+      context.pop();
+      return;
+    }
+
+    setState(() => _isDeleting = true);
+    try {
+      await ref.read(expenseListProvider.notifier).delete(expenseId);
+      if (!mounted) return;
+      AppSnackbar.success(context, 'Expense deleted');
+      context.pop();
+    } catch (e, st) {
+      Log.e('[ScannedExpense] Failed to delete expense', error: e, stackTrace: st);
+      if (!mounted) return;
+      setState(() => _isDeleting = false);
+      AppSnackbar.error(
+        context,
+        e is AppException ? e.message : 'Could not delete expense',
+      );
+    }
   }
 
   Future<void> _onSave() async {
@@ -198,41 +223,46 @@ class _ScannedExpenseScreenState extends ConsumerState<ScannedExpenseScreen> {
 
     return Scaffold(
       backgroundColor: context.scaffoldColor,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            _ScannedTopBar(
-              title: _receipt.merchantName,
-              onBack: () => context.pop(),
-              onEdit: _receipt.sourceExpense != null ? _onEditExpense : null,
-              onDelete: _onDelete,
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.screenPadding,
+      body: Stack(
+        children: [
+          SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                _ScannedTopBar(
+                  title: _receipt.merchantName,
+                  onBack: () => context.pop(),
+                  onEdit: _receipt.sourceExpense != null ? _onEditExpense : null,
+                  onDelete: _onDelete,
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: AppSpacing.md),
-                    _SummaryCard(total: _total),
-                    const SizedBox(height: AppSpacing.md),
-                    _ItemsCard(
-                      receipt: _receipt,
-                      resolveCategory: (item) =>
-                          _withCategoryName(item, categoryNames),
-                      onEditItem: _onEditItem,
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.screenPadding,
                     ),
-                    const SizedBox(height: AppSpacing.xl),
-                  ],
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: AppSpacing.md),
+                        _SummaryCard(total: _total),
+                        const SizedBox(height: AppSpacing.md),
+                        _ItemsCard(
+                          receipt: _receipt,
+                          resolveCategory: (item) =>
+                              _withCategoryName(item, categoryNames),
+                          onEditItem: _onEditItem,
+                        ),
+                        const SizedBox(height: AppSpacing.xl),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
+                _SaveBar(onSave: _onSave, isLoading: _isSaving),
+              ],
             ),
-            _SaveBar(onSave: _onSave, isLoading: _isSaving),
-          ],
-        ),
+          ),
+          if (_isDeleting) const AppLoadingOverlay(),
+        ],
       ),
     );
   }
@@ -354,6 +384,7 @@ class _TopBarActions extends StatelessWidget {
           ),
           GestureDetector(
             onTap: onDelete,
+            behavior: HitTestBehavior.opaque,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
               child: Icon(

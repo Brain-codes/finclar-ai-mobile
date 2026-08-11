@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Entitlements for local device builds signed with a FREE personal Apple team.
+  Identical to Runner.entitlements minus com.apple.developer.applesignin, which
+  personal teams cannot provision ("Personal development teams do not support
+  the Sign In with Apple capability") and which fails the whole profile.
+
+  Never used by CI or a paid-team build — selected only via the untracked
+  ios/Flutter/LocalOverrides.xcconfig. See MEMORY.md.
+-->
+<plist version="1.0">
+<dict>
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.com.finclar.finclarAi</string>
+	</array>
+</dict>
+</plist>

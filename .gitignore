@@ -29,6 +29,9 @@ migrate_working_dir/
 # Flutter/Dart/Pub related
 **/doc/api/
 **/ios/Flutter/.last_build_id
+# Per-machine Xcode build-setting overrides (e.g. personal-team signing).
+# Must never be committed — it would change how CI signs the app.
+**/ios/Flutter/LocalOverrides.xcconfig
 .dart_tool/
 .flutter-plugins-dependencies
 .pub-cache/

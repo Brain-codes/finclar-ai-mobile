@@ -131,6 +131,12 @@ abstract class ApiEndpoints {
   static String challengeTestReminder(String id) =>
       '/challenges/$id/dev/send-test-reminder';
 
+  // ─── Notifications (in-app feed) ─────────────────────────────────────────
+  static const String notifications = '/notifications';
+  static const String notificationsUnreadCount = '/notifications/unread-count';
+  static const String notificationsReadAll = '/notifications/read-all';
+  static String notificationRead(String id) => '/notifications/$id/read';
+
   // ─── Push Notifications (device tokens) ──────────────────────────────────
   static const String deviceTokens = '/notifications/device-tokens';
   static String deviceToken(String id) => '/notifications/device-tokens/$id';

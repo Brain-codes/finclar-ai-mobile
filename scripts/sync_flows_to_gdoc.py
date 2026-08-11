@@ -67,6 +67,43 @@ def main() -> int:
     )
     drive = build("drive", "v3", credentials=creds)
 
+    # A 403 here is almost always a sharing problem, and the API's message
+    # ("insufficient permissions") doesn't say which one. Ask Drive what this
+    # service account actually sees before attempting the write.
+    who = json.loads(creds_json).get("client_email", "unknown")
+    meta = (
+        drive.files()
+        .get(
+            fileId=doc_id,
+            fields="name,mimeType,driveId,capabilities(canEdit,canModifyContent),"
+            "owners(emailAddress)",
+            supportsAllDrives=True,
+        )
+        .execute()
+    )
+    caps = meta.get("capabilities", {})
+    print(f"Service account : {who}")
+    print(f"Document        : {meta.get('name')} ({meta.get('mimeType')})")
+    print(f"Owner           : {[o.get('emailAddress') for o in meta.get('owners', [])]}")
+    print(f"Shared drive    : {meta.get('driveId') or 'no — this is in My Drive'}")
+    print(f"canEdit         : {caps.get('canEdit')}")
+    print(f"canModifyContent: {caps.get('canModifyContent')}")
+
+    if not caps.get("canModifyContent"):
+        print(
+            "\nThis service account can read the document but not write to it.\n"
+            f"Open the doc → Share → confirm {who} is listed with the Editor role.\n"
+            "If the doc lives in a shared drive, add the service account as a "
+            "member of the drive itself (Content manager or higher) — per-file "
+            "sharing is not enough there.",
+            file=sys.stderr,
+        )
+        return 1
+
+    if os.environ.get("CHECK_ONLY"):
+        print("\nCHECK_ONLY set — permissions look fine, not writing.")
+        return 0
+
     media = MediaIoBaseUpload(
         io.BytesIO(page.encode("utf-8")), mimetype="text/html", resumable=False
     )

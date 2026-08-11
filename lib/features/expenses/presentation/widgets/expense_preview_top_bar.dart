@@ -82,6 +82,7 @@ class ExpensePreviewTopBar extends StatelessWidget {
                 ),
                 GestureDetector(
                   onTap: onDelete,
+                  behavior: HitTestBehavior.opaque,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.md,

@@ -72,6 +72,8 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
       initial: _endDate ?? DateTime.now().add(const Duration(days: 30)),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+      title: 'Group end date',
+      subtitle: 'When this group stops tracking. Pick today or a future date.',
     );
     if (picked != null) setState(() => _endDate = picked);
   }

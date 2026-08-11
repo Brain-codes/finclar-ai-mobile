@@ -437,9 +437,32 @@ Settings → the currency row → the **Default currency** sheet → pick one. E
 ### 8.8 Notifications
 
 1. Settings → **Notification** to manage which pushes you get.
-2. To read them: Home → the bell icon. Notifications are grouped into **Today** and **Earlier**.
-3. Tap **Mark all as read** in the header to clear the unread state.
-4. Empty → the empty-state illustration and copy. Failure → "Something went wrong" with **Retry**.
+2. To read them: Home → the bell icon. The bell carries a dot while anything is
+   unread. Notifications are grouped into **Today** and **Earlier**.
+3. Each unread row has a **Mark as read** link on its bottom-left. Tap it and the
+   row's orange dot goes and the link disappears — check the dot actually
+   clears, not just that the row looks dimmer. Read rows show no link.
+4. Rows also carry a right-hand action that opens the screen the notification is
+   about. The label depends on the type:
+
+   | Notification | Action | Goes to |
+   |---|---|---|
+   | New friend request | **View request** | Friends |
+   | Group invite / Group activity | **View group** | Group tab |
+   | Approaching your budget limit | **View budget** | Budget tab |
+   | Bank sync complete | **View transactions** | Expense tab |
+   | Subscription activated | **View plan** | Subscription |
+
+   Tapping the action marks the row read on the way out, so coming back the dot
+   is already gone. An unrecognised notification type shows no action.
+5. Tapping anywhere else on the row just marks it read.
+6. Tap the **Mark all read** pill in the header to clear every unread at once.
+   The pill only appears while at least one is unread.
+7. Pull down to refresh. Scroll to the bottom to load older notifications — a
+   shimmer row shows while the next page loads.
+8. Empty → the empty-state illustration and copy. Failure → "Something went
+   wrong" with **Retry**. A failed *load-more* leaves the rows already on screen
+   untouched rather than emptying the list.
 
 ### 8.9 Take the app tour again
 

@@ -177,6 +177,152 @@ status as approximate — confirm against the code/branch before building on it.
 
 ## Dated log
 
+### 2026-08-11 — Contact us screen wired up
+
+All Contact us tiles now do something. **Chat with Clara** pushes `RouteNames.clara`;
+**Email**, **Whatsapp** and a new **Website** tile launch `mailto:Hello@finclarai.com`,
+`wa.me/2348118120111` and `finclarai.com` via `url_launcher`, with an error snackbar on
+failure. Subtitles now show the actual contact details. FIND US ONLINE keeps Instagram
+only (→ instagram.com/finclarai) — the YouTube and X icons were dead placeholders with no
+accounts behind them; add them back once handles exist. Contact details live in
+`AppConstants` (`supportEmail`, `supportWhatsappNumber`, `supportWhatsappUrl`,
+`websiteUrl`, `instagramUrl`).
+
+### 2026-08-11 — Category icons matched to backend keys + clearer date sheet
+
+Two small fixes:
+
+- The backend's seeded categories send icon keys the client didn't know
+  (`book_line`, `chart_line`, `grid_line`, `home_line`, `piggy_bank_line`,
+  `flash_line` — note the picker sends `flashlight_line`), so Education,
+  Investment, Other, Rent, Savings and Utilities all fell through to
+  `more_2_line` in the **Select category** sheet and everywhere else that
+  resolves via `categoryIconFor`. Added the keys (with aliases) and new
+  `AppIcons.category*` constants; unknown keys now fall back to the *name*-based
+  mapping instead of "other", and `expenseCategoryIcon` learned the extra names.
+- `showAppDateSheet` now takes `title` / `subtitle` / `doneLabel` and renders a
+  live "Tue, 11 Aug 2026 (Today)" summary above the button. The custom-range
+  flow in the expense filter used to show two identical "Select date" sheets
+  back-to-back with no way to tell start from end; it's now Start date (Step 1
+  of 2 → **Next**) then End date (Step 2 of 2 → **Apply range**).
+
+### 2026-08-11 — Expense list filtering (search / category / source / sort)
+
+The filter icon on the Expense tab had been wired to `onFilter: () {}` since the screen
+was built. `ExpenseRepository.getExpenses` already accepted every `GET /expenses` query
+param, so this was UI + state only.
+
+`ExpenseFilter` (`data/models/expense_filter.dart`) is the value object: `search`,
+`categoryId`, `source`, `orderBy`, `orderDir`, with `activeCount` (narrowing filters only —
+sort deliberately doesn't earn a badge) and `copyWith` clear flags.
+
+**Date range** (`start_date` / `end_date`) was initially left out — the summary card's month
+picker already owned the date window — but it's now in, on request. The conflict is
+resolved by precedence, not intersection: a custom range **replaces** the month window
+(`ExpenseListNotifier._range`), the summary card's month pill renders the range instead of
+the month name (`ExpenseSummaryCard.periodLabel`), and `setMonth` clears the range so the
+two can never disagree. Intersecting them would return nothing whenever they don't overlap,
+which reads as a broken filter. Presets: Selected month / Last 7 days / Last 30 days / This
+year / Custom range (two passes of the existing `showExpenseDateSheet`). Only concrete dates
+are stored, so the tick in the preset list is derived by matching them back (`_activePreset`).
+
+The filter lives in its own `expenseFilterProvider` (a `Notifier<ExpenseFilter>`), *not*
+inside `ExpenseListState` — applying one drops the list to `AsyncLoading`, and the header
+badge and chip row have to keep rendering through that. `ExpenseListNotifier` reads it via
+`ref.read` when building requests, so it applies to page 1, load-more and month changes.
+
+UI: `expense_filter_sheet.dart` (chips, 44pt targets, selected state carries a check icon
+so it isn't colour-only), `expense_active_filters.dart` (removable chips under the header —
+otherwise an applied filter is invisible once the sheet is dismissed), a count badge on the
+header icon, and `ExpenseEmptyState` gained an `onClearFilters` param for the
+"No matching expenses" case. When a filter empties the list the summary card still renders
+so the month picker stays reachable. `docs/FLOWS.md` §3.3 has the walkthrough.
+
+Not done: filters don't persist across app restarts, and there's no debounced live search —
+search applies on **Apply** / keyboard submit.
+
+Follow-up same day, two rounds. First: chips shrunk and `AppSheet` gained a **`footer`**
+param — content stays scrollable, the footer pins below it. Any sheet with a long body and
+a commit action should use it. The filter draft moved to a `ValueNotifier` owned by
+`showExpenseFilterSheet` so the pinned footer can commit it without being nested inside the
+content widget.
+
+Then the chips went entirely — even compact, three wrapping rows of them made the sheet
+tall and busy, and it would only get worse as the category list grows. The sheet is now a
+**three-row settings card** (Category / Source / Sort by, value + chevron on the right,
+the `_DetailRow` pattern from `income_details_sheet.dart`), each row opening a short
+checkable list via the new reusable `showFilterOptionSheet<T>` in
+`expense_filter_option_sheet.dart`. Sheet height is now fixed regardless of how many
+categories exist. `FilterOption.value == null` is the "All" entry — distinct from the
+picker being dismissed, which returns null for the whole option. The Category row shows a
+skeleton while `categoriesProvider` loads and becomes "Tap to retry" on error.
+
+Category options carry their real icon and colour (`categoryIconFor` / `categoryColorFor` /
+`categoryBgColorFor` + `categoryColorSyncProvider`, same as the expense tiles and the
+category picker), and the selected one is echoed as a small tile on the Category row.
+
+### 2026-08-11 — Delete expense actually deletes (scanned-receipt screen was a no-op)
+
+`ScannedExpenseScreen._onDelete` showed the **Delete receipt?** sheet and then just
+`context.pop()`-ed — it never called the API, so deleting any receipt-sourced expense
+silently did nothing (the row came back on refresh). Receipt-sourced rows route to that
+screen from the expense list, so this was the path most users hit. Now it calls
+`expenseListProvider.notifier.delete(expenseId)` with an `AppLoadingOverlay` while in
+flight, "Expense deleted" on success + pop, and an error snackbar that leaves you on the
+screen on failure. Falls through to a plain pop when there's no server `expenseId` yet.
+
+Also: `ExpensePreviewScreen._onDelete` only caught `AppException`, so anything else left
+the overlay stuck — now catch-all with a logged error and a generic message.
+`ExpenseListNotifier.delete` invalidates `homeSummaryProvider` / `homeInsightProvider` /
+`spendingSummaryProvider` so the dashboard total drops instead of going stale. Delete
+icons got `HitTestBehavior.opaque` (the padding around the 20px icon wasn't tappable).
+Delete-receipt sheet copy now says the whole expense goes, because it does. `docs/FLOWS.md`
+§3.2 updated.
+
+### 2026-08-11 — Notifications feed wired to the live backend (mock removed)
+
+The backend shipped the in-app notification feed (live spec went 77 → 81 paths). The
+notifications screen had been serving mock data behind a comment saying "swap this once
+`GET /notifications` ships" — that's now done.
+
+**Endpoints wired** (`api_endpoints.dart`): `GET /notifications` (paginated,
+`unread_only`/`page`/`page_size`), `GET /notifications/unread-count`,
+`PUT /notifications/{id}/read`, `PUT /notifications/read-all`.
+
+**The gotcha — the type enum changed shape.** The server's `NotificationType` is
+`budget_near_limit` | `friend_invite` | `group_invite` | `group_activity` |
+`bank_sync_completed` | `subscription_activated`. The app's old local enum was
+`transaction`/`budget`/`group`/`insight`/`system` — entirely different values, invented
+before the backend existed. `NotificationModel` now carries the wire strings, and
+`NotificationType.fromWire` falls back to `unknown` so a server-side enum addition renders
+a generic row instead of crashing the feed. `notification_type_utils.dart` remaps
+icon/colour for all seven cases.
+
+Same mismatch existed in push handling: `NotificationCategory.fromData` only knew the old
+ad-hoc strings, so a real `budget_near_limit` push classified as `unknown`. It now matches
+the canonical values first, with the legacy spellings kept as fallbacks.
+
+**Provider changes** (`notifications_provider.dart`):
+- `NotificationsNotifier` fetches page 1 and appends via `loadMore()` on scroll.
+- Mark-read is **optimistic** — the row updates and the badge decrements immediately, and
+  both roll back to the pre-call list if the request throws.
+- A failed `loadMore` logs and keeps the existing rows rather than blanking the list.
+- Unread badge is now server-authoritative (`unreadNotificationCountAsyncProvider`), with
+  `unreadNotificationCountProvider` kept as a sync `Provider<int>` so `home_screen.dart`'s
+  bell-dot check didn't have to change. It falls back to counting the loaded page.
+- `hasMore`/`isLoadingMore` are `StateProvider`s, not notifier fields — the UI can't
+  reactively watch a plain getter, so the footer shimmer would never have appeared.
+
+`NotificationListSkeleton` was split so `NotificationTileSkeleton` is reusable as the
+load-more footer instead of duplicating the tile shape.
+
+Also corrected `docs/FLOWS.md §8.8`: it documented the header action as "Mark all as read";
+the actual string is **"Mark all read"**.
+
+Not done: tapping a feed row still only marks it read — it does not deep-link. The `data`
+payload is parsed and carried on the model, and `notification_routing.dart` still logs "no
+route wired" for every non-challenge category, so the routing work is unblocked but unstarted.
+
 ### 2026-08-07 — Social sign-in: real errors surfaced, Apple button gated by platform
 
 Google sign-in was failing with an opaque message. Cause: `SocialAuthService`

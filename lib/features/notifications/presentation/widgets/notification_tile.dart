@@ -4,14 +4,28 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
+import '../../../../core/constants/app_strings.dart';
 import '../../data/models/notification_model.dart';
+import 'notification_action_utils.dart';
 import 'notification_type_utils.dart';
 
 class NotificationTile extends StatelessWidget {
   final NotificationModel notification;
   final VoidCallback? onTap;
 
-  const NotificationTile({super.key, required this.notification, this.onTap});
+  /// Fired by the type-specific CTA (e.g. "View group"). Null hides the CTA.
+  final VoidCallback? onAction;
+
+  /// Fired by the explicit "Mark as read" link, shown only while unread.
+  final VoidCallback? onMarkRead;
+
+  const NotificationTile({
+    super.key,
+    required this.notification,
+    this.onTap,
+    this.onAction,
+    this.onMarkRead,
+  });
 
   String _relativeTime() {
     final diff = DateTime.now().difference(notification.createdAt);
@@ -25,6 +39,8 @@ class NotificationTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = notificationColor(notification.type);
+    final action =
+        onAction == null ? null : notificationActionFor(notification.type);
 
     return GestureDetector(
       onTap: onTap,
@@ -90,16 +106,71 @@ class NotificationTile extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    _relativeTime(),
-                    style: AppTypography.labelSmall.copyWith(
-                      color: context.textTertiary,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        _relativeTime(),
+                        style: AppTypography.labelSmall.copyWith(
+                          color: context.textTertiary,
+                        ),
+                      ),
+                      const Spacer(),
+                      if (onMarkRead != null && !notification.isRead) ...[
+                        _TileLink(
+                          label: AppStrings.notificationMarkRead,
+                          color: context.textSecondary,
+                          onTap: onMarkRead!,
+                        ),
+                        if (action != null)
+                          const SizedBox(width: AppSpacing.base),
+                      ],
+                      if (action != null)
+                        _TileLink(
+                          label: action.label,
+                          color: AppColors.primary,
+                          onTap: onAction!,
+                        ),
+                    ],
                   ),
                 ],
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TileLink extends StatelessWidget {
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _TileLink({
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      // The row itself is tappable, so the link needs padding of its own to be
+      // reliably hittable rather than a bare text baseline.
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.xs,
+          vertical: AppSpacing.xs,
+        ),
+        child: Text(
+          label,
+          style: AppTypography.labelSmall.copyWith(
+            color: color,
+            fontVariations: const [FontVariation('wght', 600)],
+          ),
         ),
       ),
     );
