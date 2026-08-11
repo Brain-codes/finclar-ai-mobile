@@ -13,9 +13,21 @@ class ClaraRepository {
   /// insight card — see [ClaraMessageModel.listFromBackend].
   Future<List<ClaraMessageModel>> getHistory() async {
     Log.api('GET', ApiEndpoints.claraMessages);
+    // Track the most recent user message as we walk the history in order so
+    // an assistant reply's insight card can tell what was actually asked.
+    String? lastUserText;
     final items = await _api.getAllPaginated<List<ClaraMessageModel>>(
       ApiEndpoints.claraMessages,
-      fromItem: ClaraMessageModel.listFromBackend,
+      fromItem: (json) {
+        final parsed = ClaraMessageModel.listFromBackend(
+          json,
+          precedingUserText: lastUserText,
+        );
+        if (json["role"] == "user") {
+          lastUserText = (json["content"] as String?)?.trim();
+        }
+        return parsed;
+      },
     );
     return items.expand((e) => e).toList();
   }
@@ -44,7 +56,11 @@ class ClaraRepository {
         }
         final summary = map['data'];
         if (summary is Map<String, dynamic>) {
-          final insight = ClaraInsightModel.fromSummary(summary);
+          final insight = ClaraInsightModel.fromSummary(
+            summary,
+            questionText: message,
+            replyText: reply,
+          );
           if (insight != null) {
             result.add(ClaraMessageModel(
               id: '${baseId}_i',

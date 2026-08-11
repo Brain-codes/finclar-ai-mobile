@@ -5,9 +5,12 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../home/presentation/widgets/income_expense_chart_section.dart';
 import '../../data/models/clara_message_model.dart';
+import 'clara_category_breakdown_chart.dart';
 
-/// Renders Clara's expense-summary payload using the exact same grouped
-/// income/expense bar chart as the home dashboard ([IncomeExpenseChartSection]).
+/// Renders Clara's expense-summary payload. Picks the chart that matches what
+/// was actually asked: the grouped income/expense bar chart (same as the home
+/// dashboard's [IncomeExpenseChartSection]) for trend questions, or a
+/// per-category breakdown bar list for "spending by category" questions.
 ///
 /// When [animate] is true it waits [startDelay] (so it appears only after the
 /// preceding reply text has finished typing), then fades + slides in while the
@@ -88,18 +91,23 @@ class _ClaraInsightCardState extends State<ClaraInsightCard>
         border: Border.all(color: context.borderColor),
       ),
       padding: const EdgeInsets.all(AppSpacing.xs),
-      child: IncomeExpenseChartSection(
-        chartProgress: chartProgress,
-        data: widget.insight.trend
-            .map((p) => IncomeExpenseData(
-                  month: p.month,
-                  income: p.income,
-                  expense: p.expense,
-                ))
-            .toList(),
-        totalIncome: widget.insight.income,
-        totalExpense: widget.insight.expense,
-      ),
+      child: widget.insight.kind == ClaraInsightKind.categoryBreakdown
+          ? ClaraCategoryBreakdownChart(
+              insight: widget.insight,
+              chartProgress: chartProgress,
+            )
+          : IncomeExpenseChartSection(
+              chartProgress: chartProgress,
+              data: widget.insight.trend
+                  .map((p) => IncomeExpenseData(
+                        month: p.month,
+                        income: p.income,
+                        expense: p.expense,
+                      ))
+                  .toList(),
+              totalIncome: widget.insight.income,
+              totalExpense: widget.insight.expense,
+            ),
     );
   }
 }

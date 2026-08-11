@@ -9,6 +9,7 @@ import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../shared/widgets/app_sheet.dart';
 import '../../../../shared/widgets/app_snackbar.dart';
 import '../../../../shared/widgets/app_text_field.dart';
+import '../../../settings/presentation/widgets/avatar_color_row.dart';
 import '../../data/models/category_model.dart';
 import '../../providers/expense_providers.dart';
 import 'expense_category_utils.dart';
@@ -32,6 +33,7 @@ class _AddCategoryContent extends ConsumerStatefulWidget {
 class _AddCategoryContentState extends ConsumerState<_AddCategoryContent> {
   final _nameController = TextEditingController();
   String? _selectedIconKey;
+  Color _selectedColor = AppColors.categoryPalette.first;
   bool _isSubmitting = false;
 
   @override
@@ -48,9 +50,16 @@ class _AddCategoryContentState extends ConsumerState<_AddCategoryContent> {
     if (name.isEmpty) return;
     setState(() => _isSubmitting = true);
     try {
+      // Pack icon + color into the single `icon` string field the backend
+      // stores (same one-field-custom-encoding pattern as `profile_icon` for
+      // avatars). Older categories only ever had a bare icon key here —
+      // `decodeCategoryIcon` still reads those fine, they just have no color.
+      final iconValue = _selectedIconKey != null
+          ? encodeCategoryIcon(_selectedIconKey!, _selectedColor)
+          : null;
       final created = await ref
           .read(expenseRepositoryProvider)
-          .createCategory(name: name, icon: _selectedIconKey);
+          .createCategory(name: name, icon: iconValue);
       ref.invalidate(categoriesProvider);
       if (mounted) Navigator.of(context, rootNavigator: true).pop(created);
     } on AppException catch (e) {
@@ -102,7 +111,7 @@ class _AddCategoryContentState extends ConsumerState<_AddCategoryContent> {
                     child: Container(
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? AppColors.primary
+                            ? _selectedColor
                             : context.surfaceVariant,
                         shape: BoxShape.circle,
                         border: isSelected
@@ -121,6 +130,21 @@ class _AddCategoryContentState extends ConsumerState<_AddCategoryContent> {
                 }).toList(),
               ),
             ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.base),
+        Container(
+          decoration: BoxDecoration(
+            color: context.surfaceColor,
+            borderRadius: AppRadius.radiusSheet,
+            border: Border.all(color: context.borderColor),
+          ),
+          padding: const EdgeInsets.all(AppSpacing.base),
+          child: AvatarColorRow(
+            label: 'Color',
+            colors: AppColors.categoryPalette,
+            selected: _selectedColor,
+            onSelectedChanged: (color) => setState(() => _selectedColor = color),
           ),
         ),
         const SizedBox(height: AppSpacing.base),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show TextInputFormatter, TextEditingValue;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -11,8 +12,49 @@ import '../../../../shared/widgets/app_snackbar.dart';
 import '../../../../shared/widgets/app_text_field.dart';
 import '../../../expenses/data/models/category_model.dart';
 import '../../../expenses/presentation/widgets/expense_category_utils.dart';
+import '../../../expenses/providers/category_color_sync_provider.dart';
 import '../../data/models/budget_model.dart';
 import 'budget_category_sheet.dart';
+
+/// Small icon badge for a category row. A plain [Consumer] rather than
+/// converting the whole sheet to Riverpod — it just needs the background
+/// color backfill for categories created before the icon+color encoding.
+class _CategoryIconBadge extends StatelessWidget {
+  final CategoryModel category;
+  const _CategoryIconBadge({required this.category});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer(
+      builder: (context, ref, _) {
+        final syncedColors = ref.watch(categoryColorSyncProvider).valueOrNull;
+        return Container(
+          width: 24,
+          height: 24,
+          decoration: BoxDecoration(
+            color: categoryBgColorFor(
+              name: category.name,
+              icon: category.icon,
+              categoryId: category.id,
+              syncedColors: syncedColors,
+            ),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            categoryIconFor(name: category.name, icon: category.icon),
+            size: 12,
+            color: categoryColorFor(
+              name: category.name,
+              icon: category.icon,
+              categoryId: category.id,
+              syncedColors: syncedColors,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
 
 /// [onSubmit] — called with the chosen category id and amount; must throw on failure.
 /// [onRemove] — called when the user taps "Remove allocation" in edit mode; must throw on failure.
@@ -230,21 +272,7 @@ class _AllocationSheetState extends State<_AllocationSheet> {
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.base),
               child: Row(
                 children: [
-                  Container(
-                    width: 24,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: expenseCategoryBgColor(_category!.name),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      _category!.icon != null
-                          ? categoryIconFromString(_category!.icon)
-                          : expenseCategoryIcon(_category!.name),
-                      size: 12,
-                      color: expenseCategoryColor(_category!.name),
-                    ),
-                  ),
+                  _CategoryIconBadge(category: _category!),
                   const SizedBox(width: AppSpacing.sm),
                   Text(
                     _category!.name,
@@ -280,21 +308,7 @@ class _AllocationSheetState extends State<_AllocationSheet> {
                 child: Row(
                   children: [
                     if (_category != null) ...[
-                      Container(
-                        width: 24,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          color: expenseCategoryBgColor(_category!.name),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          _category!.icon != null
-                              ? categoryIconFromString(_category!.icon)
-                              : expenseCategoryIcon(_category!.name),
-                          size: 12,
-                          color: expenseCategoryColor(_category!.name),
-                        ),
-                      ),
+                      _CategoryIconBadge(category: _category!),
                       const SizedBox(width: AppSpacing.sm),
                     ],
                     Expanded(

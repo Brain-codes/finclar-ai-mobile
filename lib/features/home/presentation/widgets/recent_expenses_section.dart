@@ -11,9 +11,11 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../shared/widgets/app_skeleton.dart';
+import '../../../expenses/data/models/category_model.dart';
 import '../../../expenses/data/models/expense_model.dart';
 import '../../../expenses/presentation/widgets/expense_category_utils.dart';
 import '../../../expenses/presentation/widgets/expense_verification_badge.dart';
+import '../../../expenses/providers/category_color_sync_provider.dart';
 import '../../../expenses/providers/expense_providers.dart';
 
 enum HomeExpenseIconType { imageUrl, svgAsset, svgNetwork, appIcon }
@@ -56,24 +58,41 @@ class RecentExpensesSection extends ConsumerWidget {
     this.onViewAll,
   });
 
-  static HomeExpenseItem _toItem(ExpenseModel e) => HomeExpenseItem(
-        merchant: e.name,
-        detail: e.category,
-        amount: NumberFormat('#,##0.00').format(e.amount),
-        date: DateFormat('MMM d, yyyy').format(e.date),
-        categoryColor: expenseCategoryColor(e.category),
-        iconType: HomeExpenseIconType.appIcon,
-        iconData: expenseCategoryIcon(e.category),
-        verificationLevel: e.verificationLevel,
-      );
+  static HomeExpenseItem _toItem(
+    ExpenseModel e,
+    Map<String, CategoryModel> categoriesById,
+    Map<String, Color>? syncedColors,
+  ) {
+    final visual = categoryVisualFor(
+      name: e.category,
+      categoryId: e.categoryId,
+      categoriesById: categoriesById,
+      syncedColors: syncedColors,
+    );
+    return HomeExpenseItem(
+      merchant: e.name,
+      detail: e.category,
+      amount: NumberFormat('#,##0.00').format(e.amount),
+      date: DateFormat('MMM d, yyyy').format(e.date),
+      categoryColor: visual.color,
+      iconType: HomeExpenseIconType.appIcon,
+      iconData: visual.icon,
+      verificationLevel: e.verificationLevel,
+    );
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final symbol = ref.watch(currencySymbolProvider);
     final state = ref.watch(expenseListProvider);
+    final categoriesById = ref.watch(categoriesByIdProvider);
+    final syncedColors = ref.watch(categoryColorSyncProvider).valueOrNull;
 
     final items = state.valueOrNull?.items ?? const [];
-    final recent = items.take(4).map(_toItem).toList();
+    final recent = items
+        .take(4)
+        .map((e) => _toItem(e, categoriesById, syncedColors))
+        .toList();
     final isLoading = state.isLoading;
     final showEmpty = isEmpty || (!isLoading && recent.isEmpty);
     final count = state.valueOrNull?.items.length ?? 0;

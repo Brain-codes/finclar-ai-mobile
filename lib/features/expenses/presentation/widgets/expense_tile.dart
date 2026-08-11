@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
 import '../../../../shared/widgets/app_avatar.dart';
 import '../../data/models/expense_model.dart';
+import '../../providers/category_color_sync_provider.dart';
 import 'expense_category_utils.dart';
 import 'expense_verification_badge.dart';
 
-class ExpenseTile extends StatelessWidget {
+class ExpenseTile extends ConsumerWidget {
   final ExpenseModel expense;
   final bool showDivider;
   final VoidCallback? onTap;
@@ -21,8 +23,14 @@ class ExpenseTile extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final color = expenseCategoryColor(expense.category);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final visual = categoryVisualFor(
+      name: expense.category,
+      categoryId: expense.categoryId,
+      categoriesById: ref.watch(categoriesByIdProvider),
+      syncedColors: ref.watch(categoryColorSyncProvider).valueOrNull,
+    );
+    final color = visual.color;
     final formatted = NumberFormat('#,##0.00').format(expense.amount);
 
     return GestureDetector(
@@ -37,7 +45,7 @@ class ExpenseTile extends StatelessWidget {
             ),
             child: Row(
               children: [
-                ExpenseCategoryIcon(category: expense.category),
+                ExpenseCategoryIcon(visual: visual),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Column(
@@ -122,23 +130,37 @@ class ExpenseTile extends StatelessWidget {
 
 // ─── Category icon ────────────────────────────────────────────────────────────
 
-class ExpenseCategoryIcon extends StatelessWidget {
-  final String category;
+class ExpenseCategoryIcon extends ConsumerWidget {
+  /// Preferred: pass the already-resolved visual (e.g. from [ExpenseTile],
+  /// which has the expense's `categoryId` to look up the real icon/color).
+  final CategoryVisual? visual;
+
+  /// Fallback for callers that only have a bare category name — resolves via
+  /// the name-based defaults only, since there's no id to look up.
+  final String? category;
+
   final double size;
 
   const ExpenseCategoryIcon({
     super.key,
-    required this.category,
+    this.visual,
+    this.category,
     this.size = 40,
-  });
+  }) : assert(visual != null || category != null);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final v = visual ??
+        categoryVisualFor(
+          name: category!,
+          categoriesById: ref.watch(categoriesByIdProvider),
+          syncedColors: ref.watch(categoryColorSyncProvider).valueOrNull,
+        );
     return AppAvatar(
       size: size,
-      icon: expenseCategoryIcon(category),
-      backgroundColor: expenseCategoryBgColor(category),
-      foregroundColor: expenseCategoryColor(category),
+      icon: v.icon,
+      backgroundColor: v.bgColor,
+      foregroundColor: v.color,
     );
   }
 }

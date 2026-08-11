@@ -110,7 +110,7 @@ There are four ways an expense gets into Finclar: you type it, you scan a receip
 2. The **Add expense** sheet opens. Fill in:
    - **Description** — "What was this expense for?"
    - **Amount** — "0.00"
-   - **Category** — tap the row (shows "Select category") → the **Select category** sheet. Pick one, or tap **Add category** to create your own (pick an icon, type a **Category name**, tap **Create**).
+   - **Category** — tap the row (shows "Select category") → the **Select category** sheet. Pick one, or tap **Add category** to create your own (pick an icon, pick a **Color** swatch, type a **Category name**, tap **Create**). Every category — including your own — now gets its own distinct colour throughout the app (category picker, expense list, Budget) instead of custom categories sharing one default colour.
    - **Date** — tap the row → date picker.
    - Optionally attach a receipt image: "Optional. Attaching one marks this expense verified."
 3. Tap **Save**.
@@ -237,8 +237,9 @@ There are four ways an expense gets into Finclar: you type it, you scan a receip
 1. Tap the **Clara FAB** on any tab screen, or **Chat with Clara** on the Home Clara card.
 2. First visit shows suggestion chips: "Run my income and expense for April", "How did I do this month?", "Where am I overspending?". Tap one to send it.
 3. Otherwise type into "Ask me about your expense" and send.
-4. Empty history reads "No Insights Yet". A load failure reads "Couldn't load your chat" with **Retry**.
-5. Tap the back arrow to leave — your history stays.
+4. When Clara's reply includes a chart, it now matches what you asked: asking for a spending/category breakdown ("give me a spending breakdown by category") shows a bar-per-category chart with amount and % of total; other questions (trend, income vs expense) still show the income/expense chart.
+5. Empty history reads "No Insights Yet". A load failure reads "Couldn't load your chat" with **Retry**.
+6. Tap the back arrow to leave — your history stays.
 
 ---
 

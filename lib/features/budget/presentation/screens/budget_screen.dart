@@ -14,6 +14,7 @@ import '../../../../shared/icons/app_icons.dart';
 import '../../../../shared/widgets/app_skeleton.dart';
 import '../../../../shared/widgets/app_snackbar.dart';
 import '../../../expenses/presentation/widgets/expense_category_utils.dart';
+import '../../../expenses/providers/category_color_sync_provider.dart';
 import '../../../home/presentation/widgets/clara_card.dart';
 import '../../../home/presentation/widgets/income_expense_chart_section.dart';
 import '../../data/models/budget_model.dart';
@@ -496,7 +497,9 @@ class _FilledBudget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final symbol = ref.watch(currencySymbolProvider);
-    final categories = budget.allocations.map(_toItem).toList();
+    final syncedColors = ref.watch(categoryColorSyncProvider).valueOrNull;
+    final categories =
+        budget.allocations.map((a) => _toItem(a, syncedColors)).toList();
     // Prefer the backend's AI line; the locally composed sentence is only a
     // fallback for older responses where clara_insight is absent or empty.
     final backendInsight = budget.claraInsight?.trim() ?? '';
@@ -568,17 +571,26 @@ class _FilledBudget extends ConsumerWidget {
     );
   }
 
-  BudgetCategoryItem _toItem(AllocationModel a) => BudgetCategoryItem(
-    name: a.categoryName,
-    spent: a.spent,
-    allocated: a.amountAllocated,
-    allocationLabel: '${a.pctUsed.toStringAsFixed(0)}% of allocation',
-    icon: a.categoryIcon != null
-        ? categoryIconFromString(a.categoryIcon)
-        : expenseCategoryIcon(a.categoryName),
-    color: expenseCategoryColor(a.categoryName),
-    bgColor: expenseCategoryBgColor(a.categoryName),
-  );
+  BudgetCategoryItem _toItem(AllocationModel a, Map<String, Color>? syncedColors) =>
+      BudgetCategoryItem(
+        name: a.categoryName,
+        spent: a.spent,
+        allocated: a.amountAllocated,
+        allocationLabel: '${a.pctUsed.toStringAsFixed(0)}% of allocation',
+        icon: categoryIconFor(name: a.categoryName, icon: a.categoryIcon),
+        color: categoryColorFor(
+          name: a.categoryName,
+          icon: a.categoryIcon,
+          categoryId: a.categoryId,
+          syncedColors: syncedColors,
+        ),
+        bgColor: categoryBgColorFor(
+          name: a.categoryName,
+          icon: a.categoryIcon,
+          categoryId: a.categoryId,
+          syncedColors: syncedColors,
+        ),
+      );
 }
 
 class _NoAllocations extends StatelessWidget {

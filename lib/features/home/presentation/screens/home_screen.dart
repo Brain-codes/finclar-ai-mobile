@@ -10,6 +10,7 @@ import '../../providers/income_setup_provider.dart';
 import '../../providers/home_dashboard_provider.dart';
 import '../../../auth/providers/user_profile_provider.dart';
 import '../../../expenses/providers/expense_providers.dart';
+import '../../../expenses/providers/category_color_sync_provider.dart';
 import '../../../budget/providers/budget_providers.dart';
 import '../../../notifications/providers/notifications_provider.dart';
 import '../widgets/home_header.dart';
@@ -32,12 +33,14 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen>
+    with WidgetsBindingObserver {
   bool _modalShown = false;
   bool _tourStarted = false;
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     // Leaving home while the tour runs would leave the overlay painting over
     // the next screen.
     if (_tourStarted) dismissAppCoachmarks();
@@ -48,7 +51,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void initState() {
     super.initState();
     Log.d('[HomeScreen] initState — screen mounted');
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) => _maybeStartTour());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // The unread count is fetched once when the badge first builds. Without
+    // this, a notification that lands while the app is backgrounded leaves the
+    // bell undotted until the next cold start.
+    if (state == AppLifecycleState.resumed) {
+      ref.read(unreadNotificationCountAsyncProvider.notifier).refresh();
+    }
   }
 
   /// Runs at most one first-run interruption. The tour goes first for a brand
@@ -117,6 +131,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     Log.d('[HomeScreen] incomeProvider state: $incomeAsync');
 
     ref.watch(homeWidgetSyncProvider);
+
+    // Backfills a color for any category created before the icon+color
+    // encoding existed. Runs quietly in the background — nothing here reads
+    // the result directly, downstream widgets pick it up via
+    // categoryColorSyncProvider once it resolves.
+    ref.watch(categoryColorSyncProvider);
 
     // Settings sits on top of the shell, so returning to home via
     // "Replay app tour" never remounts HomeScreen and initState's

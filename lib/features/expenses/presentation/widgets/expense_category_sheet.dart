@@ -9,6 +9,7 @@ import '../../../../shared/icons/app_icons.dart';
 import '../../../../shared/widgets/app_sheet.dart';
 import '../../../../shared/widgets/app_skeleton.dart';
 import '../../data/models/category_model.dart';
+import '../../providers/category_color_sync_provider.dart';
 import '../../providers/expense_providers.dart';
 import 'expense_add_category_sheet.dart';
 import 'expense_category_utils.dart';
@@ -31,6 +32,7 @@ class _CategoryContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final categoriesAsync = ref.watch(categoriesProvider);
+    final syncedColors = ref.watch(categoryColorSyncProvider).valueOrNull;
 
     return categoriesAsync.when(
       loading: () => Column(
@@ -78,13 +80,23 @@ class _CategoryContent extends ConsumerWidget {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: expenseCategoryBgColor(cat.name),
+                      color: categoryBgColorFor(
+                        name: cat.name,
+                        icon: cat.icon,
+                        categoryId: cat.id,
+                        syncedColors: syncedColors,
+                      ),
                       borderRadius: AppRadius.radiusCard,
                     ),
                     child: Icon(
-                      expenseCategoryIcon(cat.name),
+                      categoryIconFor(name: cat.name, icon: cat.icon),
                       size: 18,
-                      color: expenseCategoryColor(cat.name),
+                      color: categoryColorFor(
+                        name: cat.name,
+                        icon: cat.icon,
+                        categoryId: cat.id,
+                        syncedColors: syncedColors,
+                      ),
                     ),
                   ),
                   const SizedBox(width: AppSpacing.md),
