@@ -1,7 +1,7 @@
 name: finclar_ai
 description: Finclar AI - Smart Finance Tracking with AI, Chat, and Group Budgeting.
 publish_to: 'none'
-version: 1.5.0+47
+version: 1.6.0+50
 
 environment:
   sdk: ^3.11.5
