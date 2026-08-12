@@ -20,27 +20,40 @@ class WrappedSlide7ClaraAI extends StatelessWidget {
           Positioned(
             top: h * (-367 / 852),
             left: -41,
-            child: _GlowEllipse(
-              color: const Color(0xFFFA5874),
-              size: h * (734 / 852),
+            child: WrappedPulse(
+              period: const Duration(milliseconds: 3600),
+              child: _GlowEllipse(
+                color: const Color(0xFFFA5874),
+                size: h * (734 / 852),
+              ),
             ),
           ),
           // Ellipse 2: mid-left, 124px from top
           Positioned(
             top: h * (124 / 852),
             left: -163,
-            child: _GlowEllipse(
-              color: const Color(0xFFFF607B),
-              size: h * (416 / 852),
+            child: WrappedPulse(
+              minScale: 0.9,
+              maxScale: 1.1,
+              period: const Duration(milliseconds: 2600),
+              child: _GlowEllipse(
+                color: const Color(0xFFFF607B),
+                size: h * (416 / 852),
+              ),
             ),
           ),
           // Ellipse 1: large orange, 353px from top
           Positioned(
             top: h * (353 / 852),
             left: -82,
-            child: _GlowEllipse(
-              color: const Color(0xFFF8853D),
-              size: h * (670 / 852),
+            child: WrappedPulse(
+              minScale: 0.92,
+              maxScale: 1.08,
+              period: const Duration(milliseconds: 3100),
+              child: _GlowEllipse(
+                color: const Color(0xFFF8853D),
+                size: h * (670 / 852),
+              ),
             ),
           ),
           // ── White fade overlay (approximation of Figma radial gradient) ──
@@ -69,42 +82,67 @@ class WrappedSlide7ClaraAI extends StatelessWidget {
                 const SizedBox(height: 32),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: WrappedHeadline(data.title, padding: EdgeInsets.zero),
+                  child: WrappedEntrance(
+                    delay: const Duration(milliseconds: 100),
+                    child: WrappedHeadline(
+                      data.title,
+                      padding: EdgeInsets.zero,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 24),
                 // Robot image — left-aligned, 40px from left (Figma x offset)
                 Padding(
                   padding: const EdgeInsets.only(left: 40),
-                  child: Image.asset(
-                    WrappedAssets.aiRobot,
-                    width: 232,
-                    height: 273,
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, _, _) =>
-                        const SizedBox(width: 232, height: 273),
+                  child: WrappedEntrance(
+                    delay: const Duration(milliseconds: 260),
+                    duration: const Duration(milliseconds: 800),
+                    curve: Curves.elasticOut,
+                    slideFrom: const Offset(-60, 0),
+                    child: WrappedFloat(
+                      amplitude: 9,
+                      period: const Duration(milliseconds: 3600),
+                      child: Image.asset(
+                        WrappedAssets.aiRobot,
+                        width: 232,
+                        height: 273,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, _, _) =>
+                            const SizedBox(width: 232, height: 273),
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
                 // Insight text — sits on the white bg area
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      WrappedAutoText(
-                        data.body,
-                        maxLines: 6,
-                        maxFontSize: 16,
-                        minFontSize: 12,
-                        style: AppTypography.bodySmall.copyWith(
-                          color: const Color(0xFF101010),
-                          fontFamily: 'Geist',
-                          fontVariations: const [FontVariation('wght', 500)],
-                          fontSize: 16,
-                          height: 24 / 16,
+                  child: WrappedEntrance(
+                    delay: const Duration(milliseconds: 650),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        WrappedShimmerSweep(
+                          delay: const Duration(milliseconds: 900),
+                          shimmerColor: const Color(0xFF101010),
+                          child: WrappedAutoText(
+                            data.body,
+                            maxLines: 6,
+                            maxFontSize: 16,
+                            minFontSize: 12,
+                            style: AppTypography.bodySmall.copyWith(
+                              color: const Color(0xFF101010),
+                              fontFamily: 'Geist',
+                              fontVariations: const [
+                                FontVariation('wght', 500),
+                              ],
+                              fontSize: 16,
+                              height: 24 / 16,
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
                 const Spacer(),

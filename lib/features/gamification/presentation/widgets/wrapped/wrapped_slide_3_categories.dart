@@ -41,7 +41,7 @@ class WrappedSlide3Categories extends StatelessWidget {
       return _Category(
         c.name,
         formatCurrency(c.amount, symbol, abbreviate: false, withCommas: true),
-        '${c.percentage.round()}%',
+        c.percentage,
         _palette[i % _palette.length],
         top > 0 ? (0.35 + 0.65 * (c.amount / top)) : 1.0,
       );
@@ -60,16 +60,26 @@ class WrappedSlide3Categories extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 32),
-              const WrappedHeadline(
-                'Where your money went',
-                padding: EdgeInsets.zero,
+              WrappedEntrance(
+                delay: const Duration(milliseconds: 100),
+                child: const WrappedHeadline(
+                  'Where your money went',
+                  padding: EdgeInsets.zero,
+                ),
               ),
               const SizedBox(height: 8),
-              WrappedSubtitle(data.headline, padding: EdgeInsets.zero),
+              WrappedEntrance(
+                delay: const Duration(milliseconds: 220),
+                child: WrappedSubtitle(data.headline, padding: EdgeInsets.zero),
+              ),
               const SizedBox(height: 28),
-              // Category bars
-              ..._bars().map(
-                (c) => _CategoryBar(category: c, maxWidth: screenW - 32),
+              // Category bars — grow in one after another
+              ..._bars().asMap().entries.map(
+                (entry) => _CategoryBar(
+                  category: entry.value,
+                  maxWidth: screenW - 32,
+                  delay: Duration(milliseconds: 380 + entry.key * 160),
+                ),
               ),
               const Spacer(),
             ],
@@ -83,7 +93,7 @@ class WrappedSlide3Categories extends StatelessWidget {
 class _Category {
   final String name;
   final String amount;
-  final String pct;
+  final double pct;
   final Color color;
   final double widthFraction;
   const _Category(
@@ -98,49 +108,65 @@ class _Category {
 class _CategoryBar extends StatelessWidget {
   final _Category category;
   final double maxWidth;
-  const _CategoryBar({required this.category, required this.maxWidth});
+  final Duration delay;
+  const _CategoryBar({
+    required this.category,
+    required this.maxWidth,
+    this.delay = Duration.zero,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Container(
-        width: maxWidth * category.widthFraction,
-        height: 76,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          color: category.color,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              category.name,
-              style: AppTypography.bodySmall.copyWith(
-                color: WrappedColors.white,
-              ),
+      child: WrappedGrowWidth(
+        targetFraction: category.widthFraction,
+        delay: delay,
+        duration: const Duration(milliseconds: 750),
+        builder: (context, fraction) => Opacity(
+          opacity: (fraction / category.widthFraction).clamp(0.0, 1.0),
+          child: Container(
+            width: maxWidth * fraction,
+            height: 76,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: category.color,
+              borderRadius: BorderRadius.circular(8),
             ),
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  category.amount,
-                  style: AppTypography.amountSmall.copyWith(
-                    color: WrappedColors.white,
-                    fontSize: 22,
-                  ),
-                ),
-                Text(
-                  category.pct,
+                  category.name,
                   style: AppTypography.bodySmall.copyWith(
                     color: WrappedColors.white,
                   ),
                 ),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      category.amount,
+                      style: AppTypography.amountSmall.copyWith(
+                        color: WrappedColors.white,
+                        fontSize: 22,
+                      ),
+                    ),
+                    WrappedCountUp(
+                      value: category.pct,
+                      formatter: (v) => '${v.round()}%',
+                      delay: delay,
+                      duration: const Duration(milliseconds: 750),
+                      style: AppTypography.bodySmall.copyWith(
+                        color: WrappedColors.white,
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );

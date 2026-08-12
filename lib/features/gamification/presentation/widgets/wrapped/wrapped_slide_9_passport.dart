@@ -6,6 +6,7 @@ import '../../../../../core/services/share_service.dart';
 import '../../../../../core/theme/app_typography.dart';
 import '../../../../../core/utils/number_formatter.dart';
 import '../../../../../shared/svg/app_svg.dart';
+import '../../../../../shared/widgets/app_profile_avatar.dart';
 import '../../../../../shared/widgets/app_snackbar.dart';
 import '../../../../../shared/widgets/app_svg_image.dart';
 import '../../../data/models/wrapped_model.dart';
@@ -19,6 +20,13 @@ class WrappedSlide9Passport extends StatefulWidget {
   /// a username.
   final String displayName;
 
+  /// The user's profile icon — null falls back to initials in [AppProfileAvatar].
+  final String? profileIcon;
+
+  /// The profile's actual username (Settings → Edit details) — the passport
+  /// payload's own `username` field can be stale, so this is used instead.
+  final String username;
+
   /// Month the recap covers, used for the card date and the share caption.
   final DateTime period;
 
@@ -27,6 +35,8 @@ class WrappedSlide9Passport extends StatefulWidget {
     required this.data,
     required this.symbol,
     required this.displayName,
+    this.profileIcon,
+    required this.username,
     required this.period,
   });
 
@@ -41,7 +51,7 @@ class _WrappedSlide9PassportState extends State<WrappedSlide9Passport> {
   /// `<username> money passport.png`. Path separators and the like would break
   /// the temp file, so anything that isn't safe in a filename is dropped.
   String get _fileName {
-    final safe = widget.data.username
+    final safe = widget.username
         .replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '')
         .trim();
     return '${safe.isEmpty ? 'Finclar' : safe} money passport.png';
@@ -89,53 +99,83 @@ class _WrappedSlide9PassportState extends State<WrappedSlide9Passport> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 50),
-              const WrappedHeadline(
-                'Share your passport',
-                padding: EdgeInsets.zero,
+              WrappedEntrance(
+                delay: const Duration(milliseconds: 100),
+                child: const WrappedHeadline(
+                  'Share your passport',
+                  padding: EdgeInsets.zero,
+                ),
               ),
               const SizedBox(height: 12),
-              Text(
-                'Well done! You can share your passport with loved ones',
-                style: AppTypography.bodySmall.copyWith(
-                  color: WrappedColors.white.withValues(alpha: 0.4),
-                  fontFamily: 'Geist',
-                  fontVariations: const [FontVariation('wght', 500)],
-                  fontSize: 16,
-                  letterSpacing: -0.5,
-                  height: 24 / 16,
+              WrappedEntrance(
+                delay: const Duration(milliseconds: 220),
+                child: Text(
+                  'Well done! You can share your passport with loved ones',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: WrappedColors.white.withValues(alpha: 0.4),
+                    fontFamily: 'Geist',
+                    fontVariations: const [FontVariation('wght', 500)],
+                    fontSize: 16,
+                    letterSpacing: -0.5,
+                    height: 24 / 16,
+                  ),
                 ),
               ),
               const SizedBox(height: 22),
               // Passport card — photo bleeds 16px above card top
               Expanded(
-                // The boundary is exactly what gets shared as a PNG.
-                child: RepaintBoundary(
-                  key: _cardKey,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(24),
-                    child: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: _PassportCard(
-                            data: widget.data,
-                            symbol: widget.symbol,
-                            displayName: widget.displayName,
-                            period: widget.period,
+                child: WrappedEntrance(
+                  delay: const Duration(milliseconds: 340),
+                  duration: const Duration(milliseconds: 850),
+                  curve: Curves.easeOutBack,
+                  slideFrom: const Offset(0, 70),
+                  scaleFrom: 0.85,
+                  // The boundary is exactly what gets shared as a PNG.
+                  child: RepaintBoundary(
+                    key: _cardKey,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(24),
+                      child: Stack(
+                        children: [
+                          Positioned.fill(
+                            child: _PassportCard(
+                              data: widget.data,
+                              symbol: widget.symbol,
+                              displayName: widget.displayName,
+                              profileIcon: widget.profileIcon,
+                              username: widget.username,
+                              period: widget.period,
+                            ),
                           ),
-                        ),
-                        // Passport photo — top-right, clipped to the card bounds
-                        Positioned(top: -7, right: 24, child: _PassportPhoto()),
-                      ],
+                          // Passport photo — top-right, clipped to the card bounds
+                          Positioned(
+                            top: -7,
+                            right: 24,
+                            child: WrappedPopIn(
+                              delay: const Duration(milliseconds: 800),
+                              child: _PassportPhoto(),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
               const SizedBox(height: 22),
               const SizedBox(height: 10),
-              _LiquidGlassButton(
-                label: 'Share passport',
-                isLoading: _sharing,
-                onTap: _onShare,
+              WrappedEntrance(
+                delay: const Duration(milliseconds: 950),
+                child: WrappedPulse(
+                  minScale: 0.98,
+                  maxScale: 1.02,
+                  period: const Duration(milliseconds: 1800),
+                  child: _LiquidGlassButton(
+                    label: 'Share passport',
+                    isLoading: _sharing,
+                    onTap: _onShare,
+                  ),
+                ),
               ),
               const SizedBox(height: 16),
             ],
@@ -152,12 +192,16 @@ class _PassportCard extends StatelessWidget {
   final WrappedSharePassport data;
   final String symbol;
   final String displayName;
+  final String? profileIcon;
+  final String username;
   final DateTime period;
 
   const _PassportCard({
     required this.data,
     required this.symbol,
     required this.displayName,
+    this.profileIcon,
+    required this.username,
     required this.period,
   });
 
@@ -183,7 +227,11 @@ class _PassportCard extends StatelessWidget {
             // User row
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 16, 14, 0),
-              child: _UserRow(data: data, displayName: displayName),
+              child: _UserRow(
+                displayName: displayName,
+                username: username,
+                profileIcon: profileIcon,
+              ),
             ),
             // Stats inner card
             Padding(
@@ -277,29 +325,40 @@ class _PassportHeader extends StatelessWidget {
 // ─── User row (avatar + name + handle) ──────────────────────────────────────
 
 class _UserRow extends StatelessWidget {
-  final WrappedSharePassport data;
   final String displayName;
+  final String username;
+  final String? profileIcon;
 
-  const _UserRow({required this.data, required this.displayName});
+  const _UserRow({
+    required this.displayName,
+    required this.username,
+    this.profileIcon,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        // Avatar — 40×40, cornerRadius 12, blue bg + green stroke
+        // Avatar — 40×40, cornerRadius 12, blue bg + green stroke.
+        // AppProfileAvatar always draws a circular face, so it's zoomed and
+        // clipped to a square here to match the passport's ID-photo look.
         Container(
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: const Color(0xFFC5ECFD),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: const Color(0xFF0F9774), width: 1),
           ),
           clipBehavior: Clip.hardEdge,
-          child: Image.asset(
-            WrappedAssets.passportMemoji,
-            fit: BoxFit.cover,
-            errorBuilder: (_, _, _) => const SizedBox.shrink(),
+          child: OverflowBox(
+            maxWidth: 56,
+            maxHeight: 56,
+            child: AppProfileAvatar(
+              profileIcon: profileIcon,
+              name: displayName.isNotEmpty ? displayName : username,
+              size: 56,
+              seedWhenEmpty: true,
+            ),
           ),
         ),
         const SizedBox(width: 10),
@@ -308,7 +367,7 @@ class _UserRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               WrappedAutoText(
-                displayName.isNotEmpty ? displayName : data.username,
+                displayName.isNotEmpty ? displayName : username,
                 maxLines: 1,
                 maxFontSize: 14,
                 minFontSize: 10,
@@ -321,7 +380,7 @@ class _UserRow extends StatelessWidget {
                 ),
               ),
               Text(
-                data.username,
+                '@$username',
                 style: AppTypography.bodySmall.copyWith(
                   color: WrappedColors.passportGreen.withValues(alpha: 0.73),
                   fontFamily: 'Geist',

@@ -10,6 +10,7 @@ import '../../home/providers/home_dashboard_provider.dart';
 import '../data/models/category_model.dart';
 import '../data/models/expense_filter.dart';
 import '../data/models/expense_model.dart';
+import '../data/models/expense_summary_model.dart';
 import '../data/repositories/expense_repository.dart';
 
 final expenseRepositoryProvider = Provider<ExpenseRepository>((ref) {
@@ -20,6 +21,81 @@ final categoriesProvider = FutureProvider<List<CategoryModel>>((ref) {
   return ref.watch(expenseRepositoryProvider).getCategories();
 });
 
+class CategoryPageState {
+  final List<CategoryModel> items;
+  final int page;
+  final bool hasMore;
+  final bool isLoadingMore;
+
+  const CategoryPageState({
+    this.items = const [],
+    this.page = 1,
+    this.hasMore = false,
+    this.isLoadingMore = false,
+  });
+
+  CategoryPageState copyWith({
+    List<CategoryModel>? items,
+    int? page,
+    bool? hasMore,
+    bool? isLoadingMore,
+  }) {
+    return CategoryPageState(
+      items: items ?? this.items,
+      page: page ?? this.page,
+      hasMore: hasMore ?? this.hasMore,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+    );
+  }
+}
+
+/// Server-paged categories for the picker. [categoriesProvider] still walks
+/// every page for the places that need name/colour lookups across the whole
+/// set — this one exists so the picker doesn't block on all of them.
+class CategoryPageNotifier extends AsyncNotifier<CategoryPageState> {
+  ExpenseRepository get _repo => ref.read(expenseRepositoryProvider);
+
+  @override
+  Future<CategoryPageState> build() => _loadFirstPage();
+
+  Future<CategoryPageState> _loadFirstPage() async {
+    final res = await _repo.getCategoriesPage(page: 1);
+    return CategoryPageState(
+      items: res.items,
+      page: res.page,
+      hasMore: res.hasNext,
+    );
+  }
+
+  Future<void> refresh() async {
+    state = await AsyncValue.guard(_loadFirstPage);
+  }
+
+  Future<void> loadMore() async {
+    final current = state.valueOrNull;
+    if (current == null || current.isLoadingMore || !current.hasMore) return;
+
+    state = AsyncData(current.copyWith(isLoadingMore: true));
+    try {
+      final res = await _repo.getCategoriesPage(page: current.page + 1);
+      state = AsyncData(current.copyWith(
+        items: [...current.items, ...res.items],
+        page: res.page,
+        hasMore: res.hasNext,
+        isLoadingMore: false,
+      ));
+    } on AppException catch (e) {
+      Log.e('Load more categories failed', error: e);
+      state = AsyncData(current.copyWith(isLoadingMore: false));
+    }
+  }
+}
+
+final categoryPageProvider =
+    AsyncNotifierProvider<CategoryPageNotifier, CategoryPageState>(
+  CategoryPageNotifier.new,
+);
+
 class ExpenseListState {
   final List<ExpenseModel> items;
   final int page;
@@ -28,6 +104,13 @@ class ExpenseListState {
   final int month;
   final int year;
 
+  /// Computed server-side over every expense matching the current filters,
+  /// not just the loaded pages — `/expenses` returns these as siblings of
+  /// `pagination` (see [PaginatedResponse.totalAmount] /
+  /// [PaginatedResponse.categoryBreakdown]).
+  final double total;
+  final List<CategorySummaryModel> categoryBreakdown;
+
   const ExpenseListState({
     this.items = const [],
     this.page = 1,
@@ -35,9 +118,10 @@ class ExpenseListState {
     this.isLoadingMore = false,
     required this.month,
     required this.year,
+    this.total = 0,
+    this.categoryBreakdown = const [],
   });
 
-  double get total => items.fold(0, (sum, e) => sum + e.amount);
   bool get isEmpty => items.isEmpty;
 
   ExpenseListState copyWith({
@@ -47,6 +131,8 @@ class ExpenseListState {
     bool? isLoadingMore,
     int? month,
     int? year,
+    double? total,
+    List<CategorySummaryModel>? categoryBreakdown,
   }) =>
       ExpenseListState(
         items: items ?? this.items,
@@ -55,6 +141,8 @@ class ExpenseListState {
         isLoadingMore: isLoadingMore ?? this.isLoadingMore,
         month: month ?? this.month,
         year: year ?? this.year,
+        total: total ?? this.total,
+        categoryBreakdown: categoryBreakdown ?? this.categoryBreakdown,
       );
 }
 
@@ -123,6 +211,10 @@ class ExpenseListNotifier extends AsyncNotifier<ExpenseListState> {
       hasMore: res.hasNext,
       month: month,
       year: year,
+      total: res.totalAmount ?? 0,
+      categoryBreakdown: (res.categoryBreakdown ?? [])
+          .map(CategorySummaryModel.fromJson)
+          .toList(),
     );
   }
 
@@ -157,11 +249,8 @@ class ExpenseListNotifier extends AsyncNotifier<ExpenseListState> {
 
   Future<void> loadMore() async {
     final current = state.valueOrNull;
-    if (current == null ||
-        !current.hasMore ||
-        current.isLoadingMore) {
-      return;
-    }
+    if (current == null || !current.hasMore || current.isLoadingMore) return;
+
     state = AsyncData(current.copyWith(isLoadingMore: true));
     try {
       final (start, end) = _range(current.month, current.year);
@@ -181,6 +270,8 @@ class ExpenseListNotifier extends AsyncNotifier<ExpenseListState> {
         page: res.page,
         hasMore: res.hasNext,
         isLoadingMore: false,
+        // total/categoryBreakdown are already whole-filter values from page 1;
+        // later pages carry the same numbers, no need to overwrite.
       ));
     } on AppException catch (e) {
       Log.e('Load more expenses failed', error: e);
@@ -258,6 +349,7 @@ class ExpenseListNotifier extends AsyncNotifier<ExpenseListState> {
         ],
       ));
     }
+    await _refreshTotals();
     return updated;
   }
 
@@ -269,9 +361,42 @@ class ExpenseListNotifier extends AsyncNotifier<ExpenseListState> {
         items: current.items.where((e) => e.id != id).toList(),
       ));
     }
+    await _refreshTotals();
     ref.invalidate(homeSummaryProvider);
     ref.invalidate(homeInsightProvider);
     ref.invalidate(spendingSummaryProvider);
+  }
+
+  /// Re-fetches page 1 purely to pick up the fresh `total`/`categoryBreakdown`
+  /// after an edit/delete shifts them, without resetting pagination or the
+  /// already-loaded pages the way a full [refresh] would.
+  Future<void> _refreshTotals() async {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    try {
+      final (start, end) = _range(current.month, current.year);
+      final res = await _repo.getExpenses(
+        page: 1,
+        pageSize: AppConstants.defaultPageSize,
+        startDate: start,
+        endDate: end,
+        search: _filter.search,
+        categoryId: _filter.categoryId,
+        source: _filter.source,
+        orderBy: _filter.orderBy,
+        orderDir: _filter.orderDir,
+      );
+      final latest = state.valueOrNull;
+      if (latest == null) return;
+      state = AsyncData(latest.copyWith(
+        total: res.totalAmount ?? 0,
+        categoryBreakdown: (res.categoryBreakdown ?? [])
+            .map(CategorySummaryModel.fromJson)
+            .toList(),
+      ));
+    } on AppException catch (e) {
+      Log.e('Refresh expense totals failed', error: e);
+    }
   }
 }
 

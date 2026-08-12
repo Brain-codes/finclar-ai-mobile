@@ -112,7 +112,7 @@ class _FilledClaraCard extends StatelessWidget {
                   Text(
                     AppStrings.aiName,
                     style: AppTypography.labelMedium.copyWith(
-                      color: const Color(0xFF4D4845),
+                      color: context.claraLabel,
                     ),
                   ),
                   const Spacer(),
@@ -150,11 +150,6 @@ class _FilledClaraCard extends StatelessWidget {
 
 /// How much of the period's spending Clara could verify. Tells the user what
 /// the insight above is actually based on.
-///
-/// Note: [_GradientBorderCard] paints a fixed light background in both themes,
-/// so this deliberately uses the light-mode `AppColors.*On` foregrounds rather
-/// than the theme-aware `context.*On` getters — the dark-mode variants are pale
-/// and would be unreadable here.
 class _VerificationSplit extends StatelessWidget {
   final HomeInsightModel insight;
 
@@ -181,12 +176,12 @@ class _VerificationSplit extends StatelessWidget {
                   if (verified > 0)
                     Expanded(
                       flex: verified,
-                      child: const ColoredBox(color: AppColors.successOn),
+                      child: ColoredBox(color: context.successOn),
                     ),
                   if (selfReported > 0)
                     Expanded(
                       flex: selfReported,
-                      child: const ColoredBox(color: AppColors.warningOn),
+                      child: ColoredBox(color: context.warningOn),
                     ),
                 ],
               ),
@@ -197,7 +192,7 @@ class _VerificationSplit extends StatelessWidget {
             'Based on $verified% verified · $selfReported% self-reported',
             style: AppTypography.bodySmall.copyWith(
               fontSize: 11,
-              color: const Color(0xFF4D4845),
+              color: context.claraLabel,
             ),
           ),
         ],
@@ -222,7 +217,7 @@ class _GradientBorderCard extends StatelessWidget {
       padding: const EdgeInsets.all(1.5),
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFFFFF8F7),
+          color: context.claraCardBg,
           borderRadius: BorderRadius.circular(AppRadius.sheet - 1.5),
         ),
         child: child,
@@ -300,7 +295,7 @@ class _EmptyClaraCard extends StatelessWidget {
             Text(
               'No Insights Yet',
               style: AppTypography.labelMedium.copyWith(
-                color: const Color(0xFF4D4845),
+                color: context.claraLabel,
                 fontWeight: FontWeight.w600,
               ),
             ),

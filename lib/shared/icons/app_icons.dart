@@ -41,6 +41,8 @@ abstract class AppIcons {
   static const IconData notification = Remix.notification_3_line;
   static const IconData notificationActive = Remix.notification_3_fill;
   static const IconData settings = Remix.settings_3_line;
+  static const IconData volumeUp = Remix.volume_up_line;
+  static const IconData volumeMute = Remix.volume_mute_line;
   static const IconData share = Remix.share_line;
   static const IconData copy = Remix.file_copy_line;
   static const IconData scan = Remix.scan_line;

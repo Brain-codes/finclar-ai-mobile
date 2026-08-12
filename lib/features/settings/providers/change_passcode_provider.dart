@@ -4,6 +4,7 @@ import '../../../core/errors/app_exceptions.dart';
 import '../../../core/services/logger_service.dart';
 import '../../../core/services/storage_service.dart';
 import '../../../features/auth/providers/auth_repository_provider.dart';
+import '../../../features/auth/providers/user_profile_provider.dart';
 
 enum ChangePasscodePhase { otp, create, confirm }
 
@@ -65,9 +66,15 @@ class ChangePasscodeNotifier extends Notifier<ChangePasscodeState> {
     return const ChangePasscodeState(isSendingOtp: true);
   }
 
+  Future<String?> _resolveEmail() async {
+    final profile = await ref.read(userProfileProvider.future);
+    if (profile != null && profile.email.isNotEmpty) return profile.email;
+    return StorageService.getLastEmail();
+  }
+
   Future<void> _sendOtp() async {
     try {
-      final email = await StorageService.getLastEmail();
+      final email = await _resolveEmail();
       if (email == null) {
         state = state.copyWith(isSendingOtp: false, snackbarError: 'Could not find your email. Please log out and log in again.');
         return;
@@ -116,7 +123,7 @@ class ChangePasscodeNotifier extends Notifier<ChangePasscodeState> {
     }
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final email = await StorageService.getLastEmail() ?? '';
+      final email = await _resolveEmail() ?? '';
       final tokens = await ref.read(authRepositoryProvider).resetPasscode(
             email: email,
             code: state.otp,

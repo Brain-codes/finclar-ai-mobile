@@ -41,26 +41,45 @@ class WrappedSlide4TopCategory extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  WrappedHeadline(data.headline, padding: EdgeInsets.zero),
+                  WrappedEntrance(
+                    delay: const Duration(milliseconds: 100),
+                    child: WrappedHeadline(
+                      data.headline,
+                      padding: EdgeInsets.zero,
+                    ),
+                  ),
                   const SizedBox(height: 8),
-                  WrappedSubtitle(
-                    'Your biggest category this month was ${data.name}',
-                    padding: EdgeInsets.zero,
+                  WrappedEntrance(
+                    delay: const Duration(milliseconds: 220),
+                    child: WrappedSubtitle(
+                      'Your biggest category this month was ${data.name}',
+                      padding: EdgeInsets.zero,
+                    ),
                   ),
                   const SizedBox(height: 28),
                   // The illustration follows the category the slide names.
                   // The column is start-aligned, so the image needs its own
                   // centring to sit in the middle of the slide.
                   Center(
-                    child: SizedBox(
-                      width: imageSide,
-                      height: imageSide,
-                      child: Image.asset(
-                        WrappedAssets.categoryImage(data.name),
-                        fit: BoxFit.contain,
-                        errorBuilder: (_, _, _) => Image.asset(
-                          WrappedAssets.categoryFallback,
-                          fit: BoxFit.contain,
+                    child: WrappedEntrance(
+                      delay: const Duration(milliseconds: 340),
+                      duration: const Duration(milliseconds: 900),
+                      curve: Curves.elasticOut,
+                      slideFrom: Offset.zero,
+                      scaleFrom: 0.4,
+                      child: WrappedFloat(
+                        amplitude: 6,
+                        child: SizedBox(
+                          width: imageSide,
+                          height: imageSide,
+                          child: Image.asset(
+                            WrappedAssets.categoryImage(data.name),
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, _, _) => Image.asset(
+                              WrappedAssets.categoryFallback,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -70,13 +89,16 @@ class WrappedSlide4TopCategory extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        formatCurrency(
-                          data.amount,
+                      WrappedCountUp(
+                        value: data.amount,
+                        formatter: (v) => formatCurrency(
+                          v,
                           symbol,
                           abbreviate: false,
                           withCommas: true,
                         ),
+                        delay: const Duration(milliseconds: 700),
+                        textAlign: TextAlign.center,
                         style: AppTypography.amountLarge.copyWith(
                           color: WrappedColors.white,
                           fontSize: 40,
@@ -84,38 +106,41 @@ class WrappedSlide4TopCategory extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'You spent approximately',
-                            style: AppTypography.bodySmall.copyWith(
-                              color: WrappedColors.foodLabel,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: WrappedColors.foodLabel,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              '${data.percentage.round()}% of spending',
-                              style: AppTypography.labelXSmall.copyWith(
-                                color: WrappedColors.foodPct,
-                                fontVariations: const [
-                                  FontVariation('wght', 600),
-                                ],
+                      WrappedEntrance(
+                        delay: const Duration(milliseconds: 900),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'You spent approximately',
+                              style: AppTypography.bodySmall.copyWith(
+                                color: WrappedColors.foodLabel,
+                                fontSize: 16,
                               ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: WrappedColors.foodLabel,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                '${data.percentage.round()}% of spending',
+                                style: AppTypography.labelXSmall.copyWith(
+                                  color: WrappedColors.foodPct,
+                                  fontVariations: const [
+                                    FontVariation('wght', 600),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),

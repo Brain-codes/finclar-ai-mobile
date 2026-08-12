@@ -110,7 +110,7 @@ There are four ways an expense gets into Finclar: you type it, you scan a receip
 2. The **Add expense** sheet opens. Fill in:
    - **Description** — "What was this expense for?"
    - **Amount** — "0.00"
-   - **Category** — tap the row (shows "Select category") → the **Select category** sheet. Pick one, or tap **Add category** to create your own (pick an icon, pick a **Color** swatch, type a **Category name**, tap **Create**). Every category — including your own — now gets its own distinct colour throughout the app (category picker, expense list, Budget) instead of custom categories sharing one default colour.
+   - **Category** — tap the row (shows "Select category") → the **Select category** sheet. The list loads a page at a time — scroll to the bottom and the next batch loads in place (skeleton rows show while it fetches). Pick one, or tap **Add category** (pinned at the bottom of the sheet, always reachable without scrolling) to create your own (pick an icon, pick a **Color** swatch, type a **Category name**, tap **Create**). Every category — including your own — now gets its own distinct colour throughout the app (category picker, expense list, Budget) instead of custom categories sharing one default colour.
    - **Date** — tap the row → date picker.
    - Optionally attach a receipt image: "Optional. Attaching one marks this expense verified."
 3. Tap **Save**.
@@ -189,6 +189,8 @@ There are four ways an expense gets into Finclar: you type it, you scan a receip
 5. Enter the **Amount** ("Enter amount"). Over-allocating shows "Amount exceeds allocation balance" and blocks the button.
 6. Tap **Continue**. The allocation appears in the "Allocated category" list.
 7. Repeat for each category. Empty state reads "No allocations yet" / "Tap Allocate to split your budget across categories".
+8. Below the allocation list, **Budget vs expense** ("What you budgeted for each category against what you spent") plots a bar pair per category — budgeted and spent — with legend rows **Budget** and **Expense** showing the totals. Past 5 categories the plot scrolls sideways and a hint reads "Swipe the chart to see all N categories"; the amount axis on the right stays fixed while you swipe, so the bar heights stay readable.
+9. Last on the screen, **Where your budget goes** ("How your ₦X budget is split") shows one stacked bar covering the whole budget — a segment per category plus a grey **Unallocated** segment. Tap the header (or its chevron) to expand the per-segment breakdown: each row gives the name, amount and % of the budget. Tap again to collapse. Allocating more should shrink the Unallocated segment, not just add a row.
 
 ### 4.3 Edit or remove an allocation
 
@@ -239,7 +241,17 @@ There are four ways an expense gets into Finclar: you type it, you scan a receip
 3. Otherwise type into "Ask me about your expense" and send.
 4. When Clara's reply includes a chart, it now matches what you asked: asking for a spending/category breakdown ("give me a spending breakdown by category") shows a bar-per-category chart with amount and % of total; other questions (trend, income vs expense) still show the income/expense chart.
 5. Empty history reads "No Insights Yet". A load failure reads "Couldn't load your chat" with **Retry**.
-6. Tap the back arrow to leave — your history stays.
+6. A tone plays whenever Clara sends a reply (if reply sound is on — see 5.3).
+7. Tap the back arrow to leave — your history stays.
+
+### 5.3 Clara settings
+
+1. From the Clara chat screen, tap the settings icon (top right, next to "Clara AI").
+2. **Clara settings** sheet opens with:
+   - **Reply sound** toggle — turns the chime that plays on Clara's replies on or off. Takes effect immediately, no save needed.
+   - **Preferred name** field, prefilled with your current preferred name — the name Clara calls you by.
+3. Change the name and tap **Save changes** (disabled until you actually change it). You get "Details updated".
+4. Dismiss by swiping down or tapping outside — the toggle change is already saved; an unsaved name edit is discarded.
 
 ---
 

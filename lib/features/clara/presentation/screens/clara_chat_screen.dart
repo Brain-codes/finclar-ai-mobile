@@ -16,6 +16,7 @@ import '../widgets/clara_empty_state.dart';
 import '../widgets/clara_input_bar.dart';
 import '../widgets/clara_markdown.dart';
 import '../widgets/clara_insight_card.dart';
+import '../widgets/clara_settings_sheet.dart';
 import '../widgets/clara_suggestions.dart';
 import '../widgets/clara_typing_indicator.dart';
 
@@ -241,6 +242,20 @@ class _ClaraTopBar extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+          const Spacer(),
+          GestureDetector(
+            onTap: () => showClaraSettingsSheet(context),
+            child: Container(
+              width: 36,
+              height: 36,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: context.surfaceVariant,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(AppIcons.settings, size: 18, color: context.textPrimary),
+            ),
           ),
         ],
       ),

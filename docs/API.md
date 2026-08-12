@@ -492,7 +492,14 @@ Paginated, filterable expense list. Returns the `PaginatedResponse` envelope (se
 | `order_by` | enum | `expense_date` | `expense_date` \| `amount` \| `created_at` |
 | `order_dir` | enum | `desc` | `asc` \| `desc` |
 
-**Response** `PaginatedResponse<ExpenseResponseDto[]>`
+**Response** `ExpenseListResponseDto` (extends `PaginatedResponse<ExpenseResponseDto[]>`)
+
+> ✅ **New (2026-08-12):** `total_expenses` and `category_breakdown` are computed
+> over **every expense matching the current filters**, not just the current
+> page — use these instead of summing `data` client-side, which only ever
+> totals the loaded page(s). `category_breakdown` reuses the same shape as
+> `categories` in `GET /expenses/summary`.
+
 ```json
 {
   "success": true,
@@ -501,7 +508,11 @@ Paginated, filterable expense list. Returns the `PaginatedResponse` envelope (se
   "pagination": {
     "page": 1, "page_size": 20, "total": 0,
     "total_pages": 0, "has_next": false, "has_prev": false
-  }
+  },
+  "total_expenses": 65500.0,
+  "category_breakdown": [
+    { "name": "Education", "amount": 36000.0, "transaction_count": 1, "pct_of_total": 54.96 }
+  ]
 }
 ```
 
@@ -1535,6 +1546,24 @@ Debug only — sends a plain push to the caller's own registered devices, to con
 registration + FCM are wired up. Not a user-facing action.
 
 **Response** `ApiResponse<null>`
+
+---
+
+#### Custom notification sound
+
+The app bundles a custom tone (`notification_tone`) and has both platforms configured to use it
+as the **default** sound whenever a push payload doesn't say otherwise:
+
+- **Android:** `finclar_default_channel` is created client-side bound to
+  `res/raw/notification_tone.mp3`, and is set as the default FCM channel via manifest meta-data —
+  so any `notification`-type FCM message with no `android.notification.channel_id` in its payload
+  automatically plays this tone.
+- **iOS:** `notification_tone.caf` ships in the app bundle. APNs does **not** default to it — the
+  backend must set `"sound": "notification_tone.caf"` inside `aps` on every push payload sent to
+  iOS devices, otherwise iOS falls back to the default system tone.
+
+If a payload needs a different Android channel (e.g. silent), it must explicitly set
+`android.notification.channel_id` to something other than `finclar_default_channel`.
 
 ---
 

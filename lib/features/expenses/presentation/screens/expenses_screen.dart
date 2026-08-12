@@ -123,7 +123,7 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
           SliverToBoxAdapter(
             child: ExpenseSummaryCard(
               total: 0,
-              expenses: const [],
+              categoryTotals: const {},
               selectedMonth: data.month,
               periodLabel: filter.hasDateRange ? filter.dateLabel : null,
               onMonthTap: () => _pickMonth(data.month),
@@ -143,7 +143,9 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
       SliverToBoxAdapter(
         child: ExpenseSummaryCard(
           total: data.total,
-          expenses: data.items,
+          categoryTotals: {
+            for (final c in data.categoryBreakdown) c.name: c.amount,
+          },
           selectedMonth: data.month,
           periodLabel: filter.hasDateRange ? filter.dateLabel : null,
           onMonthTap: () => _pickMonth(data.month),

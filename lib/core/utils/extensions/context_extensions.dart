@@ -53,4 +53,8 @@ extension ContextX on BuildContext {
   Color get categoryTransportBg  => isDark ? AppColors.categoryTransportBgDark  : AppColors.categoryTransportBg;
   Color get categoryHealthBg     => isDark ? AppColors.categoryHealthBgDark     : AppColors.categoryHealthBg;
   Color get categoryShoppingBg   => isDark ? AppColors.categoryShoppingBgDark   : AppColors.categoryShoppingBg;
+
+  // ─── Clara AI card ────────────────────────────────────────────────────────
+  Color get claraCardBg => isDark ? AppColors.claraCardBgDark : AppColors.claraCardBg;
+  Color get claraLabel  => isDark ? AppColors.claraLabelDark  : AppColors.claraLabel;
 }

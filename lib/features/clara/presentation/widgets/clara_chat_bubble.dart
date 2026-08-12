@@ -60,10 +60,13 @@ class ClaraAssistantBubble extends StatefulWidget {
 }
 
 class _ClaraAssistantBubbleState extends State<ClaraAssistantBubble>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
   AnimationController? _reveal;
   AnimationController? _blink;
   int _glyphCount = 0;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -97,6 +100,7 @@ class _ClaraAssistantBubbleState extends State<ClaraAssistantBubble>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(

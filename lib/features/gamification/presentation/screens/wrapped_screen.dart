@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/services/audio_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../shared/icons/app_icons.dart';
@@ -50,6 +51,11 @@ class WrappedScreen extends ConsumerWidget {
               // username, so use the preferred name the user chose.
               displayName:
                   ref.watch(userProfileProvider).valueOrNull?.displayName ?? '',
+              profileIcon: ref.watch(userProfileProvider).valueOrNull?.profileIcon,
+              // The wrapped payload's own `username` field can be stale —
+              // the profile's username (set in Settings → Edit details) is
+              // the source of truth.
+              username: ref.watch(userProfileProvider).valueOrNull?.username ?? '',
             ),
           ),
     );
@@ -108,6 +114,8 @@ class _WrappedError extends StatelessWidget {
 class WrappedStory extends StatefulWidget {
   final WrappedModel wrapped;
   final String displayName;
+  final String? profileIcon;
+  final String username;
 
   /// Month the recap covers — the passport prints it and the share caption
   /// names it.
@@ -117,6 +125,8 @@ class WrappedStory extends StatefulWidget {
     super.key,
     required this.wrapped,
     required this.displayName,
+    this.profileIcon,
+    required this.username,
     required this.period,
   });
 
@@ -154,6 +164,8 @@ class _WrappedScreenState extends State<WrappedStory>
         data: w.sharePassport,
         symbol: symbol,
         displayName: widget.displayName,
+        profileIcon: widget.profileIcon,
+        username: widget.username,
         period: widget.period,
       ),
     ];
@@ -170,6 +182,7 @@ class _WrappedScreenState extends State<WrappedStory>
     _progressController.addStatusListener(_onProgressStatus);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     _startAutoPlay();
+    AudioService.playLoop('audio/wrapped_wins.mp3');
   }
 
   @override
@@ -178,6 +191,7 @@ class _WrappedScreenState extends State<WrappedStory>
     _progressController.dispose();
     _pageController.dispose();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    AudioService.stop();
     super.dispose();
   }
 
@@ -210,12 +224,14 @@ class _WrappedScreenState extends State<WrappedStory>
 
   /// Hold-to-pause, like a story. Holds the current slide until release.
   void _pauseAutoPlay() {
+    AudioService.pause();
     if (!_progressController.isAnimating) return;
     _progressController.stop();
   }
 
   /// Resumes from where it paused rather than restarting the slide.
   void _resumeAutoPlay() {
+    AudioService.resume();
     if (_currentPage >= _totalSlides - 1) return;
     if (_progressController.isAnimating) return;
     if (_progressController.value >= 1.0) return;

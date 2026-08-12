@@ -1,168 +1,159 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/config/app_config_notifier.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
+import '../../../../core/utils/number_formatter.dart';
+import '../../../../shared/icons/app_icons.dart';
+import '../../../../shared/widgets/app_bar_chart.dart';
+import '../../../../shared/widgets/app_stripe_painter.dart';
+import '../../data/models/budget_model.dart';
 
-class BudgetExpenseChartSection extends StatelessWidget {
-  const BudgetExpenseChartSection({super.key});
+class BudgetExpenseChartSection extends ConsumerWidget {
+  final List<AllocationModel> allocations;
+  final double totalBudget;
+  final double totalExpense;
 
-  static const _categories = [
-    _BarData('Food', 0.48, AppColors.categoryFood, AppColors.categoryFoodBg),
-    _BarData('Trans', 0.3, AppColors.categoryTransport, AppColors.categoryTransportBg),
-    _BarData('Heal', 0.24, AppColors.categoryHealth, AppColors.categoryHealthBg),
-    _BarData('Shop', 1.0, AppColors.categoryShopping, AppColors.categoryShoppingBg),
-    _BarData('Rent', 0.48, AppColors.primary, AppColors.primaryMuted),
-  ];
-
-  static const _yLabels = ['₦2m', '₦1.5m', '₦500k', '₦0'];
+  const BudgetExpenseChartSection({
+    super.key,
+    required this.allocations,
+    required this.totalBudget,
+    required this.totalExpense,
+  });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final symbol = ref.watch(currencySymbolProvider);
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         color: context.surfaceColor,
         borderRadius: AppRadius.radiusSheet,
-        border: Border.all(color: context.borderColor),
       ),
       padding: const EdgeInsets.all(AppSpacing.base),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Expense and budget',
+            'Budget vs expense',
             style: AppTypography.labelMedium.copyWith(
-              color: context.textQuaternary,
-              fontVariations: const [FontVariation('wght', 500)],
+              color: context.textPrimary,
+              fontVariations: const [FontVariation('wght', 600)],
             ),
           ),
-          const SizedBox(height: AppSpacing.base),
-          SizedBox(
-            height: 110,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                // Y-axis labels
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: _yLabels
-                      .map(
-                        (l) => Text(
-                          l,
-                          style: AppTypography.bodySmall.copyWith(
-                            color: context.textSecondary,
-                            fontSize: 10,
-                          ),
+          const SizedBox(height: 2),
+          Text(
+            'What you budgeted for each category against what you spent',
+            style: AppTypography.bodySmall.copyWith(
+              color: context.textSecondary,
+              fontSize: 12,
+            ),
+          ),
+          if (allocations.isEmpty)
+            _empty(context)
+          else ...[
+            const SizedBox(height: AppSpacing.xl),
+            AppBarChart(
+              height: 160,
+              maxGroupSpacing: 40,
+              minGroupSpacing: 24,
+              formatY: (v) => formatCurrency(v, symbol, abbreviate: true),
+              groups: allocations
+                  .map(
+                    (a) => AppBarChartGroup(
+                      label: a.categoryName,
+                      bars: [
+                        AppBarChartBar(
+                          value: a.amountAllocated,
+                          color: AppColors.transparent,
+                          striped: true,
+                          stripeColor: AppColors.primary,
+                          stripeOpacity: 1,
                         ),
-                      )
-                      .toList(),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                // Bars
-                Expanded(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: _categories
-                        .map((d) => _Bar(data: d))
-                        .toList(),
-                  ),
-                ),
-              ],
+                        AppBarChartBar(
+                          value: a.spent,
+                          color: AppColors.transparent,
+                          striped: true,
+                          stripeColor: AppColors.categoryTransport,
+                          stripeOpacity: 1,
+                        ),
+                      ],
+                    ),
+                  )
+                  .toList(),
             ),
-          ),
-          const SizedBox(height: AppSpacing.base),
-          Divider(color: context.borderColor, height: 1, thickness: 1),
-          const SizedBox(height: AppSpacing.md),
-          _LegendRow(
-            color: AppColors.categoryFood,
-            label: 'Expense',
-            amount: '₦250,000',
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          _LegendRow(
-            color: AppColors.categoryShopping,
-            label: 'Shopping',
-            amount: '₦120,000',
-          ),
+            if (allocations.length > 5) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    AppIcons.chevronRight,
+                    size: 12,
+                    color: context.textSecondary,
+                  ),
+                  const SizedBox(width: 2),
+                  Text(
+                    'Swipe the chart to see all ${allocations.length} categories',
+                    style: AppTypography.bodySmall.copyWith(
+                      color: context.textSecondary,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: AppSpacing.xl),
+            _LegendItem(
+              stripeColor: AppColors.primary,
+              label: 'Budget',
+              amount: formatCurrency(totalBudget, symbol,
+                  abbreviate: false, withCommas: true),
+            ),
+            const SizedBox(height: AppSpacing.base),
+            _LegendItem(
+              stripeColor: AppColors.categoryTransport,
+              label: 'Expense',
+              amount: formatCurrency(totalExpense, symbol,
+                  abbreviate: false, withCommas: true),
+            ),
+          ],
         ],
       ),
     );
   }
-}
 
-class _BarData {
-  final String label;
-  final double fraction;
-  final Color color;
-  final Color bgColor;
-
-  const _BarData(this.label, this.fraction, this.color, this.bgColor);
-}
-
-class _Bar extends StatelessWidget {
-  final _BarData data;
-  const _Bar({required this.data});
-
-  static const _maxBarHeight = 78.0;
-
-  @override
-  Widget build(BuildContext context) {
-    final spentH = _maxBarHeight * data.fraction;
-    final budgetH = _maxBarHeight * 0.3;
-
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            _SingleBar(height: spentH, color: data.color),
-            const SizedBox(width: 2),
-            _SingleBar(height: budgetH, color: data.bgColor),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-          data.label,
-          style: AppTypography.bodySmall.copyWith(
-            color: context.textSecondary,
-            fontSize: 10,
+  Widget _empty(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+        child: Center(
+          child: Column(
+            children: [
+              Icon(AppIcons.chart, size: 20, color: context.textSecondary),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                'Allocate your budget to see this breakdown',
+                textAlign: TextAlign.center,
+                style: AppTypography.bodySmall.copyWith(
+                  color: context.textSecondary,
+                ),
+              ),
+            ],
           ),
         ),
-      ],
-    );
-  }
+      );
 }
 
-class _SingleBar extends StatelessWidget {
-  final double height;
-  final Color color;
-  const _SingleBar({required this.height, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 8,
-      height: height.clamp(4.0, 78.0),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
-      ),
-    );
-  }
-}
-
-class _LegendRow extends StatelessWidget {
-  final Color color;
+class _LegendItem extends StatelessWidget {
+  final Color stripeColor;
   final String label;
   final String amount;
 
-  const _LegendRow({
-    required this.color,
+  const _LegendItem({
+    required this.stripeColor,
     required this.label,
     required this.amount,
   });
@@ -171,29 +162,28 @@ class _LegendRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Container(
-          width: 8,
-          height: 16,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(6),
-          ),
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        Expanded(
-          child: Text(
-            label,
-            style: AppTypography.bodySmall.copyWith(
-              color: context.textTertiary,
-              fontSize: 12,
+        ClipRRect(
+          borderRadius: BorderRadius.circular(AppRadius.xs),
+          child: CustomPaint(
+            size: const Size(8, 16),
+            painter: AppStripePainter(
+              stripeColor: stripeColor,
+              spacing: 3.0,
+              strokeWidth: 1.5,
+              angleDegrees: 45.0,
             ),
           ),
         ),
+        const SizedBox(width: AppSpacing.xs),
+        Text(
+          label,
+          style: AppTypography.bodySmall.copyWith(color: context.textPrimary),
+        ),
+        const Spacer(),
         Text(
           amount,
           style: AppTypography.bodySmall.copyWith(
-            color: context.textQuaternary,
-            fontSize: 12,
+            color: context.textPrimary,
             fontVariations: const [FontVariation('wght', 500)],
           ),
         ),

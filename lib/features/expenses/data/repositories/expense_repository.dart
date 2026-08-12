@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import '../../../../core/api/api_client.dart';
 import '../../../../core/api/api_endpoints.dart';
 import '../../../../core/api/api_response.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/services/image_compression_service.dart';
 import '../../../../core/services/logger_service.dart';
 import '../../../home/data/models/home_insight_model.dart';
@@ -199,6 +200,18 @@ class ExpenseRepository {
     Log.api('GET', ApiEndpoints.categories);
     return _api.getAllPaginated<CategoryModel>(
       ApiEndpoints.categories,
+      fromItem: CategoryModel.fromJson,
+    );
+  }
+
+  Future<PaginatedResponse<CategoryModel>> getCategoriesPage({
+    required int page,
+    int pageSize = AppConstants.categoryPageSize,
+  }) async {
+    Log.api('GET', ApiEndpoints.categories);
+    return _api.getPaginated<CategoryModel>(
+      ApiEndpoints.categories,
+      queryParams: {'page': page, 'page_size': pageSize},
       fromItem: CategoryModel.fromJson,
     );
   }

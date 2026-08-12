@@ -32,9 +32,12 @@ class ClaraInsightCard extends StatefulWidget {
 }
 
 class _ClaraInsightCardState extends State<ClaraInsightCard>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
   AnimationController? _controller;
   Timer? _startTimer;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -58,6 +61,7 @@ class _ClaraInsightCardState extends State<ClaraInsightCard>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final card = _card(context, 1.0);
     if (_controller == null) return card;
 

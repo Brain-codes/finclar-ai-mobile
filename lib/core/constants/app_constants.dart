@@ -31,6 +31,7 @@ abstract class AppConstants {
   static const String biometricPasscodeKey = 'biometric_passcode';
   static const String tourPendingKey = 'home_tour_pending';
   static const String pendingInviteKey = 'pending_invite_username';
+  static const String claraAudioEnabledKey = 'clara_audio_enabled';
 
   // Invites / deep links
   static const String appScheme = 'finclar';
@@ -60,6 +61,10 @@ abstract class AppConstants {
 
   // Pagination
   static const int defaultPageSize = 20;
+
+  // The category picker pages the server directly — custom categories make the
+  // list unbounded, so it fetches a page at a time as the sheet is scrolled.
+  static const int categoryPageSize = 20;
 
   // Animation durations
   static const Duration animFast = Duration(milliseconds: 150);

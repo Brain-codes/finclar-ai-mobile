@@ -64,6 +64,16 @@ class AppBarChart extends StatelessWidget {
   final bool showYAxis;
   final BorderRadius? barBorderRadius;
 
+  /// Floors the gap between groups. When the resulting cluster is wider than
+  /// the available width the plot area scrolls horizontally instead of
+  /// squashing bars into each other — required for charts with many groups.
+  final double? minGroupSpacing;
+
+  /// Caps the gap between groups. Without it groups justify across the full
+  /// width, which strands two or three groups at opposite edges. When the
+  /// capped cluster is narrower than the canvas it is centered.
+  final double? maxGroupSpacing;
+
   /// Reveal factor 0..1 for a "bars rise from the baseline" entrance. 1.0
   /// (default) draws the chart at full height — leave it for static charts.
   final double progress;
@@ -84,6 +94,8 @@ class AppBarChart extends StatelessWidget {
     this.showGrid = true,
     this.showYAxis = true,
     this.barBorderRadius,
+    this.maxGroupSpacing,
+    this.minGroupSpacing,
     this.progress = 1.0,
   });
 
@@ -117,7 +129,7 @@ class AppBarChart extends StatelessWidget {
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
-                return _AppBarChartCanvas(
+                final canvas = _AppBarChartCanvas(
                   groups: groups,
                   maxY: roundedMax,
                   yDivisions: yDivisions,
@@ -126,12 +138,25 @@ class AppBarChart extends StatelessWidget {
                   bottomLabelHeight: bottomLabelHeight,
                   labelStyle: labelStyle,
                   gridColor: gridColor ?? context.borderColor,
-                  canvasWidth: constraints.maxWidth,
+                  canvasWidth: math.max(
+                    constraints.maxWidth,
+                    _naturalWidth(constraints.maxWidth),
+                  ),
                   canvasHeight: constraints.maxHeight,
                   referenceLine: referenceLine,
                   showGrid: showGrid,
                   barBorderRadius: barBorderRadius,
+                  maxGroupSpacing: maxGroupSpacing,
+                  minGroupSpacing: minGroupSpacing,
                   progress: progress,
+                );
+
+                final natural = _naturalWidth(constraints.maxWidth);
+                if (natural <= constraints.maxWidth) return canvas;
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  child: SizedBox(width: natural, child: canvas),
                 );
               },
             ),
@@ -160,6 +185,17 @@ class AppBarChart extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// Width the groups need at [minGroupSpacing]. Equal to [available] when no
+  /// floor is set, so the default justified layout is untouched.
+  double _naturalWidth(double available) {
+    if (minGroupSpacing == null || groups.length < 2) return available;
+    final barsPerGroup = groups.first.bars.length;
+    final groupWidth =
+        barsPerGroup * barWidth + (barsPerGroup - 1) * barSpacing;
+    return groupWidth * groups.length +
+        minGroupSpacing! * (groups.length - 1);
   }
 
   /// Computes a "nice" axis ceiling that closely fits [rawMax] and divides
@@ -206,6 +242,8 @@ class _AppBarChartCanvas extends StatelessWidget {
   final AppBarChartReferenceLine? referenceLine;
   final bool showGrid;
   final BorderRadius? barBorderRadius;
+  final double? maxGroupSpacing;
+  final double? minGroupSpacing;
   final double progress;
 
   const _AppBarChartCanvas({
@@ -222,6 +260,8 @@ class _AppBarChartCanvas extends StatelessWidget {
     this.referenceLine,
     this.showGrid = true,
     this.barBorderRadius,
+    this.maxGroupSpacing,
+    this.minGroupSpacing,
     this.progress = 1.0,
   });
 
@@ -231,15 +271,24 @@ class _AppBarChartCanvas extends StatelessWidget {
     final barsPerGroup = groups.isEmpty ? 1 : groups.first.bars.length;
     final groupWidth =
         barsPerGroup * barWidth + (barsPerGroup - 1) * barSpacing;
-    final groupSpacing = groups.length > 1
+    final justifiedSpacing = groups.length > 1
         ? (canvasWidth - groupWidth * groups.length) / (groups.length - 1)
         : 0.0;
+    var groupSpacing = maxGroupSpacing != null
+        ? math.min(justifiedSpacing, maxGroupSpacing!)
+        : justifiedSpacing;
+    if (minGroupSpacing != null) {
+      groupSpacing = math.max(groupSpacing, minGroupSpacing!);
+    }
+    final clusterWidth = groupWidth * groups.length +
+        groupSpacing * math.max(0, groups.length - 1);
+    final clusterLeft = math.max(0.0, (canvasWidth - clusterWidth) / 2);
 
     final barWidgets = <Widget>[];
 
     for (int gi = 0; gi < groups.length; gi++) {
       final group = groups[gi];
-      final groupLeft = gi * (groupWidth + groupSpacing);
+      final groupLeft = clusterLeft + gi * (groupWidth + groupSpacing);
 
       for (int bi = 0; bi < group.bars.length; bi++) {
         final bar = group.bars[bi];
@@ -277,14 +326,18 @@ class _AppBarChartCanvas extends StatelessWidget {
 
       // Bottom label centered under the group
       final labelCenter = groupLeft + groupWidth / 2;
+      final labelWidth =
+          math.min(64.0, math.max(32.0, groupWidth + groupSpacing - 4));
       barWidgets.add(
         Positioned(
           bottom: 0,
-          left: labelCenter - 16,
-          width: 32,
+          left: labelCenter - labelWidth / 2,
+          width: labelWidth,
           child: Text(
             group.label,
             textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: (labelStyle ?? AppTypography.labelXSmall).copyWith(
               color: Theme.of(
                 context,
@@ -317,8 +370,9 @@ class _AppBarChartCanvas extends StatelessWidget {
       double? lineLeft;
       double? lineWidth;
       if (hasSpan) {
-        final startLeft = start * (groupWidth + groupSpacing);
-        final endRight = end * (groupWidth + groupSpacing) + groupWidth;
+        final startLeft = clusterLeft + start * (groupWidth + groupSpacing);
+        final endRight =
+            clusterLeft + end * (groupWidth + groupSpacing) + groupWidth;
         lineLeft = startLeft;
         lineWidth = endRight - startLeft;
       }

@@ -7,7 +7,7 @@ import '../../../../shared/icons/app_icons.dart';
 
 enum SettingsRowTrailing { chevron, toggle, badge, value }
 
-class SettingsRow extends StatelessWidget {
+class SettingsRow extends StatefulWidget {
   final IconData icon;
   final Color iconBg;
   final String label;
@@ -32,41 +32,62 @@ class SettingsRow extends StatelessWidget {
   });
 
   @override
+  State<SettingsRow> createState() => _SettingsRowState();
+}
+
+class _SettingsRowState extends State<SettingsRow> {
+  bool _pressed = false;
+
+  void _setPressed(bool value) {
+    if (_pressed != value) setState(() => _pressed = value);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final isTappable = widget.trailing != SettingsRowTrailing.toggle &&
+        widget.onTap != null;
+
     return GestureDetector(
-      onTap: trailing == SettingsRowTrailing.toggle ? null : onTap,
+      onTap: isTappable ? widget.onTap : null,
+      onTapDown: isTappable ? (_) => _setPressed(true) : null,
+      onTapUp: isTappable ? (_) => _setPressed(false) : null,
+      onTapCancel: isTappable ? () => _setPressed(false) : null,
       behavior: HitTestBehavior.opaque,
-      child: SizedBox(
-        height: 42,
-        child: Row(
-          children: [
-            Container(
-              width: 26,
-              height: 26,
-              decoration: BoxDecoration(
-                color: iconBg,
-                shape: BoxShape.circle,
+      child: AnimatedOpacity(
+        opacity: _pressed ? 0.5 : 1,
+        duration: const Duration(milliseconds: 100),
+        child: SizedBox(
+          height: 42,
+          child: Row(
+            children: [
+              Container(
+                width: 26,
+                height: 26,
+                decoration: BoxDecoration(
+                  color: widget.iconBg,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(widget.icon, size: 14, color: AppColors.white),
               ),
-              child: Icon(icon, size: 14, color: AppColors.white),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: Text(
-                label,
-                style: AppTypography.bodyMedium.copyWith(
-                  color: context.textTertiary,
-                  fontSize: 14,
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  widget.label,
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: context.textTertiary,
+                    fontSize: 14,
+                  ),
                 ),
               ),
-            ),
-            _Trailing(
-              trailing: trailing,
-              toggleValue: toggleValue,
-              onToggleChanged: onToggleChanged,
-              badgeLabel: badgeLabel,
-              valueLabel: valueLabel,
-            ),
-          ],
+              _Trailing(
+                trailing: widget.trailing,
+                toggleValue: widget.toggleValue,
+                onToggleChanged: widget.onToggleChanged,
+                badgeLabel: widget.badgeLabel,
+                valueLabel: widget.valueLabel,
+              ),
+            ],
+          ),
         ),
       ),
     );

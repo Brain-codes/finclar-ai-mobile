@@ -34,6 +34,7 @@ final _userScopedProviders = <ProviderOrFamily>[
   incomeSourcesProvider,
   expenseListProvider,
   categoriesProvider,
+  categoryPageProvider,
   budgetProvider,
   friendsProvider,
   friendInvitesProvider,

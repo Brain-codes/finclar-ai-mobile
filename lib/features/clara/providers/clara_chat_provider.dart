@@ -2,9 +2,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_client_provider.dart';
 import '../../../core/errors/app_exceptions.dart';
 import '../../../core/services/analytics_service.dart';
+import '../../../core/services/audio_service.dart';
 import '../../../core/services/logger_service.dart';
 import '../data/models/clara_message_model.dart';
 import '../data/repositories/clara_repository.dart';
+import 'clara_audio_provider.dart';
+
+const _claraToneAsset = 'audio/clara_tone.MP3';
 
 final claraRepositoryProvider = Provider<ClaraRepository>((ref) {
   return ClaraRepository(ref.watch(apiClientProvider));
@@ -127,6 +131,9 @@ class ClaraChatNotifier extends Notifier<ClaraChatState> {
         animateMessageId: animateId,
         animateInsightId: insightId,
       );
+      if (ref.read(claraAudioEnabledProvider)) {
+        AudioService.playOnce(_claraToneAsset);
+      }
     } on AppException catch (e) {
       Log.e('Clara send failed', error: e);
       state = state.copyWith(isTyping: false);

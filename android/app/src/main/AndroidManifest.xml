@@ -85,6 +85,17 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- Default channel + sound for FCM notification-messages that don't
+             specify android.notification.channel_id / sound in their payload.
+             Channel itself (with the custom sound bound to it) is created in
+             MainActivity.createNotificationChannel(). -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="finclar_default_channel" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_sound"
+            android:resource="@raw/notification_tone" />
     </application>
 
     <queries>

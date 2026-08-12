@@ -26,95 +26,118 @@ class WrappedSlide5Savings extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 32),
-              WrappedHeadline(data.headline, padding: EdgeInsets.zero),
+              WrappedEntrance(
+                delay: const Duration(milliseconds: 100),
+                child: WrappedHeadline(data.headline, padding: EdgeInsets.zero),
+              ),
               const SizedBox(height: 16),
-              const WrappedSubtitle(
-                "You're building something real!",
-                padding: EdgeInsets.zero,
+              WrappedEntrance(
+                delay: const Duration(milliseconds: 220),
+                child: const WrappedSubtitle(
+                  "You're building something real!",
+                  padding: EdgeInsets.zero,
+                ),
               ),
               const SizedBox(height: 28),
               // Savings rate card
-              _SavingsCard(
-                height: 196,
-                backgroundImage: WrappedAssets.wrapped5card1,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Savings rate',
-                      style: AppTypography.bodySmall.copyWith(
-                        color: WrappedColors.white.withValues(alpha: 0.4),
-                        fontFamily: 'Geist',
-                        fontSize: 16,
+              WrappedEntrance(
+                delay: const Duration(milliseconds: 360),
+                duration: const Duration(milliseconds: 700),
+                slideFrom: const Offset(0, 40),
+                child: _SavingsCard(
+                  height: 196,
+                  backgroundImage: WrappedAssets.wrapped5card1,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Savings rate',
+                        style: AppTypography.bodySmall.copyWith(
+                          color: WrappedColors.white.withValues(alpha: 0.4),
+                          fontFamily: 'Geist',
+                          fontSize: 16,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${data.savingsRate.round()}%',
-                      style: AppTypography.amountLarge.copyWith(
-                        color: WrappedColors.neonGreen,
-                        fontFamily: 'BricolageGrotesque',
-                        fontVariations: const [FontVariation('wght', 700)],
-                        fontSize: 36,
-                        height: 40 / 36,
+                      const SizedBox(height: 8),
+                      WrappedCountUp(
+                        value: data.savingsRate,
+                        formatter: (v) => '${v.round()}%',
+                        delay: const Duration(milliseconds: 550),
+                        style: AppTypography.amountLarge.copyWith(
+                          color: WrappedColors.neonGreen,
+                          fontFamily: 'BricolageGrotesque',
+                          fontVariations: const [FontVariation('wght', 700)],
+                          fontSize: 36,
+                          height: 40 / 36,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
               // Amount saved card
-              _SavingsCard(
-                height: 207,
-                backgroundImage: WrappedAssets.wrapped5card2,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Amount saved',
-                      style: AppTypography.bodySmall.copyWith(
-                        color: WrappedColors.white.withValues(alpha: 0.4),
-                        fontFamily: 'Geist',
-                        fontSize: 16,
+              WrappedEntrance(
+                delay: const Duration(milliseconds: 520),
+                duration: const Duration(milliseconds: 700),
+                slideFrom: const Offset(0, 40),
+                child: _SavingsCard(
+                  height: 207,
+                  backgroundImage: WrappedAssets.wrapped5card2,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Amount saved',
+                        style: AppTypography.bodySmall.copyWith(
+                          color: WrappedColors.white.withValues(alpha: 0.4),
+                          fontFamily: 'Geist',
+                          fontSize: 16,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      formatCurrency(
-                        data.totalSaved,
-                        symbol,
-                        abbreviate: false,
-                        withCommas: true,
+                      const SizedBox(height: 8),
+                      WrappedCountUp(
+                        value: data.totalSaved,
+                        formatter: (v) => formatCurrency(
+                          v,
+                          symbol,
+                          abbreviate: false,
+                          withCommas: true,
+                        ),
+                        delay: const Duration(milliseconds: 700),
+                        style: AppTypography.amountLarge.copyWith(
+                          color: WrappedColors.neonGreen,
+                          fontFamily: 'BricolageGrotesque',
+                          fontVariations: const [FontVariation('wght', 700)],
+                          fontSize: 36,
+                          height: 40 / 36,
+                        ),
                       ),
-                      style: AppTypography.amountLarge.copyWith(
-                        color: WrappedColors.neonGreen,
-                        fontFamily: 'BricolageGrotesque',
-                        fontVariations: const [FontVariation('wght', 700)],
-                        fontSize: 36,
-                        height: 40 / 36,
+                      const SizedBox(height: 16),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Column(
+                          children: [
+                            _SavingsProgressBar(
+                              progress: (data.savingsRate / 100).clamp(
+                                0.0,
+                                1.0,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('0%', style: _labelStyle),
+                                Text('50%', style: _labelStyle),
+                                Text('100%', style: _labelStyle),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Column(
-                        children: [
-                          _SavingsProgressBar(
-                            progress: (data.savingsRate / 100).clamp(0.0, 1.0),
-                          ),
-                          const SizedBox(height: 6),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('0%', style: _labelStyle),
-                              Text('50%', style: _labelStyle),
-                              Text('100%', style: _labelStyle),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               const Spacer(),
@@ -229,42 +252,49 @@ class _SavingsProgressBar extends StatelessWidget {
     return LayoutBuilder(
       builder: (_, constraints) {
         final total = constraints.maxWidth;
-        final filled = total * progress;
-        return Stack(
-          clipBehavior: Clip.none,
-          children: [
-            // Track
-            Container(
-              height: 10,
-              decoration: BoxDecoration(
-                color: const Color(0xFF016350),
-                borderRadius: BorderRadius.circular(100),
-              ),
-            ),
-            // Fill
-            Container(
-              height: 10,
-              width: filled,
-              decoration: BoxDecoration(
-                color: WrappedColors.neonGreen,
-                borderRadius: BorderRadius.circular(100),
-              ),
-            ),
-            // Needle marker at progress position
-            Positioned(
-              left: filled - 2.5,
-              top: -3,
-              child: Container(
-                width: 5,
-                height: 16,
-                decoration: BoxDecoration(
-                  color: WrappedColors.neonGreen,
-                  borderRadius: BorderRadius.circular(2),
-                  border: Border.all(color: WrappedColors.white, width: 1),
+        return WrappedGrowWidth(
+          targetFraction: progress,
+          delay: const Duration(milliseconds: 750),
+          duration: const Duration(milliseconds: 900),
+          builder: (context, fraction) {
+            final filled = total * fraction;
+            return Stack(
+              clipBehavior: Clip.none,
+              children: [
+                // Track
+                Container(
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF016350),
+                    borderRadius: BorderRadius.circular(100),
+                  ),
                 ),
-              ),
-            ),
-          ],
+                // Fill
+                Container(
+                  height: 10,
+                  width: filled,
+                  decoration: BoxDecoration(
+                    color: WrappedColors.neonGreen,
+                    borderRadius: BorderRadius.circular(100),
+                  ),
+                ),
+                // Needle marker at progress position
+                Positioned(
+                  left: filled - 2.5,
+                  top: -3,
+                  child: Container(
+                    width: 5,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: WrappedColors.neonGreen,
+                      borderRadius: BorderRadius.circular(2),
+                      border: Border.all(color: WrappedColors.white, width: 1),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );

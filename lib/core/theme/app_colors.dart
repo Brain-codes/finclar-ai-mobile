@@ -178,7 +178,13 @@ abstract class AppColors {
   static const Color badgeTealStart    = Color(0xFF49F0BC); // badge front gradient start
   static const Color badgeTealEnd      = Color(0xFF29DCCC); // badge front gradient end
 
-  // ─── Clara AI gradients ──────────────────────────────────────────────────────
+  // ─── Clara AI ────────────────────────────────────────────────────────────────
+  static const Color claraCardBg      = Color(0xFFFFF8F7); // warm wash behind the gradient border
+  static const Color claraCardBgDark  = Color(0xFF201A1C); // dark equivalent, keeps the warm tint
+  static const Color claraLabel       = Color(0xFF4D4845); // label + caption text on the wash
+  static const Color claraLabelDark   = Color(0xFFD9D2CF);
+
+
   static const LinearGradient claraGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,

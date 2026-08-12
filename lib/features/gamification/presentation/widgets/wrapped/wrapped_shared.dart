@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' show ImageFilter;
 import 'package:finclar_ai/core/theme/app_colors.dart';
 import 'package:finclar_ai/core/theme/app_spacing.dart';
@@ -489,4 +490,633 @@ abstract class WrappedAssets {
   static const String passportMedal = 'assets/images/wrapped/passportMedal.png';
   static const String passportMemoji =
       'assets/images/wrapped/passport-memoji.png';
+}
+
+// ─── Animation toolkit — reused across every wrapped slide ──────────────────
+//
+// Slides swap in via PageView, so every entrance animation here starts fresh
+// (via initState) each time a slide is built — no manual replay wiring needed.
+
+/// Fade + slide-up + scale entrance. The default single-shot building block
+/// for staggering a slide's content in piece by piece.
+class WrappedEntrance extends StatefulWidget {
+  final Widget child;
+  final Duration delay;
+  final Duration duration;
+  final Offset slideFrom;
+  final double scaleFrom;
+  final Curve curve;
+
+  const WrappedEntrance({
+    super.key,
+    required this.child,
+    this.delay = Duration.zero,
+    this.duration = const Duration(milliseconds: 650),
+    this.slideFrom = const Offset(0, 28),
+    this.scaleFrom = 1.0,
+    this.curve = Curves.easeOutCubic,
+  });
+
+  @override
+  State<WrappedEntrance> createState() => _WrappedEntranceState();
+}
+
+class _WrappedEntranceState extends State<WrappedEntrance>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _curved;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: widget.duration);
+    _curved = CurvedAnimation(parent: _controller, curve: widget.curve);
+    Future.delayed(widget.delay, () {
+      if (mounted) _controller.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _curved,
+      child: widget.child,
+      builder: (context, child) {
+        final t = _curved.value;
+        return Opacity(
+          opacity: t.clamp(0.0, 1.0),
+          child: Transform.translate(
+            offset: widget.slideFrom * (1 - t),
+            child: Transform.scale(
+              scale: widget.scaleFrom + (1 - widget.scaleFrom) * t,
+              child: child,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Springy pop-in — for badges, tags, pills, coins. Overshoots then settles.
+class WrappedPopIn extends StatefulWidget {
+  final Widget child;
+  final Duration delay;
+  final Duration duration;
+
+  const WrappedPopIn({
+    super.key,
+    required this.child,
+    this.delay = Duration.zero,
+    this.duration = const Duration(milliseconds: 700),
+  });
+
+  @override
+  State<WrappedPopIn> createState() => _WrappedPopInState();
+}
+
+class _WrappedPopInState extends State<WrappedPopIn>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scale;
+  late final Animation<double> _fade;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: widget.duration);
+    _scale = Tween(
+      begin: 0.4,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.elasticOut));
+    _fade = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.0, 0.4, curve: Curves.easeOut),
+    );
+    Future.delayed(widget.delay, () {
+      if (mounted) _controller.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      child: widget.child,
+      builder: (context, child) => Opacity(
+        opacity: _fade.value.clamp(0.0, 1.0),
+        child: Transform.scale(scale: _scale.value, child: child),
+      ),
+    );
+  }
+}
+
+/// Counts a number up from 0 to [value] — money and percentages land with
+/// weight instead of just appearing.
+class WrappedCountUp extends StatefulWidget {
+  final double value;
+  final String Function(double) formatter;
+  final Duration delay;
+  final Duration duration;
+  final TextStyle style;
+  final TextAlign? textAlign;
+
+  const WrappedCountUp({
+    super.key,
+    required this.value,
+    required this.formatter,
+    required this.style,
+    this.delay = Duration.zero,
+    this.duration = const Duration(milliseconds: 1100),
+    this.textAlign,
+  });
+
+  @override
+  State<WrappedCountUp> createState() => _WrappedCountUpState();
+}
+
+class _WrappedCountUpState extends State<WrappedCountUp>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _value;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: widget.duration);
+    _value = Tween<double>(begin: 0, end: widget.value).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+    );
+    Future.delayed(widget.delay, () {
+      if (mounted) _controller.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _value,
+      builder: (context, _) => Text(
+        widget.formatter(_value.value),
+        textAlign: widget.textAlign,
+        style: widget.style,
+      ),
+    );
+  }
+}
+
+/// Slow, continuous up-down float — for hero illustrations that should feel
+/// alive rather than static once their entrance finishes.
+class WrappedFloat extends StatefulWidget {
+  final Widget child;
+  final double amplitude;
+  final Duration period;
+
+  const WrappedFloat({
+    super.key,
+    required this.child,
+    this.amplitude = 10,
+    this.period = const Duration(milliseconds: 3200),
+  });
+
+  @override
+  State<WrappedFloat> createState() => _WrappedFloatState();
+}
+
+class _WrappedFloatState extends State<WrappedFloat>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: widget.period)
+      ..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      child: widget.child,
+      builder: (context, child) {
+        final t = Curves.easeInOut.transform(_controller.value);
+        return Transform.translate(
+          offset: Offset(0, -widget.amplitude * t + widget.amplitude / 2),
+          child: child,
+        );
+      },
+    );
+  }
+}
+
+/// Slow continuous pulse — grows and glows, for backgrounds and badges that
+/// need ambient life without stealing focus.
+class WrappedPulse extends StatefulWidget {
+  final Widget child;
+  final double minScale;
+  final double maxScale;
+  final Duration period;
+
+  const WrappedPulse({
+    super.key,
+    required this.child,
+    this.minScale = 0.94,
+    this.maxScale = 1.06,
+    this.period = const Duration(milliseconds: 2200),
+  });
+
+  @override
+  State<WrappedPulse> createState() => _WrappedPulseState();
+}
+
+class _WrappedPulseState extends State<WrappedPulse>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: widget.period)
+      ..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      child: widget.child,
+      builder: (context, child) {
+        final t = Curves.easeInOut.transform(_controller.value);
+        final scale =
+            widget.minScale + (widget.maxScale - widget.minScale) * t;
+        return Transform.scale(scale: scale, child: child);
+      },
+    );
+  }
+}
+
+/// Diagonal light-sweep across text/headlines — a one-shot shimmer that
+/// passes over the content once its entrance is done.
+class WrappedShimmerSweep extends StatefulWidget {
+  final Widget child;
+  final Duration delay;
+  final Duration duration;
+  final Color shimmerColor;
+
+  const WrappedShimmerSweep({
+    super.key,
+    required this.child,
+    this.delay = const Duration(milliseconds: 500),
+    this.duration = const Duration(milliseconds: 1400),
+    this.shimmerColor = const Color(0xFFFFFFFF),
+  });
+
+  @override
+  State<WrappedShimmerSweep> createState() => _WrappedShimmerSweepState();
+}
+
+class _WrappedShimmerSweepState extends State<WrappedShimmerSweep>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: widget.duration);
+    Future.delayed(widget.delay, () {
+      if (mounted) _controller.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      child: widget.child,
+      builder: (context, child) {
+        return ShaderMask(
+          blendMode: BlendMode.srcATop,
+          shaderCallback: (bounds) {
+            final t = _controller.value;
+            final dx = bounds.width * 2.4 * t - bounds.width * 0.7;
+            return LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [
+                Colors.transparent,
+                widget.shimmerColor.withValues(alpha: 0.9),
+                Colors.transparent,
+              ],
+              stops: const [0.35, 0.5, 0.65],
+              transform: _SlideGradient(dx),
+            ).createShader(bounds);
+          },
+          child: child,
+        );
+      },
+    );
+  }
+}
+
+class _SlideGradient extends GradientTransform {
+  final double dx;
+  const _SlideGradient(this.dx);
+  @override
+  Matrix4? transform(Rect bounds, {TextDirection? textDirection}) =>
+      Matrix4.translationValues(dx, 0, 0);
+}
+
+/// Animates a fractional width (e.g. a bar chart bar or progress fill) from 0
+/// to [targetFraction] — used wherever a bar/track needs to "grow in".
+class WrappedGrowWidth extends StatefulWidget {
+  final double targetFraction;
+  final Widget Function(BuildContext context, double fraction) builder;
+  final Duration delay;
+  final Duration duration;
+  final Curve curve;
+
+  const WrappedGrowWidth({
+    super.key,
+    required this.targetFraction,
+    required this.builder,
+    this.delay = Duration.zero,
+    this.duration = const Duration(milliseconds: 900),
+    this.curve = Curves.easeOutCubic,
+  });
+
+  @override
+  State<WrappedGrowWidth> createState() => _WrappedGrowWidthState();
+}
+
+class _WrappedGrowWidthState extends State<WrappedGrowWidth>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _fraction;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: widget.duration);
+    _fraction = Tween<double>(
+      begin: 0,
+      end: widget.targetFraction,
+    ).animate(CurvedAnimation(parent: _controller, curve: widget.curve));
+    Future.delayed(widget.delay, () {
+      if (mounted) _controller.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _fraction,
+      builder: (context, _) => widget.builder(context, _fraction.value),
+    );
+  }
+}
+
+/// Drifting sparkle/confetti particles — a lightweight `CustomPainter` field
+/// that loops continuously behind or above slide content.
+class WrappedParticles extends StatefulWidget {
+  final int count;
+  final List<Color> colors;
+  final double minSize;
+  final double maxSize;
+  final Duration period;
+
+  const WrappedParticles({
+    super.key,
+    this.count = 18,
+    this.colors = const [Colors.white],
+    this.minSize = 2,
+    this.maxSize = 5,
+    this.period = const Duration(milliseconds: 6000),
+  });
+
+  @override
+  State<WrappedParticles> createState() => _WrappedParticlesState();
+}
+
+class _Particle {
+  final double x;
+  final double phase;
+  final double speed;
+  final double size;
+  final Color color;
+  final double drift;
+  const _Particle(
+    this.x,
+    this.phase,
+    this.speed,
+    this.size,
+    this.color,
+    this.drift,
+  );
+}
+
+class _WrappedParticlesState extends State<WrappedParticles>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final List<_Particle> _particles;
+
+  @override
+  void initState() {
+    super.initState();
+    final rnd = math.Random(42);
+    _particles = List.generate(widget.count, (i) {
+      return _Particle(
+        rnd.nextDouble(),
+        rnd.nextDouble(),
+        0.5 + rnd.nextDouble() * 0.8,
+        widget.minSize + rnd.nextDouble() * (widget.maxSize - widget.minSize),
+        widget.colors[i % widget.colors.length],
+        (rnd.nextDouble() - 0.5) * 0.3,
+      );
+    });
+    _controller = AnimationController(vsync: this, duration: widget.period)
+      ..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) => CustomPaint(
+          painter: _ParticlesPainter(_particles, _controller.value),
+          size: Size.infinite,
+        ),
+      ),
+    );
+  }
+}
+
+class _ParticlesPainter extends CustomPainter {
+  final List<_Particle> particles;
+  final double t;
+  _ParticlesPainter(this.particles, this.t);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (final p in particles) {
+      final progress = (p.phase + t * p.speed) % 1.0;
+      final y = size.height * (1 - progress);
+      final x = size.width * (p.x + p.drift * math.sin(progress * math.pi * 2))
+          .clamp(0.0, 1.0);
+      final opacity = (math.sin(progress * math.pi)).clamp(0.0, 1.0);
+      final paint = Paint()..color = p.color.withValues(alpha: opacity);
+      canvas.drawCircle(Offset(x, y), p.size, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ParticlesPainter old) => old.t != t;
+}
+
+/// One-shot burst of particles exploding outward from the center — for badge
+/// / celebration moments like the "well done" slide.
+class WrappedConfettiBurst extends StatefulWidget {
+  final Duration delay;
+  final List<Color> colors;
+
+  const WrappedConfettiBurst({
+    super.key,
+    this.delay = Duration.zero,
+    this.colors = const [
+      Color(0xFF0EFD05),
+      Color(0xFFFFC861),
+      Color(0xFFFA5874),
+      Color(0xFFFFFFFF),
+    ],
+  });
+
+  @override
+  State<WrappedConfettiBurst> createState() => _WrappedConfettiBurstState();
+}
+
+class _BurstParticle {
+  final double angle;
+  final double distance;
+  final double size;
+  final Color color;
+  const _BurstParticle(this.angle, this.distance, this.size, this.color);
+}
+
+class _WrappedConfettiBurstState extends State<WrappedConfettiBurst>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final List<_BurstParticle> _particles;
+  late final Animation<double> _curved;
+
+  @override
+  void initState() {
+    super.initState();
+    final rnd = math.Random(7);
+    _particles = List.generate(28, (i) {
+      return _BurstParticle(
+        rnd.nextDouble() * math.pi * 2,
+        0.5 + rnd.nextDouble() * 0.5,
+        2 + rnd.nextDouble() * 4,
+        widget.colors[i % widget.colors.length],
+      );
+    });
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1100),
+    );
+    _curved = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
+    Future.delayed(widget.delay, () {
+      if (mounted) _controller.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: AnimatedBuilder(
+        animation: _curved,
+        builder: (context, _) => CustomPaint(
+          painter: _BurstPainter(_particles, _curved.value),
+          size: Size.infinite,
+        ),
+      ),
+    );
+  }
+}
+
+class _BurstPainter extends CustomPainter {
+  final List<_BurstParticle> particles;
+  final double t;
+  _BurstPainter(this.particles, this.t);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height * 0.32);
+    final maxRadius = size.shortestSide * 0.55;
+    final opacity = (1 - t).clamp(0.0, 1.0);
+    for (final p in particles) {
+      final r = maxRadius * p.distance * t;
+      final offset = center + Offset(math.cos(p.angle), math.sin(p.angle)) * r;
+      final paint = Paint()..color = p.color.withValues(alpha: opacity);
+      canvas.drawCircle(offset, p.size, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_BurstPainter old) => old.t != t;
 }

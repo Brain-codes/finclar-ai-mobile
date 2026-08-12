@@ -60,7 +60,10 @@ class SocialAuthButtons extends ConsumerWidget {
             label: AppStrings.google,
             onTap: state.isLoading
                 ? null
-                : () => ref.read(socialAuthProvider.notifier).signInWithGoogle(),
+                : () {
+                    FocusManager.instance.primaryFocus?.unfocus();
+                    ref.read(socialAuthProvider.notifier).signInWithGoogle();
+                  },
             isLoading: state.loading == SocialProvider.google,
             variant: AppButtonVariant.secondary,
             svgIcon: AppSvg.google,
@@ -75,7 +78,10 @@ class SocialAuthButtons extends ConsumerWidget {
               label: AppStrings.apple,
               onTap: state.isLoading
                   ? null
-                  : () => ref.read(socialAuthProvider.notifier).signInWithApple(),
+                  : () {
+                      FocusManager.instance.primaryFocus?.unfocus();
+                      ref.read(socialAuthProvider.notifier).signInWithApple();
+                    },
               isLoading: state.loading == SocialProvider.apple,
               variant: AppButtonVariant.secondary,
               svgIcon: AppSvg.apple,

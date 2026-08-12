@@ -177,6 +177,68 @@ status as approximate — confirm against the code/branch before building on it.
 
 ## Dated log
 
+### 2026-08-12 — Clara reply tone + settings sheet (audio toggle, preferred name)
+
+Clara now plays `assets/audio/clara_tone.MP3` once whenever a reply lands
+(`ClaraChatNotifier.sendText`, gated behind `claraAudioEnabledProvider`).
+Added `AudioService.playOnce()` — a disposable one-shot player, separate from
+the existing shared `_player` used by `playLoop` (wrapped screen), so the two
+never fight over the same instance. New `claraAudioEnabledProvider`
+(`lib/features/clara/providers/clara_audio_provider.dart`) persists the toggle
+via `SharedPreferences` (`AppConstants.claraAudioEnabledKey`), same pattern as
+`themeProvider`. Also fixed, in the same pass, a **replaying-animation bug**:
+`ClaraAssistantBubble` / `ClaraInsightCard` recreate their reveal animations in
+`initState`, and since `animateMessageId`/`animateInsightId` in
+`ClaraChatState` are never cleared, `ListView` disposing/reinflating
+off-screen list items on scroll was replaying the typewriter + chart-reveal
+every time a message scrolled back into view (and desyncing the two, so the
+chart could appear before the text finished). Fixed with
+`AutomaticKeepAliveClientMixin` on both widgets.
+
+Added a settings (gear) icon to the Clara chat top bar → **Clara settings**
+sheet (`clara_settings_sheet.dart`): a **Reply sound** toggle bound to
+`claraAudioEnabledProvider`, and a **Preferred name** field that reuses
+`userProfileProvider.updateProfile(preferredName: ...)` — the same `PATCH
+/user/me` field the onboarding/edit-profile flows already write. No new
+endpoint. `docs/FLOWS.md` §5.3 documents the sheet.
+
+### 2026-08-12 — Category picker pages the server
+
+`GET /categories` is paginated, and custom categories make the list unbounded.
+The picker previously waited on `categoriesProvider` (which walks *every* page
+via `getAllPaginated`) before showing anything. Added
+`ExpenseRepository.getCategoriesPage()` + `categoryPageProvider`
+(`CategoryPageNotifier` / `CategoryPageState`, page size
+`AppConstants.categoryPageSize` = 20) and rewrote `expense_category_sheet.dart`
+as a fixed-height `ListView` with scroll-triggered `loadMore()`, skeleton rows
+for both the first load and the trailing "loading more" row, and **Add
+category** moved into the sheet `footer` so it stays reachable. `categoriesProvider`
+is unchanged — colour sync, filter sheet, and id→name lookups still need the
+full set. Both providers are invalidated on create and on session reset.
+
+### 2026-08-12 — Expenses summary card totals now come from `GET /expenses`
+
+The "Total expense" figure and category bar/legend on the expenses screen were
+summed from `ExpenseListState.items`, which is paginated — so they only ever
+reflected the pages loaded so far. First fix reached for a separate
+`GET /expenses/summary` call and a 100-row page-size hack; both were dropped
+once the backend added the real fix
+([commit 20f423f](https://github.com/ayoolat/finclair-ai/commit/20f423fc346966c32e784e5f5d279f4f3eb67b28)):
+`GET /expenses` (`ExpenseListResponseDto`) now returns `total_expenses` and
+`category_breakdown` as siblings of `pagination`, computed server-side over
+**every expense matching the current filters** — not just the current page,
+and correct for filtered views too (custom range, category, search).
+
+`PaginatedResponse` (`lib/core/api/api_response.dart`) grew two optional
+fields, `totalAmount` / `categoryBreakdown` (raw `List<Map>`, endpoint-agnostic —
+callers that have it parse into their own model), populated whenever the
+backend sends them. `ExpenseListState` carries `total` + `categoryBreakdown`
+(`List<CategorySummaryModel>`, reusing the `/expenses/summary` model) straight
+off the page-1 response; pagination is back to the normal `page_size=20`.
+`edit`/`delete` call a page-1-only `_refreshTotals()` afterward (not a full
+`refresh()`) so the totals catch up without resetting scroll/loaded pages.
+`docs/API.md` updated to match.
+
 ### 2026-08-11 — Money passport: real image sharing, close button, month banner
 
 Four changes to the wrapped/passport flow:

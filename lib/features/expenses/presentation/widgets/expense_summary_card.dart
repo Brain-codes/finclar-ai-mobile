@@ -4,12 +4,15 @@ import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
-import '../../data/models/expense_model.dart';
 import 'expense_category_utils.dart';
 
 class ExpenseSummaryCard extends StatelessWidget {
   final double total;
-  final List<ExpenseModel> expenses;
+
+  /// Amount per category, computed server-side over every expense matching
+  /// the current filters — never derived from the paginated list, which only
+  /// holds the pages loaded so far.
+  final Map<String, double> categoryTotals;
   final int selectedMonth;
   final VoidCallback onMonthTap;
 
@@ -20,7 +23,7 @@ class ExpenseSummaryCard extends StatelessWidget {
   const ExpenseSummaryCard({
     super.key,
     required this.total,
-    required this.expenses,
+    required this.categoryTotals,
     required this.selectedMonth,
     required this.onMonthTap,
     this.periodLabel,
@@ -91,9 +94,9 @@ class ExpenseSummaryCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: AppSpacing.base),
-            ExpenseCategoryBar(expenses: expenses),
+            ExpenseCategoryBar(categoryTotals: categoryTotals),
             const SizedBox(height: AppSpacing.md),
-            ExpenseCategoryLegend(expenses: expenses),
+            ExpenseCategoryLegend(categoryTotals: categoryTotals),
           ],
         ),
       ),
@@ -104,19 +107,16 @@ class ExpenseSummaryCard extends StatelessWidget {
 // ─── Stacked category bar ─────────────────────────────────────────────────────
 
 class ExpenseCategoryBar extends StatelessWidget {
-  final List<ExpenseModel> expenses;
-  const ExpenseCategoryBar({super.key, required this.expenses});
+  final Map<String, double> categoryTotals;
+  const ExpenseCategoryBar({super.key, required this.categoryTotals});
 
   @override
   Widget build(BuildContext context) {
-    final byCategory = <String, double>{};
-    for (final e in expenses) {
-      byCategory[e.category] = (byCategory[e.category] ?? 0) + e.amount;
-    }
-    final total = byCategory.values.fold(0.0, (a, b) => a + b);
+    final total = categoryTotals.values.fold(0.0, (a, b) => a + b);
     if (total == 0) return const SizedBox.shrink();
 
-    final segments = byCategory.entries.toList();
+    final segments =
+        categoryTotals.entries.where((e) => e.value > 0).toList();
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -142,12 +142,15 @@ class ExpenseCategoryBar extends StatelessWidget {
 // ─── Category legend ──────────────────────────────────────────────────────────
 
 class ExpenseCategoryLegend extends StatelessWidget {
-  final List<ExpenseModel> expenses;
-  const ExpenseCategoryLegend({super.key, required this.expenses});
+  final Map<String, double> categoryTotals;
+  const ExpenseCategoryLegend({super.key, required this.categoryTotals});
 
   @override
   Widget build(BuildContext context) {
-    final categories = expenses.map((e) => e.category).toSet().toList();
+    final categories = categoryTotals.entries
+        .where((e) => e.value > 0)
+        .map((e) => e.key)
+        .toList();
     return Wrap(
       spacing: AppSpacing.base,
       runSpacing: AppSpacing.xs,

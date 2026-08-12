@@ -39,6 +39,12 @@ class PaginatedResponse<T> {
   final bool hasNext;
   final bool hasPrev;
 
+  /// Sibling fields some list endpoints (currently `/expenses`) add alongside
+  /// `pagination` — computed over every row matching the filters, not just
+  /// the current page. Null on endpoints that don't send them.
+  final double? totalAmount;
+  final List<Map<String, dynamic>>? categoryBreakdown;
+
   const PaginatedResponse({
     required this.success,
     this.message,
@@ -49,6 +55,8 @@ class PaginatedResponse<T> {
     required this.totalPages,
     required this.hasNext,
     required this.hasPrev,
+    this.totalAmount,
+    this.categoryBreakdown,
   });
 
   bool get hasMore => hasNext;
@@ -72,6 +80,18 @@ class PaginatedResponse<T> {
       totalPages: pagination['total_pages'] as int? ?? 0,
       hasNext: pagination['has_next'] as bool? ?? false,
       hasPrev: pagination['has_prev'] as bool? ?? false,
+      totalAmount: _toDouble(json['total_expenses']),
+      categoryBreakdown: (json['category_breakdown'] as List<dynamic>?)
+          ?.cast<Map<String, dynamic>>(),
     );
   }
+}
+
+/// Some backend `Decimal` fields (e.g. `total_expenses`) serialize as strings
+/// (`"2099000.00"`) rather than JSON numbers — same reason `ExpenseModel`
+/// parses `amount` this way instead of a plain `as num?` cast.
+double? _toDouble(dynamic value) {
+  if (value == null) return null;
+  if (value is num) return value.toDouble();
+  return double.tryParse(value.toString());
 }

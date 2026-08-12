@@ -105,6 +105,9 @@ dependencies:
   # Home screen widgets (via HomeWidgetService wrapper only)
   home_widget: ^0.7.0
 
+  # Audio playback (via AudioService wrapper only)
+  audioplayers: ^6.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -131,6 +134,7 @@ flutter:
     - assets/images/gamification/badges/
     - assets/images/wrapped/
     - assets/images/wrapped/category/
+    - assets/audio/
     - assets/icons/
     - assets/logo/
     - assets/svg/

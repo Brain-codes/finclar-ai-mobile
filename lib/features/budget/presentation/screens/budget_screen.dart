@@ -16,10 +16,11 @@ import '../../../../shared/widgets/app_snackbar.dart';
 import '../../../expenses/presentation/widgets/expense_category_utils.dart';
 import '../../../expenses/providers/category_color_sync_provider.dart';
 import '../../../home/presentation/widgets/clara_card.dart';
-import '../../../home/presentation/widgets/income_expense_chart_section.dart';
 import '../../data/models/budget_model.dart';
 import '../../providers/budget_providers.dart';
 import '../widgets/budget_summary_card.dart';
+import '../widgets/budget_composition_card.dart';
+import '../widgets/budget_expense_chart_section.dart';
 import '../widgets/budget_category_tile.dart';
 import '../widgets/budget_allocation_sheet.dart';
 import '../widgets/budget_delete_sheet.dart';
@@ -552,19 +553,13 @@ class _FilledBudget extends ConsumerWidget {
             }),
           if (categories.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.sm),
-            IncomeExpenseChartSection(
-              data: budget.allocations
-                  .map(
-                    (a) => IncomeExpenseData(
-                      month: a.categoryName,
-                      income: a.amountAllocated,
-                      expense: a.spent,
-                    ),
-                  )
-                  .toList(),
-              totalIncome: budget.totalAllocatedToCategories,
+            BudgetExpenseChartSection(
+              allocations: budget.allocations,
+              totalBudget: budget.totalAllocatedToCategories,
               totalExpense: budget.spent,
             ),
+            const SizedBox(height: AppSpacing.base),
+            BudgetCompositionCard(budget: budget),
           ],
         ],
       ),
@@ -699,7 +694,7 @@ class _BudgetSkeleton extends StatelessWidget {
   }
 }
 
-class _BudgetError extends StatelessWidget {
+ class _BudgetError extends StatelessWidget {
   final VoidCallback onRetry;
   const _BudgetError({required this.onRetry});
 

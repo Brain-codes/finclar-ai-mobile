@@ -61,6 +61,7 @@ class _AddCategoryContentState extends ConsumerState<_AddCategoryContent> {
           .read(expenseRepositoryProvider)
           .createCategory(name: name, icon: iconValue);
       ref.invalidate(categoriesProvider);
+      ref.invalidate(categoryPageProvider);
       if (mounted) Navigator.of(context, rootNavigator: true).pop(created);
     } on AppException catch (e) {
       if (mounted) {
