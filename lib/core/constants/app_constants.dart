@@ -26,6 +26,7 @@ abstract class AppConstants {
   static const String weekendPromptWeekKey = 'weekend_prompt_week';
   static const String categoryPromptDateKey = 'category_prompt_date';
   static const String streakModalDateKey = 'streak_modal_date';
+  static const String wrappedBannerDismissedKey = 'wrapped_banner_dismissed';
   static const String biometricEnabledKey = 'biometric_enabled';
   static const String biometricPasscodeKey = 'biometric_passcode';
   static const String tourPendingKey = 'home_tour_pending';

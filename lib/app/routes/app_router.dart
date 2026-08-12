@@ -337,7 +337,14 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: RouteNames.wrapped,
-      pageBuilder: (context, state) => _page(state, const WrappedScreen()),
+      // ?year=&month= targets a past recap; absent means the current month.
+      pageBuilder: (context, state) => _page(
+        state,
+        WrappedScreen(
+          year: int.tryParse(state.uri.queryParameters['year'] ?? ''),
+          month: int.tryParse(state.uri.queryParameters['month'] ?? ''),
+        ),
+      ),
     ),
     GoRoute(
       path: RouteNames.challenges,

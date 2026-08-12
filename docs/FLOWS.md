@@ -372,7 +372,8 @@ This flow is reachable from two places — the group detail members strip and th
 
 ### 7.5 Money Passport (Wrapped)
 
-1. Settings → **Money passport**.
+1. Settings → **Monthly money passport**. It is also reachable from the home
+   banner (§7.6), which opens the recap for the month it names.
 2. It's a swipeable story. Tap **Next** on each slide:
    1. Intro — "Your [Month] wrapped" / "See how you earned, saved and spent"
    2. **Your income vs Expense** — total income, total spent, net balance
@@ -384,8 +385,32 @@ This flow is reachable from two places — the group detail members strip and th
    8. "You're killing it!"
    9. The passport card itself
 3. The button reads **See my passport** on the second-to-last slide and **View my passport** on the last.
-4. Tap **Share passport** to share the card, then **Done**.
-5. Failure reads "We couldn't build your wrapped" / "Check your connection and try again." with **Try again** and **Close**.
+4. On the last slide ("Share your passport" / "Well done! You can share your
+   passport with loved ones") tap **Share passport**. The passport card is
+   captured as a PNG named after you — `<your username> money passport.png`,
+   e.g. "Anonimos_brain money passport.png" — and handed to the share sheet, captioned
+   "My Finclar Money Passport for [Month Year]" — pick WhatsApp, Instagram,
+   Photos or anywhere else. The button shows a spinner while the image is made.
+   Check the shared file is an image of the card, not a link.
+5. Cancel the share sheet and you stay on the passport — nothing is sent.
+6. Tap the **X** at the top right of the passport slide to close the story and
+   return to where you opened it from.
+7. If the image can't be made you get "Couldn't create your passport image";
+   if the share sheet won't open, "Couldn't open the share sheet".
+8. Failure reads "We couldn't build your wrapped" / "Check your connection and try again." with **Try again** and **Close**.
+9. Reopening the passport always refetches — the numbers are never a cached
+   replay of an earlier visit.
+
+### 7.6 Month wrap banner (home)
+
+1. In the last two days of a month, and the first two days of the next one,
+   home shows a banner above **Quick start**: "Your [Month] wrap is here" /
+   "Tap to see your money passport".
+2. In the last two days of a month it names that month; on the 1st and 2nd it
+   names the month that just ended, and opening it shows that month's recap.
+3. Tap the banner → the Money Passport story (§7.5) for the month named.
+4. Tap the **X** on the right to dismiss it. It stays gone for that month; next
+   month's banner still appears.
 
 ---
 
@@ -598,6 +623,8 @@ All three drop you on the Subscription screen (9.1).
 | Badges failure | "Couldn't load your badges. Pull down to try again." | Pull to refresh |
 | Notifications failure | "Something went wrong" | **Retry** |
 | Wrapped failure | "We couldn't build your wrapped" | **Try again** |
+| Passport share, capture failed | "Couldn't create your passport image" | Tap **Share passport** again |
+| Passport share, sheet failed | "Couldn't open the share sheet" | Tap **Share passport** again |
 | Categories failure | "Failed to load categories. Tap to retry." | Tap the message |
 | Banks failure | "Failed to load banks" | Back out and retry |
 | Accounts failure | "Failed to load accounts" | Back out and retry |

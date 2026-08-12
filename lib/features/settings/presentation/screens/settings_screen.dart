@@ -200,7 +200,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         SettingsRow(
                           icon: AppIcons.passport,
                           iconBg: AppColors.settingsCoral,
-                          label: 'Money passport',
+                          label: 'Monthly money passport',
                           onTap: () => context.push(RouteNames.wrapped),
                         ),
                         SettingsRow(

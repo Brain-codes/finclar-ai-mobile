@@ -409,8 +409,6 @@ abstract class WrappedAssets {
   static const String wrapped2BG = 'assets/images/wrapped/wrapped-2-bg.png';
   static const String wrapped3BG = 'assets/images/wrapped/wrapped-3-bg.png';
   static const String wrapped4BG = 'assets/images/wrapped/wrapped-4-bg.png';
-  static const String wrapped4Image =
-      'assets/images/wrapped/wrapped-4-image.png';
   static const String wrapped6Image =
       'assets/images/wrapped/wrapped-6-image.png';
   static const String wrapped5card1 =
@@ -425,7 +423,56 @@ abstract class WrappedAssets {
       'assets/images/wrapped/wrapped-2-net-balance.png';
   static const String coinDecor =
       'assets/images/wrapped/wrapped_coin_decor.png';
-  static const String food = 'assets/images/wrapped/wrapped_food.png';
+  // ─── Top-category illustrations ───────────────────────────────────────────
+  // Keyed by the normalised category name the backend sends. Anything without
+  // its own artwork falls back to Other.
+
+  static const String _categoryDir = 'assets/images/wrapped/category';
+
+  static const String categoryFallback = '$_categoryDir/Other.png';
+
+  static const Map<String, String> _categoryImages = {
+    'education': '$_categoryDir/Education.png',
+    'entertainment': '$_categoryDir/Entertainment.png',
+    'food': '$_categoryDir/Food.png',
+    'health': '$_categoryDir/Health.png',
+    'investment': '$_categoryDir/Investment.png',
+    'rent': '$_categoryDir/Rent.png',
+    'savings': '$_categoryDir/Savings.png',
+    'shopping': '$_categoryDir/Shopping.png',
+    'transportation': '$_categoryDir/Transportation.png',
+    'utilities': '$_categoryDir/Utilities.png',
+    'other': categoryFallback,
+  };
+
+  /// Names that mean an existing illustration but don't match its key.
+  static const Map<String, String> _categoryAliases = {
+    'transport': 'transportation',
+    'travel': 'transportation',
+    'groceries': 'food',
+    'grocery': 'food',
+    'dining': 'food',
+    'restaurant': 'food',
+    'restaurants': 'food',
+    'medical': 'health',
+    'healthcare': 'health',
+    'bills': 'utilities',
+    'utility': 'utilities',
+    'housing': 'rent',
+    'accommodation': 'rent',
+    'school': 'education',
+    'tuition': 'education',
+    'leisure': 'entertainment',
+    'fun': 'entertainment',
+    'saving': 'savings',
+    'invest': 'investment',
+    'investments': 'investment',
+  };
+
+  static String categoryImage(String name) {
+    final key = name.toLowerCase().replaceAll(RegExp(r'[^a-z]'), '');
+    return _categoryImages[_categoryAliases[key] ?? key] ?? categoryFallback;
+  }
   static const String personality =
       'assets/images/wrapped/wrapped_personality.png';
   static const String aiRobot = 'assets/images/wrapped/ai-robot.png';

@@ -22,6 +22,7 @@ import '../widgets/recent_expenses_section.dart';
 import '../widgets/clara_card.dart';
 import '../widgets/income_setup_modal.dart';
 import '../../../gamification/presentation/widgets/challenge_prompts.dart';
+import '../../../gamification/presentation/widgets/wrapped_banner.dart';
 import '../../../onboarding/presentation/widgets/quick_start_card.dart';
 import '../../../onboarding/providers/tour_provider.dart';
 import '../../../../shared/widgets/app_coachmark.dart';
@@ -212,6 +213,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         ),
                         child: Column(
                           children: [
+                            const WrappedBanner(),
                             const QuickStartCard(),
                             const SizedBox(height: AppSpacing.base),
                             SpendingCard(

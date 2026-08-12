@@ -130,6 +130,7 @@ flutter:
     - assets/images/gamification/
     - assets/images/gamification/badges/
     - assets/images/wrapped/
+    - assets/images/wrapped/category/
     - assets/icons/
     - assets/logo/
     - assets/svg/

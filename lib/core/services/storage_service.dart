@@ -108,6 +108,17 @@ class StorageService {
   static Future<void> setStreakModalDate(String date) =>
       _storage.write(key: AppConstants.streakModalDateKey, value: date);
 
+  /// `yyyy-MM` of the recap whose home banner the user dismissed. Stored per
+  /// period so dismissing July's banner doesn't hide August's.
+  static Future<String?> getWrappedBannerDismissed() =>
+      _storage.read(key: AppConstants.wrappedBannerDismissedKey);
+
+  static Future<void> setWrappedBannerDismissed(String period) =>
+      _storage.write(
+        key: AppConstants.wrappedBannerDismissedKey,
+        value: period,
+      );
+
   static Future<bool> isGoalsSkipped() async {
     final value = await _storage.read(key: AppConstants.goalsSkippedKey);
     return value == 'true';

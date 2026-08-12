@@ -2,14 +2,16 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:intl/intl.dart';
+import '../../../../../core/services/share_service.dart';
 import '../../../../../core/theme/app_typography.dart';
 import '../../../../../core/utils/number_formatter.dart';
 import '../../../../../shared/svg/app_svg.dart';
+import '../../../../../shared/widgets/app_snackbar.dart';
 import '../../../../../shared/widgets/app_svg_image.dart';
 import '../../../data/models/wrapped_model.dart';
 import 'wrapped_shared.dart';
 
-class WrappedSlide9Passport extends StatelessWidget {
+class WrappedSlide9Passport extends StatefulWidget {
   final WrappedSharePassport data;
   final String symbol;
 
@@ -17,12 +19,64 @@ class WrappedSlide9Passport extends StatelessWidget {
   /// a username.
   final String displayName;
 
+  /// Month the recap covers, used for the card date and the share caption.
+  final DateTime period;
+
   const WrappedSlide9Passport({
     super.key,
     required this.data,
     required this.symbol,
     required this.displayName,
+    required this.period,
   });
+
+  @override
+  State<WrappedSlide9Passport> createState() => _WrappedSlide9PassportState();
+}
+
+class _WrappedSlide9PassportState extends State<WrappedSlide9Passport> {
+  final GlobalKey _cardKey = GlobalKey();
+  bool _sharing = false;
+
+  /// `<username> money passport.png`. Path separators and the like would break
+  /// the temp file, so anything that isn't safe in a filename is dropped.
+  String get _fileName {
+    final safe = widget.data.username
+        .replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '')
+        .trim();
+    return '${safe.isEmpty ? 'Finclar' : safe} money passport.png';
+  }
+
+  /// Shares the passport card itself as a PNG — the point is that the receiver
+  /// sees the passport, not a link.
+  Future<void> _onShare() async {
+    if (_sharing) return;
+    HapticFeedback.lightImpact();
+    setState(() => _sharing = true);
+
+    final origin = ShareService.originFrom(context);
+    final bytes = await ShareService.captureAsPng(_cardKey);
+
+    if (!mounted) return;
+    if (bytes == null) {
+      setState(() => _sharing = false);
+      AppSnackbar.error(context, "Couldn't create your passport image");
+      return;
+    }
+
+    final month = DateFormat('MMMM yyyy').format(widget.period);
+    final ok = await ShareService.shareImage(
+      bytes,
+      fileName: _fileName,
+      text: 'My Finclar Money Passport for $month',
+      subject: 'My Finclar Money Passport',
+      sharePositionOrigin: origin,
+    );
+
+    if (!mounted) return;
+    setState(() => _sharing = false);
+    if (!ok) AppSnackbar.error(context, "Couldn't open the share sheet");
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,26 +108,35 @@ class WrappedSlide9Passport extends StatelessWidget {
               const SizedBox(height: 22),
               // Passport card — photo bleeds 16px above card top
               Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: _PassportCard(
-                          data: data,
-                          symbol: symbol,
-                          displayName: displayName,
+                // The boundary is exactly what gets shared as a PNG.
+                child: RepaintBoundary(
+                  key: _cardKey,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: _PassportCard(
+                            data: widget.data,
+                            symbol: widget.symbol,
+                            displayName: widget.displayName,
+                            period: widget.period,
+                          ),
                         ),
-                      ),
-                      // Passport photo — top-right, clipped to the card bounds
-                      Positioned(top: -7, right: 24, child: _PassportPhoto()),
-                    ],
+                        // Passport photo — top-right, clipped to the card bounds
+                        Positioned(top: -7, right: 24, child: _PassportPhoto()),
+                      ],
+                    ),
                   ),
                 ),
               ),
               const SizedBox(height: 22),
               const SizedBox(height: 10),
-              const _LiquidGlassButton(label: 'Share passport'),
+              _LiquidGlassButton(
+                label: 'Share passport',
+                isLoading: _sharing,
+                onTap: _onShare,
+              ),
               const SizedBox(height: 16),
             ],
           ),
@@ -89,11 +152,13 @@ class _PassportCard extends StatelessWidget {
   final WrappedSharePassport data;
   final String symbol;
   final String displayName;
+  final DateTime period;
 
   const _PassportCard({
     required this.data,
     required this.symbol,
     required this.displayName,
+    required this.period,
   });
 
   @override
@@ -114,7 +179,7 @@ class _PassportCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header with bottom divider
-            _PassportHeader(),
+            _PassportHeader(period: period),
             // User row
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 16, 14, 0),
@@ -140,6 +205,10 @@ class _PassportCard extends StatelessWidget {
 // ─── Card header (logo + title + photo) ─────────────────────────────────────
 
 class _PassportHeader extends StatelessWidget {
+  final DateTime period;
+
+  const _PassportHeader({required this.period});
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -190,7 +259,7 @@ class _PassportHeader extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            DateFormat('MMMM yyyy').format(DateTime.now()),
+            DateFormat('MMMM yyyy').format(period),
             style: AppTypography.bodySmall.copyWith(
               color: WrappedColors.passportGreen.withValues(alpha: 0.73),
               fontFamily: 'Geist',
@@ -502,8 +571,14 @@ class _PassportPhoto extends StatelessWidget {
 
 class _LiquidGlassButton extends StatelessWidget {
   final String label;
+  final bool isLoading;
+  final VoidCallback onTap;
 
-  const _LiquidGlassButton({required this.label});
+  const _LiquidGlassButton({
+    required this.label,
+    required this.isLoading,
+    required this.onTap,
+  });
 
   // Gradient stroke: #E7E7E4 40% → #81817F 60%
   static const _borderGradient = LinearGradient(
@@ -515,7 +590,7 @@ class _LiquidGlassButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => HapticFeedback.lightImpact(),
+      onTap: isLoading ? null : onTap,
       behavior: HitTestBehavior.opaque,
       child: CustomPaint(
         painter: WrappedGradientBorderPainter(
@@ -532,16 +607,25 @@ class _LiquidGlassButton extends StatelessWidget {
               height: 56,
               color: WrappedColors.nextBtnBg,
               alignment: Alignment.center,
-              child: Text(
-                label,
-                style: AppTypography.labelMedium.copyWith(
-                  color: WrappedColors.white,
-                  fontFamily: 'Geist',
-                  fontVariations: const [FontVariation('wght', 600)],
-                  fontSize: 16,
-                  height: 24 / 16,
-                ),
-              ),
+              child: isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: WrappedColors.white,
+                      ),
+                    )
+                  : Text(
+                      label,
+                      style: AppTypography.labelMedium.copyWith(
+                        color: WrappedColors.white,
+                        fontFamily: 'Geist',
+                        fontVariations: const [FontVariation('wght', 600)],
+                        fontSize: 16,
+                        height: 24 / 16,
+                      ),
+                    ),
             ),
           ),
         ),

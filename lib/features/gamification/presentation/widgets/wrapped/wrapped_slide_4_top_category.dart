@@ -14,9 +14,22 @@ class WrappedSlide4TopCategory extends StatelessWidget {
     required this.symbol,
   });
 
+  /// Widest the illustration is allowed to get. On a phone the 90 % rule wins;
+  /// on a tablet it would run away, so the cap takes over.
+  static const double _maxImageSide = 420;
+
   @override
   Widget build(BuildContext context) {
-    final h = MediaQuery.of(context).size.height;
+    final size = MediaQuery.of(context).size;
+    final h = size.height;
+
+    // Square artwork, so one side does for both. Also bounded by height, or a
+    // short landscape-ish screen would push the amount off the slide.
+    final imageSide = [
+      size.width * 0.9,
+      _maxImageSide,
+      h * 0.42,
+    ].reduce((a, b) => a < b ? a : b);
     return WrappedSlide(
       backgroundImage: WrappedAssets.wrapped4BG,
       child: SafeArea(
@@ -35,10 +48,22 @@ class WrappedSlide4TopCategory extends StatelessWidget {
                     padding: EdgeInsets.zero,
                   ),
                   const SizedBox(height: 28),
-                  Image.asset(
-                    WrappedAssets.wrapped4Image,
-                    // height: h * 0.23,
-                    fit: BoxFit.contain,
+                  // The illustration follows the category the slide names.
+                  // The column is start-aligned, so the image needs its own
+                  // centring to sit in the middle of the slide.
+                  Center(
+                    child: SizedBox(
+                      width: imageSide,
+                      height: imageSide,
+                      child: Image.asset(
+                        WrappedAssets.categoryImage(data.name),
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, _, _) => Image.asset(
+                          WrappedAssets.categoryFallback,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 28),
                   Column(
@@ -97,16 +122,7 @@ class WrappedSlide4TopCategory extends StatelessWidget {
                 ],
               ),
             ),
-            Expanded(
-              child: Center(
-                child: Image.asset(
-                  WrappedAssets.food,
-                  height: h * 0.32,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, _, _) => SizedBox(height: h * 0.32),
-                ),
-              ),
-            ),
+            const Spacer(),
           ],
         ),
       ),

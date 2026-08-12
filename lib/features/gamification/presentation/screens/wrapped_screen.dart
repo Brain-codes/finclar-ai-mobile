@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../shared/icons/app_icons.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../data/models/wrapped_model.dart';
 import '../../../auth/providers/user_profile_provider.dart';
@@ -41,6 +42,10 @@ class WrappedScreen extends ConsumerWidget {
             ),
             data: (wrapped) => WrappedStory(
               wrapped: wrapped,
+              period: DateTime(
+                year ?? DateTime.now().year,
+                month ?? DateTime.now().month,
+              ),
               // The passport shows a human name; the payload only carries the
               // username, so use the preferred name the user chose.
               displayName:
@@ -104,10 +109,15 @@ class WrappedStory extends StatefulWidget {
   final WrappedModel wrapped;
   final String displayName;
 
+  /// Month the recap covers — the passport prints it and the share caption
+  /// names it.
+  final DateTime period;
+
   const WrappedStory({
     super.key,
     required this.wrapped,
     required this.displayName,
+    required this.period,
   });
 
   @override
@@ -144,6 +154,7 @@ class _WrappedScreenState extends State<WrappedStory>
         data: w.sharePassport,
         symbol: symbol,
         displayName: widget.displayName,
+        period: widget.period,
       ),
     ];
   }
@@ -255,68 +266,25 @@ class _WrappedScreenState extends State<WrappedStory>
             bottom: 0,
             left: 0,
             right: 0,
-            child: _buildFooter(bottomPad, isPassport),
+            child: _buildFooter(bottomPad),
+          ),
+        // ── Close — the passport is the finale, so it needs a way out ───
+        if (isPassport)
+          Positioned(
+            top: topPad + 12,
+            right: 16,
+            child: _CloseButton(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                if (context.canPop()) context.pop();
+              },
+            ),
           ),
       ],
     );
   }
 
-  Widget _buildFooter(double bottomPad, bool isPassport) {
-    if (isPassport) {
-      return Padding(
-        padding: EdgeInsets.fromLTRB(16, 0, 16, bottomPad + 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            GestureDetector(
-              onTap: () => HapticFeedback.lightImpact(),
-              behavior: HitTestBehavior.opaque,
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(100),
-                ),
-                child: Text(
-                  'Share passport',
-                  textAlign: TextAlign.center,
-                  style: AppTypography.labelMedium.copyWith(
-                    color: AppColors.onPrimaryDeep,
-                    fontVariations: const [FontVariation('wght', 600)],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            GestureDetector(
-              onTap: () {
-                HapticFeedback.lightImpact();
-                context.pop();
-              },
-              behavior: HitTestBehavior.opaque,
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                decoration: BoxDecoration(
-                  color: WrappedColors.white.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(100),
-                ),
-                child: Text(
-                  'Done',
-                  textAlign: TextAlign.center,
-                  style: AppTypography.labelMedium.copyWith(
-                    color: WrappedColors.white,
-                    fontVariations: const [FontVariation('wght', 600)],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
+  Widget _buildFooter(double bottomPad) {
     // Indices are relative to the end, since the top-category slide is
     // omitted for a year with no expenses.
     final isFirst = _currentPage == 0;
@@ -336,6 +304,30 @@ class _WrappedScreenState extends State<WrappedStory>
           label: label,
           buttonType: isFirst || isLastBeforePassport ? 'share' : 'next',
         ),
+      ),
+    );
+  }
+}
+
+class _CloseButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _CloseButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: WrappedColors.white.withValues(alpha: 0.12),
+          shape: BoxShape.circle,
+        ),
+        alignment: Alignment.center,
+        child: Icon(AppIcons.close, size: 18, color: WrappedColors.white),
       ),
     );
   }

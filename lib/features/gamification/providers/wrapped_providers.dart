@@ -12,8 +12,10 @@ final wrappedRepositoryProvider = Provider<WrappedRepository>((ref) {
 typedef WrappedPeriod = ({int? year, int? month});
 
 /// Monthly recap. Pass a period, or `(year: null, month: null)` for the
-/// current one.
-final wrappedProvider = FutureProvider.family<WrappedModel, WrappedPeriod>((
+/// current one. Auto-disposed so reopening the passport always refetches
+/// instead of replaying a stale recap.
+final wrappedProvider = FutureProvider.autoDispose
+    .family<WrappedModel, WrappedPeriod>((
   ref,
   period,
 ) {

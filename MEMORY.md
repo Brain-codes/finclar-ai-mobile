@@ -177,6 +177,37 @@ status as approximate — confirm against the code/branch before building on it.
 
 ## Dated log
 
+### 2026-08-11 — Money passport: real image sharing, close button, month banner
+
+Four changes to the wrapped/passport flow:
+
+- **Share passport shares a PNG of the card.** The passport card is wrapped in a
+  `RepaintBoundary` and rasterised at 3× on tap, then handed to the system share
+  sheet. All `share_plus` use goes through the new `ShareService`
+  (`core/services/share_service.dart`) — `captureAsPng`, `shareImage`,
+  `originFrom` (iPad popover anchor). The button shows a spinner while capturing;
+  failures are snackbars, not silence.
+- **X close button** top-right of the passport slide. The old passport footer
+  (`Share passport` + `Done`) in `wrapped_screen.dart` was dead code — the footer
+  only ever rendered for non-passport slides — and has been deleted.
+- **Home month-wrap banner.** `wrappedBannerProvider` returns the recap month to
+  advertise, or null: the window is the last two days of a month plus the first
+  two days of the next (which advertises the month that just ended). Dismissal is
+  stored per `yyyy-MM`, so dismissing one month doesn't hide the next. Banner taps
+  open `RouteNames.wrappedFor(year, month)` — the wrapped route now reads
+  `?year=&month=` query params, so a recap is no longer implicitly "this month".
+- **Slide 4 illustration follows the category.** `WrappedAssets.categoryImage()`
+  maps the backend category name (normalised + aliases like transport →
+  transportation) onto `assets/images/wrapped/category/*.png`, falling back to
+  `Other.png` (folder renamed `wrapped category` → `category`; `rent.png` → `Rent.png`). The hardcoded
+  `wrapped-4-image.png` and the dead `wrapped_food.png` reference — that asset
+  never existed, so the bottom half of the slide was an invisible spacer — are
+  gone. Note the category PNGs ship with an opaque white background — they render
+  as a white block on the dark slide until they're re-exported transparent.
+- `wrappedProvider` is now `autoDispose` (reopening always refetches), the
+  passport card prints the *recap's* month rather than today's, and the settings
+  row reads **Monthly money passport**.
+
 ### 2026-08-11 — Add-friend-to-group was 422-ing (wrong request field)
 
 `POST /groups/{group_id}/members` has been live for a while, but `GroupRepository.addMember`

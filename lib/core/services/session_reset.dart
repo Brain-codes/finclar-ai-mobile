@@ -11,6 +11,7 @@ import '../../features/group/providers/group_providers.dart';
 import '../../features/clara/providers/clara_chat_provider.dart';
 import '../../features/gamification/providers/challenge_providers.dart';
 import '../../features/gamification/providers/streak_providers.dart';
+import '../../features/gamification/providers/wrapped_banner_provider.dart';
 import '../../features/gamification/providers/wrapped_providers.dart';
 import '../../features/onboarding/providers/tour_provider.dart';
 
@@ -42,6 +43,7 @@ final _userScopedProviders = <ProviderOrFamily>[
   activeGroupChatIdProvider,
   claraChatProvider,
   wrappedProvider,
+  wrappedBannerProvider,
   challengesProvider,
   challengeEntriesProvider,
   myBadgesProvider,

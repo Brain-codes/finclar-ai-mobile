@@ -68,6 +68,11 @@ abstract class RouteNames {
   static const String challengeDetail     = '/settings/challenges/detail';
   static const String wrapped             = '/settings/wrapped';
 
+  /// The wrapped route pinned to a specific month, e.g. the home banner opening
+  /// last month's recap instead of the current one.
+  static String wrappedFor(int year, int month) =>
+      '$wrapped?year=$year&month=$month';
+
   // Legal
   static const String termsOfService = '/terms-of-service';
   static const String privacyPolicy = '/privacy-policy';
