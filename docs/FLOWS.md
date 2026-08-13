@@ -96,7 +96,7 @@ Every one of these sections shows a shimmer placeholder while its data loads —
    - **Note** → free text, then **Done**.
    - **Date** — read-only, today's date.
 5. Tap **Done**. You're returned to Home and the balance card should now show the new figure — check the number actually changed, not just that the sheet closed.
-6. Editing later: the same flow, but the screen is headed **Edit income** / "Update what you earn" and the sheet is **Edit details**. The backend keeps one income record per user, so the tab bar **+** row says **Update income** once income exists.
+6. Editing later: the same flow, but the screen is headed **Edit income** / "Update what you earn" and the sheet is **Edit details**, which shows only **Source**, **Reoccurence** and **Note** — no **Date** row. The backend keeps one income record per user, so the tab bar **+** row says **Update income** once income exists.
 
 ---
 

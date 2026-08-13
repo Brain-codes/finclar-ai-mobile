@@ -171,26 +171,28 @@ class _AmountDisplay extends StatelessWidget {
         // digit is typed and the words appear.
         SizedBox(
           height: 40,
-          child: AnimatedOpacity(
-            opacity: words.isEmpty ? 0 : 1,
-            duration: AppConstants.animFast,
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md,
-                vertical: 6,
-              ),
-              decoration: BoxDecoration(
-                color: AppColors.primaryMuted,
-                borderRadius: BorderRadius.circular(100),
-              ),
-              child: Text(
-                words,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: AppTypography.labelSmall.copyWith(
-                  color: AppColors.primary,
-                  fontVariations: const [FontVariation('wght', 500)],
+          child: Center(
+            child: AnimatedOpacity(
+              opacity: words.isEmpty ? 0 : 1,
+              duration: AppConstants.animFast,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: context.primaryMuted,
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                child: Text(
+                  words,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.labelSmall.copyWith(
+                    color: AppColors.primary,
+                    fontVariations: const [FontVariation('wght', 500)],
+                  ),
                 ),
               ),
             ),

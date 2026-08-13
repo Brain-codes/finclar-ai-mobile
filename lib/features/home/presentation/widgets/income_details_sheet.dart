@@ -181,8 +181,10 @@ class _IncomeDetailsContentState extends ConsumerState<_IncomeDetailsContent> {
               value: _note ?? 'Add note',
               onTap: _pickNote,
             ),
-            _Divider(),
-            _DetailRow(label: 'Date', value: dateLabel, onTap: null),
+            if (widget.existing == null) ...[
+              _Divider(),
+              _DetailRow(label: 'Date', value: dateLabel, onTap: null),
+            ],
           ],
         ),
         const SizedBox(height: AppSpacing.xl),
