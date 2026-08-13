@@ -49,6 +49,13 @@ class BudgetModel {
   double get unallocated =>
       (amountAllocated - totalAllocatedToCategories).clamp(0, amountAllocated);
 
+  double get allocatedSpent => allocations.fold(0, (sum, a) => sum + a.spent);
+
+  /// Deliberately not `remaining` (which the backend computes against the full
+  /// budget) so the details sheet rows subtract exactly:
+  /// allocated − allocatedSpent. Goes negative when categories are overspent.
+  double get allocatedRemaining => totalAllocatedToCategories - allocatedSpent;
+
   int get daysLeft {
     if (endDate == null) return 0;
     final diff = endDate!.difference(DateTime.now()).inDays;

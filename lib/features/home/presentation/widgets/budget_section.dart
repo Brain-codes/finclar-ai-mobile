@@ -8,6 +8,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/constants/app_strings.dart';
+import '../../../../core/utils/number_formatter.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_skeleton.dart';
 import '../../../../core/utils/extensions/context_extensions.dart';
@@ -547,9 +548,5 @@ class _BudgetItemRow extends StatelessWidget {
     );
   }
 
-  String _format(double v) {
-    if (v >= 1000000) return '${(v / 1000000).toStringAsFixed(1)}m';
-    if (v >= 1000) return '${(v / 1000).toStringAsFixed(0)},000';
-    return v.toStringAsFixed(0);
-  }
+  String _format(double v) => formatAmount(v);
 }

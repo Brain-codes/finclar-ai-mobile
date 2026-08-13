@@ -7,12 +7,14 @@ String formatAmount(
   bool abbreviate = true,
   bool withCommas = false,
 }) {
-  if (abbreviate) {
-    if (value >= 1000000) return '${(value / 1000000).toStringAsFixed(1)}m';
-    if (value >= 1000) return '${(value / 1000).toStringAsFixed(0)}k';
+  // Only millions abbreviate. Rounding thousands to "5k" printed a figure the
+  // user could not reconcile with the percentages beside it (₦1,500 rendered
+  // "₦2k" next to a correct "60% of allocation").
+  if (abbreviate && value >= 1000000) {
+    return '${(value / 1000000).toStringAsFixed(1)}m';
   }
 
-  if (withCommas) {
+  if (withCommas || abbreviate) {
     return NumberFormat('#,##0.##').format(value);
   }
 
