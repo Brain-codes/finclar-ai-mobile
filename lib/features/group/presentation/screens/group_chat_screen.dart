@@ -230,8 +230,10 @@ class _ChatTopBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final detail = ref.watch(groupDetailProvider(group.id)).valueOrNull;
-    final members = detail?.members ?? const [];
-    final count = detail?.memberCount ?? group.memberCount;
+    final currentUserId = ref.watch(userProfileProvider).valueOrNull?.id;
+    final source = detail ?? group;
+    final members = source.visibleMembers(currentUserId);
+    final count = source.visibleMemberCount(currentUserId);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(

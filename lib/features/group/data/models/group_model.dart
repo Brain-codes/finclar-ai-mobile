@@ -116,6 +116,22 @@ class GroupModel {
   /// True when the current user was invited and hasn't yet responded.
   bool get isInvitePending => inviteStatus == GroupInviteStatus.pending;
 
+  /// Members visible to [currentUserId]: departed members are never shown,
+  /// and pending (unaccepted) invites are only visible to the owner.
+  List<GroupMemberModel> visibleMembers(String? currentUserId) {
+    final isOwner = ownerId == currentUserId;
+    return members
+        .where((m) =>
+            m.status != GroupMemberStatus.left &&
+            m.status != GroupMemberStatus.removed &&
+            (isOwner || m.hasAccepted))
+        .toList();
+  }
+
+  /// Friend count visible to [currentUserId] — see [visibleMembers].
+  int visibleMemberCount(String? currentUserId) =>
+      visibleMembers(currentUserId).length;
+
   GroupModel copyWith({List<GroupMemberModel>? members}) => GroupModel(
         id: id,
         name: name,

@@ -57,7 +57,6 @@ class GroupFriendsScreen extends ConsumerWidget {
                   ),
                 ),
                 data: (detail) {
-                  final isOwner = detail.ownerId == currentUserId;
                   return SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(
                       AppSpacing.screenPadding,
@@ -77,7 +76,7 @@ class GroupFriendsScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const SizedBox(height: AppSpacing.base),
-          if (_visibleMembers(detail, isOwner).isEmpty)
+                          if (detail.visibleMembers(currentUserId).isEmpty)
                             Text(
                               'No members yet',
                               style: AppTypography.bodySmall
@@ -85,7 +84,9 @@ class GroupFriendsScreen extends ConsumerWidget {
                             )
                           else
                             ...() {
-                              final members = _visibleMembers(detail, isOwner);
+                              final isOwner = detail.ownerId == currentUserId;
+                              final members =
+                                  detail.visibleMembers(currentUserId);
                               return List.generate(members.length, (i) {
                                 final m = members[i];
                                 final isSelf = m.userId == currentUserId;
@@ -130,17 +131,6 @@ class GroupFriendsScreen extends ConsumerWidget {
       ),
     );
   }
-
-  // Accepted members are visible to everyone. Awaiting-confirmation (pending)
-  // members are only shown to the owner, who can revoke them. Departed members
-  // are never shown.
-  List<GroupMemberModel> _visibleMembers(GroupModel detail, bool isOwner) =>
-      detail.members
-          .where((m) =>
-              m.status != GroupMemberStatus.left &&
-              m.status != GroupMemberStatus.removed &&
-              (isOwner || m.hasAccepted))
-          .toList();
 
   Future<void> _removeMember(
     BuildContext context,

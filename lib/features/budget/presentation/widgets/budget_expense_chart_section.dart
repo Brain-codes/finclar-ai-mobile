@@ -39,7 +39,7 @@ class BudgetExpenseChartSection extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Budget vs expense',
+            'Budget Allocated vs Expense',
             style: AppTypography.labelMedium.copyWith(
               color: context.textPrimary,
               fontVariations: const [FontVariation('wght', 600)],
@@ -110,7 +110,7 @@ class BudgetExpenseChartSection extends ConsumerWidget {
             const SizedBox(height: AppSpacing.xl),
             _LegendItem(
               stripeColor: AppColors.primary,
-              label: 'Budget',
+              label: 'Budget Allocated',
               amount: formatCurrency(totalBudget, symbol,
                   abbreviate: false, withCommas: true),
             ),
